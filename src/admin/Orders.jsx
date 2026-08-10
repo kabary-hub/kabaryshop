@@ -74,15 +74,24 @@ const Orders = () => {
         setCurrentUser(JSON.parse(updatedUser));
       }
     };
-    
+
+    // Rafraîchir les commandes quand elles changent : sur cet ordinateur
+    // (event ordersUpdated) ou depuis un autre appareil (synchronisation
+    // Supabase qui déclenche aussi storage).
+    const handleOrdersUpdate = () => loadOrders();
+
     window.addEventListener('userChanged', handleUserChange);
     window.addEventListener('focus', handleRouteChange); // Quand la page reprend le focus
     window.addEventListener('pageshow', handleRouteChange); // Quand la page est affichée
+    window.addEventListener('ordersUpdated', handleOrdersUpdate);
+    window.addEventListener('storage', handleOrdersUpdate);
     
     return () => {
       window.removeEventListener('userChanged', handleUserChange);
       window.removeEventListener('focus', handleRouteChange);
       window.removeEventListener('pageshow', handleRouteChange);
+      window.removeEventListener('ordersUpdated', handleOrdersUpdate);
+      window.removeEventListener('storage', handleOrdersUpdate);
     };
   }, [currentUser.id]);
 

@@ -32,6 +32,31 @@ export const CategoryProvider = ({ children }) => {
     localStorage.setItem('categories', JSON.stringify(categories));
   }, [categories]);
 
+  // Relire les catégories si elles changent depuis un autre onglet ou un
+  // autre appareil (synchronisation Supabase). Comparaison par valeur pour
+  // éviter toute boucle.
+  useEffect(() => {
+    const handleExternalChange = () => {
+      try {
+        const raw = localStorage.getItem('categories');
+        if (!raw) return;
+        if (JSON.stringify(categories) === raw) return; // rien de nouveau
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && JSON.stringify(parsed) !== JSON.stringify(categories)) {
+          setCategories(parsed);
+        }
+      } catch {
+        // stockage corrompu : on ignore
+      }
+    };
+    window.addEventListener('categoriesUpdated', handleExternalChange);
+    window.addEventListener('storage', handleExternalChange);
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleExternalChange);
+      window.removeEventListener('storage', handleExternalChange);
+    };
+  }, [categories]);
+
   const addCategory = (category) => {
     setCategories([...categories, { ...category, id: Date.now() }]);
   };

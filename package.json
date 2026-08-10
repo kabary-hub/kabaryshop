@@ -12,6 +12,7 @@
     "prices": "node scripts/assign-prices.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "aos": "^2.3.4",
     "lucide-react": "^1.16.0",
     "react": "^19.2.0",

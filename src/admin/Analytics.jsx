@@ -25,6 +25,17 @@ const Analytics = () => {
     loadAnalyticsData();
   }, [period]);
 
+  // Rafraîchir automatiquement quand les données changent : sur cet
+  // ordinateur (events) ou depuis un autre appareil (synchronisation
+  // Supabase qui déclenche storage).
+  useEffect(() => {
+    const handleUpdate = () => loadAnalyticsData();
+    const events = ['ordersUpdated', 'productsUpdated', 'userChanged', 'storage'];
+    events.forEach((evt) => window.addEventListener(evt, handleUpdate));
+    return () =>
+      events.forEach((evt) => window.removeEventListener(evt, handleUpdate));
+  }, [period]);
+
   const loadAnalyticsData = () => {
     try {
       // Récupérer les commandes

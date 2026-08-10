@@ -95,6 +95,31 @@ export const SettingsProvider = ({ children }) => {
     window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: settings }));
   }, [settings]);
 
+  // Relire les paramètres quand ils changent depuis un autre onglet ou un
+  // autre appareil (synchronisation Supabase). Comparaison par valeur pour
+  // éviter toute boucle.
+  useEffect(() => {
+    const handleExternalChange = () => {
+      try {
+        const raw = localStorage.getItem('kabary_settings');
+        if (!raw) return;
+        if (JSON.stringify(settings) === raw) return; // rien de nouveau
+        const parsed = mergeWithDefaults(JSON.parse(raw));
+        if (JSON.stringify(parsed) !== JSON.stringify(settings)) {
+          setSettings(parsed);
+        }
+      } catch {
+        // stockage indisponible ou JSON invalide : on ignore
+      }
+    };
+    window.addEventListener('settingsUpdated', handleExternalChange);
+    window.addEventListener('storage', handleExternalChange);
+    return () => {
+      window.removeEventListener('settingsUpdated', handleExternalChange);
+      window.removeEventListener('storage', handleExternalChange);
+    };
+  }, [settings]);
+
   const updateSettings = (newSettings) => {
     setSettings(mergeWithDefaults(newSettings));
   };

@@ -11,6 +11,10 @@ import { UserProvider } from './context/UserContext';
 import { logActivity } from './utils/history';
 import { updatePageMeta } from './utils/seo';
 import { getAllProducts } from './services/productService';
+// Synchronisation multi-appareils (Supabase). Ne fait rien si Supabase
+// n'est pas configuré : le site reste 100 % local.
+// Chargé en lazy pour ne pas gonfler le bundle initial avec supabase-js.
+const SyncProvider = lazy(() => import('./services/SyncProvider'));
 
 // 🔥 Code-splitting : chaque page est chargée à la demande (lazy)
 // → le chunk initial est beaucoup plus léger, les autres sont chargés
@@ -265,6 +269,10 @@ const App = () => {
             <RouteMeta />
             {/* Journalise les visites de toutes les pages */}
             <PageVisitTracker />
+            {/* Synchronisation des données entre appareils (Supabase) */}
+            <Suspense fallback={null}>
+              <SyncProvider />
+            </Suspense>
             <SiteNavbar
               handleOrderPopup={handleOrder}
               setSearchTerm={setSearchTerm}
