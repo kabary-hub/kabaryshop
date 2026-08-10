@@ -15,6 +15,7 @@ import {
 } from '../utils/notifications';
 import { logActivity } from '../utils/history';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
+import { getSupabase, ensureSupabaseAuth } from '../services/db';
 
 const Settings = () => {
   const { settings, updateSettings } = useSettings();
@@ -75,6 +76,25 @@ const Settings = () => {
     localStorage.setItem('admin_password', newPassword);
     // Également sauvegarder dans sessionStorage pour la session en cours
     sessionStorage.setItem('admin_password', newPassword);
+  };
+
+  // Met à jour le mot de passe du compte cloud (Supabase Auth) pour que la
+  // connexion admin fonctionne depuis n'importe quel appareil.
+  const updateCloudPassword = async (newPassword) => {
+    const sb = getSupabase();
+    if (!sb) return;
+    const admin = formData.adminEmail || formData.siteEmail;
+    if (!admin) return;
+    // Session cloud active → mise à jour directe du mot de passe
+    const { error } = await sb.auth.updateUser({ password: newPassword });
+    if (!error) return;
+    // Pas de session active → on tente une (re)création du compte cloud
+    const res = await ensureSupabaseAuth(admin, newPassword);
+    if (res && res.reason === 'stale-password') {
+      console.warn(
+        '[Auth] mot de passe cloud obsolète : réinitialisation requise dans Supabase (Authentication → Users).'
+      );
+    }
   };
 
   const handleChange = (section, field, value) => {
@@ -189,6 +209,8 @@ const Settings = () => {
     setTimeout(() => {
       // Sauvegarder le nouveau mot de passe
       savePassword(passwordData.newPassword);
+      // Synchroniser aussi le compte cloud (connexion multi-appareils)
+      updateCloudPassword(passwordData.newPassword);
       setPasswordSuccess('Mot de passe modifié avec succès !');
       setPasswordData({
         oldPassword: '',
@@ -265,6 +287,8 @@ const Settings = () => {
       setTimeout(() => {
         // Sauvegarder le nouveau mot de passe
         savePassword(passwordData.newPasswordAfterReset);
+        // Synchroniser aussi le compte cloud (connexion multi-appareils)
+        updateCloudPassword(passwordData.newPasswordAfterReset);
         localStorage.removeItem('resetCode');
         localStorage.removeItem('resetCodeExpiry');
         setPasswordSuccess('Mot de passe réinitialisé avec succès !');

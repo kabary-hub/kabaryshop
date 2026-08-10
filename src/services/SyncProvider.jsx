@@ -36,6 +36,9 @@ import {
   SYNC_KEYS,
   SYNC_TABLE,
   sameValue,
+  ANON_WRITABLE_KEYS,
+  hasSupabaseSession,
+  AUTH_EVENT,
 } from "./db";
 
 // Événements locaux → clés localStorage à pousser vers le nuage
@@ -76,8 +79,15 @@ const SyncProvider = () => {
     const lastPushed = new Map();
 
     // Pousse une clé localStorage vers Supabase (upsert)
+    // Une clé sensible (app_users, logs…) ne peut être envoyée que si
+    // l'appareil est connecté à Supabase Auth (sinon la politique RLS de
+    // la table la rejette silencieusement).
+    const canWriteKey = (key) =>
+      ANON_WRITABLE_KEYS.includes(key) || hasSupabaseSession();
+
     const pushKey = async (key) => {
       if (!SYNC_KEYS.includes(key)) return;
+      if (!canWriteKey(key)) return;
       let raw;
       try {
         raw = localStorage.getItem(key);
@@ -130,8 +140,8 @@ const SyncProvider = () => {
       }
     };
 
-    // ---- 1. Pull initial (le nuage est la vérité partagée) ----
-    (async () => {
+    // ---- 1. Pull (le nuage est la vérité partagée) ----
+    const doPull = async () => {
       const { data, error } = await client
         .from(SYNC_TABLE)
         .select("key, value");
@@ -162,7 +172,13 @@ const SyncProvider = () => {
           }
         }
       });
-    })();
+    };
+    doPull();
+
+    // Re-pull quand la session Supabase Auth change (connexion → les clés
+    // sensibles deviennent lisibles ; déconnexion → retour en mode visiteur)
+    const handleAuthChange = () => doPull();
+    window.addEventListener(AUTH_EVENT, handleAuthChange);
 
     // ---- 2. Realtime : propagation instantanée depuis d'autres appareils ----
     const channel = client
@@ -206,6 +222,7 @@ const SyncProvider = () => {
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener(AUTH_EVENT, handleAuthChange);
       Object.keys(LOCAL_EVENT_TO_PUSH).forEach((evt) =>
         window.removeEventListener(evt, handleLocalEvent),
       );

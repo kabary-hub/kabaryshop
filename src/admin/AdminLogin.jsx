@@ -12,6 +12,12 @@ import { useSettings } from '../context/SettingsContext';
 import { logActivity } from '../utils/history';
 import { setStaffSession } from '../utils/auth';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
+import {
+  getSupabase,
+  ensureSupabaseAuth,
+  fetchCloudAppUsers,
+  AUTH_EVENT,
+} from '../services/db';
 
 // Clés de session pour la 2FA
 const PENDING_KEY = 'admin_2fa_pending';
@@ -162,23 +168,6 @@ const AdminLogin = () => {
     };
   }, []);
 
-  // Recherche un utilisateur staff (livreur/préparateur) avec cet email
-  const findStaffUser = () => {
-    try {
-      const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-      const normalized = email.trim().toLowerCase();
-      return (
-        users.find(
-          (u) =>
-            (u.email || '').trim().toLowerCase() === normalized &&
-            (u.role === 'livreur' || u.role === 'preparateur'),
-        ) || null
-      );
-    } catch {
-      return null;
-    }
-  };
-
   // Recherche n'importe quel utilisateur enregistré (tous rôles) avec cet email
   const findAppUser = () => {
     try {
@@ -253,57 +242,12 @@ const AdminLogin = () => {
     e.preventDefault();
     setError('');
 
-    // ---- Cas STAFF (livreur / préparateur) ----
-    // L'email correspond à un utilisateur enregistré avec un rôle staff :
-    // connexion vers /staff (session staff dédiée).
-    const staffUser = findStaffUser();
-    if (staffUser) {
-      // Compte bloqué ?
-      if (staffUser.status === 'blocked') {
-        setError('Ce compte est bloqué. Contactez l\'administrateur.');
-        logActivity({
-          type: 'auth',
-          action: 'échec de connexion staff (compte bloqué)',
-          subject: email || 'Inconnu',
-          details: 'Tentative de connexion sur un compte bloqué',
-        });
-        return;
-      }
-      // Aucun mot de passe défini par l'administrateur ?
-      if (!staffUser.password) {
-        setError('Aucun mot de passe défini pour ce compte. L\'administrateur doit en définir un (Admin > Utilisateurs > Modifier).');
-        logActivity({
-          type: 'auth',
-          action: 'échec de connexion staff (mot de passe manquant)',
-          subject: email || 'Inconnu',
-          details: `Le compte ${staffUser.name} n'a pas de mot de passe défini`,
-        });
-        return;
-      }
-      if (password !== staffUser.password) {
-        setError('Email ou mot de passe incorrect');
-        logActivity({
-          type: 'auth',
-          action: 'échec de connexion staff',
-          subject: email || 'Inconnu',
-          details: `Tentative de connexion (${staffUser.role}) avec mot de passe incorrect`,
-        });
-        return;
-      }
-      setStaffSession(staffUser.id);
-      logActivity({
-        type: 'auth',
-        action: 'connexion',
-        subject: staffUser.name,
-        details: `Connexion réussie à l'espace ${staffUser.role === 'livreur' ? 'livreur' : 'préparateur'}`,
-        actor: { name: staffUser.name, role: staffUser.role },
-      });
-      navigate('/staff/orders');
-      return;
-    }
+    const trimmedEmail = email.trim().toLowerCase();
 
-    // ---- Cas ADMIN PRINCIPAL (email admin configuré dans Paramètres) ----
-    if (email.toLowerCase() === adminEmail.toLowerCase()) {
+    // ====================================================================
+    // 1) ADMIN PRINCIPAL (email configuré dans Paramètres > Coordonnées)
+    // ====================================================================
+    if (trimmedEmail === adminEmail.toLowerCase()) {
       const storedPassword = getStoredPassword();
 
       // Le mot de passe admin doit respecter la règle 8-15 caractères
@@ -313,22 +257,34 @@ const AdminLogin = () => {
       }
 
       if (password !== storedPassword) {
-        setError('Email ou mot de passe incorrect');
-        logActivity({
-          type: 'auth',
-          action: 'échec de connexion',
-          subject: email || 'Inconnu',
-          details: 'Tentative de connexion admin avec identifiants incorrects',
-        });
+        // Repli : le mot de passe cloud (Supabase Auth) peut être différent
+        // si l'admin a changé son mot de passe sur un autre appareil.
+        const res = await ensureSupabaseAuth(trimmedEmail, password);
+        if (!res.ok) {
+          setError('Email ou mot de passe incorrect');
+          logActivity({
+            type: 'auth',
+            action: 'échec de connexion',
+            subject: email || 'Inconnu',
+            details: 'Tentative de connexion admin avec identifiants incorrects',
+          });
+          return;
+        }
+        await completeAdminLogin(null);
         return;
       }
 
-      // Email correct → 2FA si activée, puis connexion
+      // Mot de passe local correct → 2FA si activée, puis connexion.
+      // Active aussi la session cloud (compte créé automatiquement si besoin).
+      ensureSupabaseAuth(trimmedEmail, password);
       await completeAdminLogin(findAppUser());
       return;
     }
 
-    // ---- Cas utilisateur créé dans Admin > Utilisateurs ----
+    // ====================================================================
+    // 2) AUTRES COMPTES — vérification locale (l'appareil connaît déjà le
+    //    compte via app_users synchronisé)
+    // ====================================================================
     const foundUser = findAppUser();
     if (foundUser) {
       // Compte bloqué ?
@@ -343,30 +299,32 @@ const AdminLogin = () => {
         return;
       }
 
-      // Rôle admin → connexion à l'espace admin avec son propre mot de passe
+      // Aucun mot de passe défini par l'administrateur ?
+      if (!foundUser.password) {
+        setError('Aucun mot de passe défini pour ce compte. L\'administrateur doit en définir un (Admin > Utilisateurs > Modifier).');
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion (mot de passe manquant)',
+          subject: email || 'Inconnu',
+          details: `Le compte ${foundUser.name} n'a pas de mot de passe défini`,
+        });
+        return;
+      }
+
+      if (password !== foundUser.password) {
+        setError('Email ou mot de passe incorrect');
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion',
+          subject: email || 'Inconnu',
+          details: `Tentative de connexion (${foundUser.role}) avec mot de passe incorrect`,
+        });
+        return;
+      }
+
+      // Rôle admin → espace admin
       if (foundUser.role === 'admin') {
-        if (!foundUser.password) {
-          setError(
-            'Aucun mot de passe défini pour ce compte. L\'administrateur doit en définir un (Admin > Utilisateurs > Modifier).'
-          );
-          logActivity({
-            type: 'auth',
-            action: 'échec de connexion admin (mot de passe manquant)',
-            subject: email || 'Inconnu',
-            details: `Le compte admin ${foundUser.name} n'a pas de mot de passe défini`,
-          });
-          return;
-        }
-        if (password !== foundUser.password) {
-          setError('Email ou mot de passe incorrect');
-          logActivity({
-            type: 'auth',
-            action: 'échec de connexion admin',
-            subject: email || 'Inconnu',
-            details: `Tentative de connexion (${foundUser.role}) avec mot de passe incorrect`,
-          });
-          return;
-        }
+        ensureSupabaseAuth(trimmedEmail, password);
         await completeAdminLogin(foundUser);
         return;
       }
@@ -385,19 +343,108 @@ const AdminLogin = () => {
         return;
       }
 
-      // Livreur / préparateur : mot de passe incorrect (le flux staff ci-dessus
-      // ne s'est pas déclenché car le mot de passe ne correspondait pas)
-      setError('Email ou mot de passe incorrect');
+      // Livreur / préparateur → espace staff
+      ensureSupabaseAuth(trimmedEmail, password);
+      setStaffSession(foundUser.id);
       logActivity({
         type: 'auth',
-        action: 'échec de connexion',
-        subject: email || 'Inconnu',
-        details: 'Tentative de connexion avec identifiants incorrects',
+        action: 'connexion',
+        subject: foundUser.name,
+        details: `Connexion réussie à l'espace ${foundUser.role === 'livreur' ? 'livreur' : 'préparateur'}`,
+        actor: { name: foundUser.name, role: foundUser.role },
       });
+      navigate('/staff/orders');
       return;
     }
 
-    // ---- Aucun compte correspondant ----
+    // ====================================================================
+    // 3) APPAREIL NEUF — le compte n'est pas encore sur cet appareil :
+    //    l'identité est vérifiée par Supabase Auth (compte cloud créé au
+    //    préalable par l'admin lors de la création de l'utilisateur)
+    // ====================================================================
+    const sb = getSupabase();
+    if (sb) {
+      const { error: authError } = await sb.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+      if (authError) {
+        const msg = String(authError.message || '');
+        if (/blocked|disabled|banned/i.test(msg)) {
+          setError('Ce compte est bloqué. Contactez l\'administrateur.');
+        } else if (/not confirmed/i.test(msg)) {
+          setError('Ce compte n\'est pas confirmé. Contactez l\'administrateur.');
+        } else {
+          setError('Email ou mot de passe incorrect');
+        }
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion',
+          subject: email || 'Inconnu',
+          details: 'Identifiants non reconnus sur cet appareil (vérification Supabase)',
+        });
+        return;
+      }
+
+      // Déclenche le rechargement des données sensibles (app_users,
+      // commandes, logs…) maintenant que la session Supabase est active.
+      window.dispatchEvent(new Event(AUTH_EVENT));
+
+      // Connecté → récupère la fiche du compte depuis le nuage
+      const cloudUsers = await fetchCloudAppUsers();
+      const cloudUser = (cloudUsers || []).find(
+        (u) => (u.email || '').trim().toLowerCase() === trimmedEmail,
+      );
+      if (!cloudUser) {
+        setError('Compte introuvable dans l\'espace admin. Contactez l\'administrateur.');
+        return;
+      }
+      if (cloudUser.status === 'blocked') {
+        setError('Ce compte est bloqué. Contactez l\'administrateur.');
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion (compte bloqué)',
+          subject: email || 'Inconnu',
+          details: `Tentative de connexion sur le compte bloqué ${cloudUser.name}`,
+        });
+        return;
+      }
+
+      // Mémorise les utilisateurs localement pour les prochaines visites
+      try {
+        const existing = JSON.parse(localStorage.getItem('app_users') || '[]');
+        const merged = [
+          cloudUser,
+          ...existing.filter((u) => String(u.id) !== String(cloudUser.id)),
+        ];
+        localStorage.setItem('app_users', JSON.stringify(merged));
+        window.dispatchEvent(new Event('userChanged'));
+      } catch {
+        // stockage indisponible
+      }
+
+      if (cloudUser.role === 'admin') {
+        await completeAdminLogin(cloudUser);
+        return;
+      }
+      if (cloudUser.role === 'livreur' || cloudUser.role === 'preparateur') {
+        setStaffSession(cloudUser.id);
+        logActivity({
+          type: 'auth',
+          action: 'connexion',
+          subject: cloudUser.name,
+          details: `Connexion réussie à l'espace ${cloudUser.role === 'livreur' ? 'livreur' : 'préparateur'} (nouvel appareil)`,
+          actor: { name: cloudUser.name, role: cloudUser.role },
+        });
+        navigate('/staff/orders');
+        return;
+      }
+
+      setError('Ce compte est un compte client « Utilisateur » : il n\'a pas accès à l\'espace admin ou staff.');
+      return;
+    }
+
+    // ---- Supabase non configuré : aucune autre source d'identité ----
     setError('Email ou mot de passe incorrect');
     logActivity({
       type: 'auth',

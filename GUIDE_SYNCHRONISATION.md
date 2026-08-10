@@ -126,3 +126,64 @@ thème clair/sombre, panier en cours, session de connexion, indicateurs
 | `src/App.jsx` | Montage du `SyncProvider` |
 | `src/context/SettingsContext.jsx`, `CategoryContext.jsx` | Rechargement des paramètres/catégories distants |
 | `src/admin/Orders.jsx`, `Analytics.jsx` | Rafraîchissement auto des commandes/stats |
+
+---
+
+# 🔐 Sécurisation des données (Supabase Auth) — À FAIRE UNE FOIS
+
+Sans cette étape, **n'importe qui** possédant l'URL du projet peut lire les
+données du nuage (mots de passe des comptes staff, commandes clients…).
+La migration `0002` restreint l'accès : les visiteurs ne voient que les
+données d'affichage (produits, catégories, paramètres publics) et ne peuvent
+écrire que leurs commandes/avis. Tout le reste (utilisateurs, logs,
+journal, commandes) est réservé aux **admin/staff connectés**.
+
+## Étape A — Exécuter la migration 0002 (2 min)
+
+1. Supabase → **SQL Editor** → **New query**.
+2. Colle tout le contenu de `supabase/migrations/0002_auth_rls.sql` → **Run**.
+3. Tu dois voir « Success. No rows returned ».
+
+## Étape B — Désactiver la confirmation email (1 min)
+
+1. Supabase → **Authentication** → **Sign In / Up** → **Email**.
+2. Décoche **« Confirm email »** (confirmation de l'email).
+3. **Save**.
+
+> Pourquoi : les comptes cloud (admin/staff) sont créés **automatiquement**
+> par le site au moment où l'admin crée un utilisateur avec un mot de passe.
+> Sans confirmation, le compte est utilisable immédiatement.
+
+## Comment ça fonctionne désormais
+
+- **Création d'un utilisateur** (Admin → Utilisateurs) : le site crée aussi
+  le **compte cloud Supabase Auth** (email + mot de passe identiques).
+- **Connexion admin/staff** : le site vérifie les identifiants, puis active la
+  session cloud. Sur un **appareil neuf**, l'identité est vérifiée directement
+  par Supabase Auth, puis la fiche du compte est chargée depuis le nuage.
+- **Données protégées** : une fois connecté, l'appareil peut lire/écrire
+  `app_users`, `order_logs`, `site_history` et `shop_orders`. Les visiteurs
+  non connectés ne peuvent pas les voir.
+
+## ⚠️ Mot de passe changé dans l'application ?
+
+- **Mot de passe admin principal** (Paramètres → Sécurité) : le site met à
+  jour **automatiquement** le mot de passe cloud.
+- **Mot de passe d'un livreur/préparateur** (Utilisateurs → Modifier) : le
+  site ne peut PAS modifier le mot de passe cloud d'un autre compte (limite
+  de Supabase Auth côté navigateur). Après un tel changement, l'utilisateur
+  devra se reconnecter avec son ancien mot de passe cloud, OU vous pouvez
+  réinitialiser son mot de passe dans le dashboard :
+  **Supabase → Authentication → Users → ⋯ → Reset password**.
+  Jusqu'à la réinitialisation, sa synchronisation reste limitée au mode
+  visiteur (impossible de voir les commandes/utilisateurs).
+
+## Politiques de sécurité (résumé)
+
+| Rôle | Lecture | Écriture |
+|---|---|---|
+| **Visiteur (anon)** | produits, catégories, paramètres publics, publications, avis, feedback | ses commandes, avis, feedback, abonnements |
+| **Admin / staff connecté** | **tout** | **tout** |
+
+> Prochaine étape possible : activer le **recovery email** (SMTP Resend dans
+> Supabase) pour permettre aux staff d'utiliser « mot de passe oublié ».

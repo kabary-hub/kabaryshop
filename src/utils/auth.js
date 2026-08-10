@@ -1,5 +1,6 @@
 // src/utils/auth.js
 // Gestion centralisée des sessions (admin + staff livreur/préparateur).
+import { signOutSupabase } from '../services/db';
 //
 // Problème corrigé : la déconnexion ne supprimait que quelques clés
 // localStorage ; la session sessionStorage.adminLoggedIn restait présente,
@@ -44,6 +45,9 @@ export const logoutComplete = () => {
       // stockage indisponible
     }
   });
+
+  // Déconnexion de la session cloud (Supabase Auth) si elle existe
+  signOutSupabase();
 };
 
 // Vrai si une session admin est active

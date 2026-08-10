@@ -8,6 +8,7 @@ import { showToast } from '../utils/toast';
 import { isValidPhone, PHONE_ERROR_MESSAGE, isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
 import Pagination from '../components/Pagination/Pagination';
 import { useSettings } from '../context/SettingsContext';
+import { ensureSupabaseAuth } from '../services/db';
 
 // Nombre d'utilisateurs affichés par page
 const PAGE_SIZE = 8;
@@ -222,6 +223,21 @@ const Users = () => {
   };
 
   // ==================== CRUD ====================
+  // Crée / rafraîchit le compte cloud (Supabase Auth) pour que l'utilisateur
+  // puisse se connecter depuis n'importe quel appareil (voir Auth).
+  const provisionCloudAccount = async (user) => {
+    if (!user || !user.email || !user.password) return;
+    const res = await ensureSupabaseAuth(user.email, user.password);
+    if (res && res.reason === 'stale-password') {
+      showToast(
+        `⚠️ Un compte cloud existe déjà pour ${user.email} avec un autre mot de passe. Réinitialisez-le dans Supabase (Authentication → Users).`,
+        'warning'
+      );
+    } else if (res && res.reason && res.reason !== 'unconfigured') {
+      console.warn('[Auth] création du compte cloud impossible :', res.reason, res.message || '');
+    }
+  };
+
   const handleAddUser = () => {
     const newErrors = validateForm(false);
     if (Object.keys(newErrors).length > 0) {
@@ -253,6 +269,10 @@ const Users = () => {
 
     const updatedUsers = [...users, userToAdd];
     saveUsersToLocalStorage(updatedUsers);
+    // Crée automatiquement le compte cloud (connexion depuis tout appareil)
+    if (userToAdd.password) {
+      provisionCloudAccount(userToAdd);
+    }
     // Journal : création d'utilisateur
     logActivity({
       type: 'user',
@@ -296,6 +316,10 @@ const Users = () => {
     });
     
     saveUsersToLocalStorage(updatedUsers);
+    // Nouveau mot de passe saisi → synchroniser le compte cloud
+    if (newUser.password) {
+      provisionCloudAccount({ email: newUser.email, password: newUser.password });
+    }
     // Journal : modification d'utilisateur (changement de rôle explicite)
     const details = [];
     if (originalUser && originalUser.role !== newRole) {
