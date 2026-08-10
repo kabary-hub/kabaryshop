@@ -56,6 +56,7 @@ const StaffOrders = lazy(() => import("./admin/StaffOrders"));
 const StaffProducts = lazy(() => import("./admin/StaffProducts"));
 const StaffSettings = lazy(() => import("./admin/StaffSettings"));
 import NewsletterBanner from "./components/NewsletterBanner/NewsletterBanner";
+import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 
 // Importation des styles admin
 import "./admin/admin.css";
@@ -379,6 +380,9 @@ const App = () => {
             
             {/* Bannière Nouveautés pour les abonnés */}
             <NewsletterBanner />
+
+            {/* Bouton WhatsApp flottant (contact client en un tap) */}
+            <WhatsAppButton />
           </div>
         </Router>
         </UserProvider>

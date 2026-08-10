@@ -230,8 +230,36 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
     <>
       {orderPopup && (
         <div className="popup">
-          <div className="fixed inset-0 bg-black/50 z-[999999] backdrop-blur-sm">
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-4 sm:p-5 shadow-md bg-white dark:bg-gray-700 rounded-2xl duration-200 w-[92%] sm:w-[90%] max-w-[500px] z-[10000] max-h-[85vh] max-h-[88dvh] overflow-y-auto overscroll-contain border border-gray-200 dark:border-gray-600">
+          {/* Overlay : scrollable en dernier recours + centrage flex → la modale
+              reste toujours centrée, même quand le clavier iOS s'ouvre ou que le
+              contenu dépasse l'écran (aucun « zoom » ni décalage). */}
+          <div
+            className="fixed inset-0 bg-black/50 z-[999999] backdrop-blur-sm overflow-y-auto overscroll-contain"
+            onKeyDown={(e) => {
+              // Échap ferme la modale (cohérent avec la lightbox produit)
+              if (e.key === "Escape") {
+                setOrderSuccess(null);
+                setOrderPopup(false);
+              }
+            }}
+          >
+            <div
+              className="min-h-full flex items-center justify-center p-3 sm:p-6"
+              onClick={(e) => {
+                // Fermer si on clique sur le fond (wrapper flex = zone vide)
+                if (e.target === e.currentTarget) {
+                  setOrderSuccess(null);
+                  setOrderPopup(false);
+                }
+              }}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Commande"
+                className="w-full max-w-[500px] shadow-md bg-white dark:bg-gray-700 rounded-2xl duration-200 border border-gray-200 dark:border-gray-600"
+              >
+                <div className="p-4 sm:p-5 max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] overflow-y-auto overscroll-contain">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="dark:text-white text-primary dark:bg-gradient-to-r from-primary to-secondary bg-black/90 text-center font-extrabold rounded-b-full">
@@ -257,8 +285,10 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
               </div>
 
               {/* ===== Écran de confirmation de commande (remplace alert/console.log) ===== */}
+              {/* Apparition en fondu (pas de zoom : scale fixé à 1 pour éviter
+                  l'effet « zoom » sur mobile) */}
               {orderSuccess && (
-                <div className="mt-4 text-center animate-pop-in">
+                <div className="mt-4 text-center animate-fadeIn">
                   <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
                     <FaCheckCircle className="text-green-500 text-5xl" />
                   </div>
@@ -426,6 +456,8 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
               </form>
                 </>
               )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
