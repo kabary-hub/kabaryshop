@@ -1,0 +1,315 @@
+// src/admin/AdminLayout.jsx
+import React, { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Users, 
+  Grid,  TrendingUp,
+  Settings,
+  MessageSquare,
+  Mail,
+  LogOut,
+  Menu,
+  X,
+  Bell,
+  CheckCheck,
+  ShoppingBag,
+  Info,
+  AlertTriangle,
+  History as HistoryIcon
+} from 'lucide-react';
+import {
+  getAdminAlerts,
+  getUnreadAlertsCount,
+  markAllAlertsRead,
+  markAlertRead,
+} from '../utils/notifications';
+import { logActivity } from '../utils/history';
+import { logoutComplete } from '../utils/auth';
+
+const AdminLayout = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [alerts, setAlerts] = useState(getAdminAlerts);
+  const navigate = useNavigate();
+
+  // Rafraîchir les alertes quand une nouvelle arrive (cloche admin)
+  useEffect(() => {
+    const refresh = () => setAlerts(getAdminAlerts());
+    window.addEventListener('adminAlertsUpdated', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('adminAlertsUpdated', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  // Fermer la cloche quand on clique ailleurs
+  useEffect(() => {
+    if (!alertsOpen) return undefined;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.admin-alerts-panel') && !e.target.closest('.admin-alerts-toggle')) {
+        setAlertsOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [alertsOpen]);
+
+  const unreadCount = alerts.filter((a) => !a.read).length;
+
+  const openAlerts = (e) => {
+    e.stopPropagation();
+    setAlertsOpen((o) => !o);
+    if (!alertsOpen && unreadCount > 0) {
+      // Marquer comme lues après ouverture
+      setTimeout(() => {
+        markAllAlertsRead();
+        setAlerts(getAdminAlerts());
+      }, 800);
+    }
+  };
+
+  const handleAlertClick = (alert) => {
+    markAlertRead(alert.id);
+    setAlerts(getAdminAlerts());
+    setAlertsOpen(false);
+    if (alert.link) {
+      navigate(alert.link);
+    }
+  };
+
+  const formatAlertDate = (dateString) => {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const alertIcons = {
+    order: <ShoppingBag size={15} className="text-blue-500" />,
+    success: <CheckCheck size={15} className="text-green-500" />,
+    warning: <AlertTriangle size={15} className="text-amber-500" />,
+    info: <Info size={15} className="text-gray-500" />,
+  };
+
+  const menuItems = [
+    { path: '/admin', name: 'Tableau de bord', icon: LayoutDashboard },
+    { path: '/admin/products', name: 'Produits', icon: Package },
+    { path: '/admin/reviews', name: 'Avis clients', icon: MessageSquare },
+    { path: '/admin/subscribers', name: 'Abonnés', icon: Mail },
+    { path: '/admin/orders', name: 'Commandes', icon: ShoppingCart },
+    { path: '/admin/users', name: 'Utilisateurs', icon: Users },
+    { path: '/admin/categories', name: 'Catégories', icon: Grid },
+    { path: '/admin/analytics', name: 'Analytiques', icon: TrendingUp },
+    { path: '/admin/history', name: 'Historiques', icon: HistoryIcon },
+    { path: '/admin/settings', name: 'Paramètres', icon: Settings },
+  ];
+
+  const handleLogout = () => {
+    let actor = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('current_admin_user') || 'null');
+      if (u && u.name) actor = u;
+    } catch {
+      // ignore
+    }
+    logActivity({
+      type: 'auth',
+      action: 'déconnexion',
+      subject: actor?.name || 'Admin',
+      details: 'Déconnexion de l\'administration',
+      actor: actor || { name: 'Admin', role: 'admin' },
+    });
+    // Déconnexion COMPLÈTE : supprime toutes les clés de session
+    // (localStorage + sessionStorage) pour que la reconnexion soit obligatoire
+    logoutComplete();
+    window.location.href = '/admin/login';
+  };
+
+  return (
+    <div className="flex min-h-screen bg-white dark:bg-gray-700">
+      {/* Overlay mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar (drawer sur mobile) */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-gray-900 text-white transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div>
+            <h2 className="text-xl font-bold">Admin Kabary shop</h2>
+            <p className="text-sm text-gray-400">Tableau de bord</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Cloche de notifications (desktop) */}
+            <div className="relative">
+              <button
+                onClick={openAlerts}
+                aria-label="Notifications"
+                className="admin-alerts-toggle relative p-2 hover:bg-gray-700 rounded-full transition text-gray-300 hover:text-white"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {alertsOpen && (
+                <div className="admin-alerts-panel absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <p className="font-semibold text-sm text-gray-800 dark:text-white">Notifications</p>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => { markAllAlertsRead(); setAlerts(getAdminAlerts()); }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Tout marquer lu
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {alerts.length === 0 ? (
+                      <p className="text-center text-gray-400 text-sm py-8">Aucune notification</p>
+                    ) : (
+                      alerts.map((alert) => (
+                        <button
+                          key={alert.id}
+                          onClick={() => handleAlertClick(alert)}
+                          className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition border-b dark:border-gray-700/60 ${alert.read ? 'opacity-60' : ''}`}
+                        >
+                          <span className="mt-0.5 shrink-0">{alertIcons[alert.type] || alertIcons.info}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium truncate text-gray-800 dark:text-white">{alert.title}</span>
+                            <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{alert.message}</span>
+                            <span className="block text-[10px] text-gray-400 mt-0.5">{formatAlertDate(alert.date)}</span>
+                          </span>
+                          {!alert.read && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5"></span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="md:hidden text-gray-300 hover:text-white transition p-1"
+              aria-label="Fermer le menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        <nav className="p-4 overflow-y-auto h-[calc(100vh-73px)]">
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-lg mb-1 transition ${
+                  isActive 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-gray-300 hover:bg-gray-800'
+                }`
+              }
+            >
+              <item.icon size={18} />
+              {item.name}
+            </NavLink>
+          ))}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition mt-4"
+          >
+            <LogOut size={18} />
+            Déconnexion
+          </button>
+        </nav>
+      </aside>
+
+      {/* Contenu principal */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Barre de navigation mobile */}
+        <div className="md:hidden sticky top-0 z-20 flex items-center gap-3 bg-gray-900 text-white px-4 py-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Ouvrir le menu"
+            className="p-1 hover:bg-white/10 rounded transition"
+          >
+            <Menu size={20} />
+          </button>
+          <span className="font-bold">Admin Kabary shop</span>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Cloche de notifications (mobile) */}                <div className="relative">
+              <button
+                onClick={openAlerts}
+                aria-label="Notifications"
+                className="admin-alerts-toggle relative p-1.5 hover:bg-white/10 rounded transition"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {alertsOpen && (
+                <div className="admin-alerts-panel absolute right-0 top-10 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <p className="font-semibold text-sm">Notifications</p>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => { markAllAlertsRead(); setAlerts(getAdminAlerts()); }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Tout marquer lu
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {alerts.length === 0 ? (
+                      <p className="text-center text-gray-400 text-sm py-8">Aucune notification</p>
+                    ) : (
+                      alerts.map((alert) => (
+                        <button
+                          key={alert.id}
+                          onClick={() => handleAlertClick(alert)}
+                          className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition border-b dark:border-gray-700/60 ${alert.read ? 'opacity-60' : ''}`}
+                        >
+                          <span className="mt-0.5 shrink-0">{alertIcons[alert.type] || alertIcons.info}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium truncate">{alert.title}</span>
+                            <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{alert.message}</span>
+                            <span className="block text-[10px] text-gray-400 mt-0.5">{formatAlertDate(alert.date)}</span>
+                          </span>
+                          {!alert.read && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5"></span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <main className="flex-1 min-w-0 mt-4 md:mt-6 mr-0 md:mr-6 ml-0 md:ml-7 overflow-x-auto">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLayout;
