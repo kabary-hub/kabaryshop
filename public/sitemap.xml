@@ -1,56 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Sitemap de Kabary Shop.
-     ⚠️ Remplacer kabaryshop.com par le domaine réellement utilisé
-     (tant que kabaryshop.com n'est pas activé, utiliser
-     https://kabaryshop.vercel.app dans ces URLs). -->
+     Domaine actuel : kabaryshop.vercel.app (gratuit, fourni par Vercel).
+     Quand kabaryshop.com sera acheté, remplacer kabaryshop.vercel.app
+     par kabaryshop.com dans toutes les URLs ci-dessous. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://kabaryshop.com/</loc>
+    <loc>https://kabaryshop.vercel.app/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/femmes</loc>
+    <loc>https://kabaryshop.vercel.app/femmes</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/hommes</loc>
+    <loc>https://kabaryshop.vercel.app/hommes</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/enfants</loc>
+    <loc>https://kabaryshop.vercel.app/enfants</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/electroniques</loc>
+    <loc>https://kabaryshop.vercel.app/electroniques</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/meubles</loc>
+    <loc>https://kabaryshop.vercel.app/meubles</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/tendances</loc>
+    <loc>https://kabaryshop.vercel.app/tendances</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/ventes</loc>
+    <loc>https://kabaryshop.vercel.app/ventes</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/notes</loc>
+    <loc>https://kabaryshop.vercel.app/notes</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://kabaryshop.com/contacts</loc>
+    <loc>https://kabaryshop.vercel.app/contacts</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

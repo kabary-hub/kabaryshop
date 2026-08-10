@@ -1,5 +1,7 @@
 # robots.txt — Kabary Shop
 # Autorise tous les robots à indexer le site.
+# Domaine actuel : kabaryshop.vercel.app (gratuit).
+# Remplacer par https://kabaryshop.com/sitemap.xml quand le domaine sera acheté.
 
 User-agent: *
 Allow: /
@@ -8,4 +10,4 @@ Allow: /
 Disallow: /admin/
 Disallow: /staff/
 
-Sitemap: https://kabaryshop.com/sitemap.xml
+Sitemap: https://kabaryshop.vercel.app/sitemap.xml
