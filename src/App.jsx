@@ -260,6 +260,19 @@ const App = () => {
     AOS.refresh();
   }, []);
 
+  // 🔐 Raccourci clavier secret : Ctrl+Shift+A (ou Cmd+Shift+A sur Mac)
+  // → Redirige vers la page de connexion admin
+  useEffect(() => {
+    const handleSecretShortcut = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        window.location.href = '/admin/login';
+      }
+    };
+    window.addEventListener('keydown', handleSecretShortcut);
+    return () => window.removeEventListener('keydown', handleSecretShortcut);
+  }, []);
+
   return (
     <SettingsProvider>
       <CartProvider>

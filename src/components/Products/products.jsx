@@ -251,7 +251,7 @@ const Products = ({ data, searchTerm = "" }) => {
   return (
     <>
       <div id="produits-section" className="mt-14 mb-15">
-        <div className="container border-b border-yellow-600 mx-auto">
+        <div className="container border-b border-yellow-600 mx-auto px-4 sm:px-6">
           <div className="text-center mb-10 max-w-225 mx-auto">
             <p data-aos="fade-up" className="text-sm sm:text-xl font-bold text-primary">
               Nos meilleures ventes

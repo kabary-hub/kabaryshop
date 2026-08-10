@@ -124,6 +124,16 @@ const Footer = () => {
       <p className="text-center py-10 px-4 border-t-2 border-gray-300/50 mt-10">
         © {new Date().getFullYear()} {settings.siteName}. Tous droits réservés.
       </p>
+      {/* 🔐 Lien secret admin — invisible pour les clients, accessible aux administrateurs */}
+      <div className="text-center pb-4">
+        <a
+          href="/admin/login"
+          className="text-[10px] text-gray-800/30 hover:text-gray-600/50 transition-colors cursor-default select-none"
+          title="Espace administration"
+        >
+          ·
+        </a>
+      </div>
     </div>
   );
 }

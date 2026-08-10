@@ -11,6 +11,7 @@ import { useSettings } from "../../context/SettingsContext";
 import { useCart } from "../../context/CartContext";
 import SearchBar from "../SearchBar/SearchBar";
 import { getCategories } from "../../utils/categories";
+import { isAdminLoggedIn, isStaffLoggedIn } from "../../utils/auth";
 
 const DropdownLinks = [
   { id: 1, name: "Nouvelles - Tendances ", link: "/tendances" },
@@ -206,22 +207,24 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
               </div>
             </li>
 
-            {/* Admin */}
-            <li className="shrink-0">
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  `flex items-center gap-1 px-2 py-1 text-sm sm:text-base duration-200 border-b-2 whitespace-nowrap ${
-                    isActive
-                      ? "text-secondary border-primary font-semibold"
-                      : "border-transparent hover:text-primary hover:border-primary/50"
-                  }`
-                }
-              >
-                <LayoutDashboard size={18} className="text-blue-500" />
-                <span className="text-blue-500 font-medium">Admin</span>
-              </NavLink>
-            </li>
+            {/* Admin — visible uniquement pour les administrateurs et le staff */}
+            {(isAdminLoggedIn() || isStaffLoggedIn()) && (
+              <li className="shrink-0">
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `flex items-center gap-1 px-2 py-1 text-sm sm:text-base duration-200 border-b-2 whitespace-nowrap ${
+                      isActive
+                        ? "text-secondary border-primary font-semibold"
+                        : "border-transparent hover:text-primary hover:border-primary/50"
+                    }`
+                  }
+                >
+                  <LayoutDashboard size={18} className="text-blue-500" />
+                  <span className="text-blue-500 font-medium">Admin</span>
+                </NavLink>
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -246,14 +249,17 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
                 {data.name}
               </NavLink>
             ))}
-            <NavLink
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <LayoutDashboard size={18} />
-              Admin
-            </NavLink>
+            {/* Admin mobile — visible uniquement pour les administrateurs et le staff */}
+            {(isAdminLoggedIn() || isStaffLoggedIn()) && (
+              <NavLink
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <LayoutDashboard size={18} />
+                Admin
+              </NavLink>
+            )}
           </div>
         </div>
       )}
