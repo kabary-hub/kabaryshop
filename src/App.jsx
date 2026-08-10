@@ -11,6 +11,7 @@ import { UserProvider } from './context/UserContext';
 import { logActivity } from './utils/history';
 import { updatePageMeta } from './utils/seo';
 import { getAllProducts } from './services/productService';
+import { grantAdminAccess } from './utils/auth';
 // Synchronisation multi-appareils (Supabase). Ne fait rien si Supabase
 // n'est pas configuré : le site reste 100 % local.
 // Chargé en lazy pour ne pas gonfler le bundle initial avec supabase-js.
@@ -32,6 +33,7 @@ const Contacts = lazy(() => import("./Pages/Contacts"));
 const CategoryProducts = lazy(() => import("./Pages/CategoryProducts"));
 const SearchResults = lazy(() => import("./Pages/SearchResults"));
 const ProductDetail = lazy(() => import("./Pages/ProductDetail"));
+const NotFound = lazy(() => import("./Pages/NotFound"));
 
 // Importation des composants admin (chargés à la demande aussi)
 const AdminLayout = lazy(() => import("./admin/AdminLayout"));
@@ -261,11 +263,13 @@ const App = () => {
   }, []);
 
   // 🔐 Raccourci clavier secret : Ctrl+Shift+A (ou Cmd+Shift+A sur Mac)
-  // → Redirige vers la page de connexion admin
+  // → Pose le jeton d'accès puis redirige vers la page de connexion admin
+  //   (sans jeton, l'URL /admin/login seule ne fonctionne plus)
   useEffect(() => {
     const handleSecretShortcut = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
         e.preventDefault();
+        grantAdminAccess();
         window.location.href = '/admin/login';
       }
     };
@@ -336,6 +340,10 @@ const App = () => {
               {/* Page détail produit */}
               <Route path="/produit/:id" element={<LazyPage><ProductDetail handleOrder={handleOrder} /></LazyPage>} />
 
+              {/* Page 404 (déclarée AVANT la route dynamique des catégories pour qu'elle
+                  ne soit pas capturée par /:categorySlug) */}
+              <Route path="/404" element={<LazyPage><NotFound /></LazyPage>} />
+
               {/* Route dynamique pour les catégories */}
               <Route path="/:categorySlug" element={<LazyPage><CategoryProducts handleOrder={handleOrder} searchTerm={searchTerm} /></LazyPage>} />
 
@@ -377,6 +385,9 @@ const App = () => {
                 <Route path="subscribers" element={<Subscribers />} />
                 <Route path="history" element={<History />} />
               </Route>
+
+              {/* Route par défaut : URL inconnue → page 404 */}
+              <Route path="*" element={<LazyPage><NotFound /></LazyPage>} />
             </Routes>
             </Suspense>
             

@@ -1,6 +1,6 @@
 // src/admin/AdminLogin.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, Store, ShieldCheck, RefreshCw, KeyRound, Loader } from 'lucide-react';
 import {
   sendEmail,
@@ -8,7 +8,12 @@ import {
 } from '../utils/emailService';
 import { useSettings } from '../context/SettingsContext';
 import { logActivity } from '../utils/history';
-import { setStaffSession } from '../utils/auth';
+import {
+  setStaffSession,
+  hasAdminAccess,
+  isAdminLoggedIn,
+  isStaffLoggedIn,
+} from '../utils/auth';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
 import {
   getSupabase,
@@ -165,6 +170,29 @@ const AdminLogin = () => {
       if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
     };
   }, []);
+
+  // 🔐 Accès restreint : la page de connexion n'est accessible QUE via le
+  // raccourci clavier secret (Ctrl+Shift+A) ou le lien discret du footer,
+  // qui posent un jeton d'accès (grantAdminAccess). Si un client tape
+  // /admin/login directement dans l'URL, il est redirigé vers la page 404
+  // (aucune trace de l'existence de l'espace admin).
+  // (Une session admin/staff active ou une 2FA en cours reste autorisée.)
+  const accessGranted = (() => {
+    try {
+      return (
+        hasAdminAccess() ||
+        isAdminLoggedIn() ||
+        isStaffLoggedIn() ||
+        sessionStorage.getItem('admin_2fa_pending') === '1'
+      );
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!accessGranted) {
+    return <Navigate to="/404" replace />;
+  }
 
   // Recherche n'importe quel utilisateur enregistré (tous rôles) avec cet email
   const findAppUser = () => {

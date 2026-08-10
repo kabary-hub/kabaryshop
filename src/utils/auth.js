@@ -98,3 +98,37 @@ export const setStaffSession = (userId) => {
   sessionStorage.setItem("staffLoggedIn", "true");
   sessionStorage.setItem("staffUserId", String(userId));
 };
+
+// ====================================================================
+// Accès à la page de connexion admin (/admin/login)
+// --------------------------------------------------------------------
+// La page de connexion n'est PLUS accessible en tapant l'URL directement :
+// seuls le raccourci clavier secret (Ctrl+Shift+A) et le lien discret du
+// footer posent ce jeton d'accès. Sans lui, AdminLogin redirige vers
+// l'accueil. Le jeton est stocké UNIQUEMENT dans sessionStorage : il ne
+// vaut que pour l'onglet courant et disparaît à la fermeture de l'onglet
+// (pas de persistance entre onglets ni après redémarrage du navigateur).
+// ====================================================================
+const ADMIN_ACCESS_KEY = "admin_portal_access";
+
+// Pose le jeton d'accès (raccourci clavier, lien discret du footer).
+// Supprime aussi l'ancien jeton localStorage posé par les versions
+// précédentes : un onglet qui le possédait encore ne doit plus y avoir
+// accès une fois le jeton sessionStorage disparu.
+export const grantAdminAccess = () => {
+  try {
+    sessionStorage.setItem(ADMIN_ACCESS_KEY, "1");
+    localStorage.removeItem(ADMIN_ACCESS_KEY);
+  } catch {
+    // stockage indisponible
+  }
+};
+
+// Vrai si la visite de /admin/login a été autorisée (raccourci ou lien)
+export const hasAdminAccess = () => {
+  try {
+    return sessionStorage.getItem(ADMIN_ACCESS_KEY) === "1";
+  } catch {
+    return false;
+  }
+};

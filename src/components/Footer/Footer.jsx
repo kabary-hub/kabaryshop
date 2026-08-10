@@ -9,6 +9,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import { useSettings } from "../../context/SettingsContext";
+import { grantAdminAccess } from "../../utils/auth";
 
 // Fond noir uni (l'image de fond a été retirée)
 const FooterStyle = {
@@ -124,10 +125,13 @@ const Footer = () => {
       <p className="text-center py-10 px-4 border-t-2 border-gray-300/50 mt-10">
         © {new Date().getFullYear()} {settings.siteName}. Tous droits réservés.
       </p>
-      {/* 🔐 Lien secret admin — invisible pour les clients, accessible aux administrateurs */}
+      {/* 🔐 Lien secret admin — invisible pour les clients, accessible aux administrateurs.
+          Au clic, il pose le jeton d'accès : sans lui, la page /admin/login redirige
+          vers l'accueil (l'URL tapée directement ne fonctionne pas). */}
       <div className="text-center pb-4">
         <a
           href="/admin/login"
+          onClick={grantAdminAccess}
           className="text-[10px] text-gray-800/30 hover:text-gray-600/50 transition-colors cursor-default select-none"
           title="Espace administration"
         >
