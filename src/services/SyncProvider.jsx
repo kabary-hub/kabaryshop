@@ -144,18 +144,23 @@ const SyncProvider = () => {
         remoteKeys.add(row.key);
         applyRemote(row.key, row.value);
       });
-      // L'état local est maintenant identique au nuage → on marque tout
-      // comme « déjà poussé » pour éviter un double-push à la première passe.
-      SYNC_KEYS.forEach((key) => {
-        try {
-          lastPushed.set(key, localStorage.getItem(key));
-        } catch {
-          // ignore
-        }
-      });
-      // Semis : clés locales absentes du nuage → première sauvegarde
+      // Semis : clés locales absentes du nuage → première sauvegarde.
+      // (À faire AVANT de marquer lastPushed, sinon la garde anti-ping-pong
+      //  dans pushKey empêcherait tout premier envoi.)
       SYNC_KEYS.forEach((key) => {
         if (!remoteKeys.has(key)) pushKey(key);
+      });
+      // Pour les clés présentes dans le nuage, l'état local est maintenant
+      // identique à la valeur distante → on les marque « déjà poussées »
+      // pour éviter un double-push à la première passe.
+      SYNC_KEYS.forEach((key) => {
+        if (remoteKeys.has(key)) {
+          try {
+            lastPushed.set(key, localStorage.getItem(key));
+          } catch {
+            // ignore
+          }
+        }
       });
     })();
 
