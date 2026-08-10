@@ -104,12 +104,13 @@ const SyncProvider = () => {
       } catch {
         return; // JSON invalide : on ne pousse pas
       }
-      const { error } = await client
-        .from(SYNC_TABLE)
-        .upsert(
-          { key, value, updated_at: new Date().toISOString() },
-          { onConflict: "key" },
-        );
+      // Upsert via la fonction SQL sécurisée (sync_upsert) : un upsert
+      // direct sur la table est bloqué par RLS pour les lignes existantes
+      // (comportement PostgreSQL connu avec ON CONFLICT DO UPDATE).
+      const { error } = await client.rpc("sync_upsert", {
+        p_key: key,
+        p_value: value,
+      });
       if (error) {
         console.warn(`[Sync] échec de la poussée « ${key} » :`, error.message);
       } else {
