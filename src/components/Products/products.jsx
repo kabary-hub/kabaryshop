@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable react-refresh/only-export-components -- ce fichier exporte à la
+   fois des composants (Products) et des fonctions de données (getAllProducts,
+   saveCustomProducts…) : la règle Fast Refresh ne s'applique pas à ce module. */
+import React, { useState, useEffect, useMemo } from "react";
 import { FaStar } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../../context/SettingsContext";
@@ -180,9 +183,9 @@ const Products = ({ data, searchTerm = "" }) => {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { addToCart } = useCart(); // AJOUT: récupérer la fonction addToCart
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null); // AJOUT: notification
+  // Produits personnalisés : mis à jour quand le catalogue change (événement global)
+  const [customProducts, setCustomProducts] = useState(() => getCustomProducts());
 
   // Fonction pour afficher la notification
   const showNotification = (message) => {
@@ -197,9 +200,8 @@ const Products = ({ data, searchTerm = "" }) => {
     showNotification(`✅ ${product.title} ajouté au panier !`);
   };
 
-  // Charger tous les produits TRIÉS
-  const loadAllProducts = () => {
-    const customProducts = getCustomProducts();
+  // Liste des produits TRIÉS, calculée de façon synchrone (données + localStorage)
+  const products = useMemo(() => {
     let allProducts;
     
     if (data && data.length > 0) {
@@ -220,27 +222,19 @@ const Products = ({ data, searchTerm = "" }) => {
       allProducts = Array.from(productMap.values());
     }
     
-    const sortedProducts = allProducts.sort((a, b) => {
+    return allProducts.sort((a, b) => {
       const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
       const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
       return dateB - dateA;
     });
-    
-    setProducts(sortedProducts);
-    setLoading(false);
-  };
+  }, [data, customProducts]);
 
   useEffect(() => {
-    loadAllProducts();
-  }, [data]);
-
-  useEffect(() => {
-    const handleProductsUpdate = () => {
-      loadAllProducts();
-    };
+    // Recharger la liste quand le catalogue change (événement global)
+    const handleProductsUpdate = () => setCustomProducts(getCustomProducts());
     window.addEventListener('productsUpdated', handleProductsUpdate);
     return () => window.removeEventListener('productsUpdated', handleProductsUpdate);
-  }, [data]);
+  }, []);
 
   const getFormattedPrice = (product) => {
     if (!product.priceInGNF || product.priceInGNF === 0) {
@@ -253,14 +247,6 @@ const Products = ({ data, searchTerm = "" }) => {
   const handleImageError = (e) => {
     e.target.src = 'https://via.placeholder.com/300x400?text=Image+non+disponible';
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -281,7 +267,7 @@ const Products = ({ data, searchTerm = "" }) => {
           </div>
 
           <div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 place-items-center gap-4 sm:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 place-items-center gap-3 sm:gap-5">
               {products.length === 0 ? (
                 <div className="col-span-full text-center py-10">
                   {searchTerm.trim() ? (
@@ -306,14 +292,14 @@ const Products = ({ data, searchTerm = "" }) => {
                     className="relative space-y-3 flex flex-col h-full w-full cursor-pointer hover:scale-105 transition-transform duration-300"
                     onClick={() => navigate(`/produit/${item.id}`)}
                   >
-                    <div className="overflow-hidden rounded-md shadow-md drop-shadow-[2px_10px_15px_rgba(0,0,0,0.2)]">
+                    <div className="overflow-hidden rounded-md shadow-md drop-shadow-[2px_10px_15px_rgba(0,0,0,0.2)] w-full">
                       <img
                         src={item.img}
                         alt={item.title}
                         loading="lazy"
                         decoding="async"
                         onError={handleImageError}
-                        className="w-full h-56 sm:h-72.5 object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
+                        className="w-full aspect-[3/4] object-cover cursor-pointer hover:scale-110 transition-transform duration-300 sm:aspect-auto sm:h-72.5"
                       />
                     </div>
                     <ShareButton
@@ -321,9 +307,9 @@ const Products = ({ data, searchTerm = "" }) => {
                       className="absolute top-2 right-2 z-30"
                       buttonClassName="w-9 h-9 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 shadow-md border border-gray-200 dark:border-gray-700 hover:bg-primary hover:text-white hover:border-primary"
                     />
-                    <div className="text-center mb-0 grow">
-                      <h3 className="font-semibold">{item.title}</h3>
-                      <p className="text-sm dark:text-gray-400 text-gray-600">
+                    <div className="text-center mb-0 grow w-full min-w-0">
+                      <h3 className="font-semibold line-clamp-1 px-1">{item.title}</h3>
+                      <p className="text-sm dark:text-gray-400 text-gray-600 line-clamp-1 px-1">
                         {item.color}
                       </p>
                       <div className="flex items-center justify-center gap-1 mt-1">
@@ -379,7 +365,7 @@ const Products = ({ data, searchTerm = "" }) => {
 
       {/* Notification d'ajout au panier */}
       {notification && (
-        <div className="fixed bottom-4 right-4 z-[99999] bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-fadeIn">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto z-[99999] bg-green-500 text-white px-4 py-2.5 rounded-lg shadow-lg animate-fadeIn text-sm text-center sm:text-left sm:max-w-md">
           {notification}
         </div>
       )}

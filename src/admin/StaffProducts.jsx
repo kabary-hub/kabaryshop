@@ -7,25 +7,28 @@ import { Package, Search } from "lucide-react";
 import { getAllProducts } from "../services/productService";
 
 const StaffProducts = () => {
-  const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  const loadProducts = () => {
+  // Produits chargés de façon synchrone (initialisation paresseuse, tri par date)
+  const [products, setProducts] = useState(() => {
     const all = getAllProducts();
-    // Tri par date (plus récent d'abord)
-    const sorted = [...all].sort((a, b) => {
+    return [...all].sort((a, b) => {
       const da = a.createdAt ? new Date(a.createdAt) : new Date(0);
       const db = b.createdAt ? new Date(b.createdAt) : new Date(0);
       return db - da;
     });
-    setProducts(sorted);
-    setLoading(false);
-  };
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading] = useState(false);
 
   useEffect(() => {
-    loadProducts();
-    const handleUpdate = () => loadProducts();
+    // Recharger les produits quand le catalogue change (événements globaux)
+    const handleUpdate = () => {
+      const all = getAllProducts();
+      setProducts([...all].sort((a, b) => {
+        const da = a.createdAt ? new Date(a.createdAt) : new Date(0);
+        const db = b.createdAt ? new Date(b.createdAt) : new Date(0);
+        return db - da;
+      }));
+    };
     window.addEventListener("productsUpdated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {

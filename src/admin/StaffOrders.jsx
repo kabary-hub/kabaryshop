@@ -13,32 +13,30 @@ import Pagination from "../components/Pagination/Pagination";
 const PAGE_SIZE = 8;
 
 const StaffOrders = () => {
-  const [orders, setOrders] = useState([]);
+  // Commandes chargées de façon synchrone (initialisation paresseuse)
+  const [orders, setOrders] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("shop_orders") || "[]");
+    } catch {
+      return [];
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [staffUser, setStaffUser] = useState(null);
+  const [loading] = useState(false);
+  // Utilisateur staff connecté (lecture synchrone à l'initialisation)
+  const [staffUser] = useState(() => getStaffUser());
   const [page, setPage] = useState(1);
 
-  // L'utilisateur staff connecté et sa permission d'accès complet
   useEffect(() => {
-    const user = getStaffUser();
-    setStaffUser(user);
-  }, []);
-
-  const loadOrders = () => {
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem("shop_orders") || "[]");
-      setOrders(savedOrders);
-    } catch {
-      setOrders([]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadOrders();
-    const handleUpdate = () => loadOrders();
+    // Recharger les commandes quand elles changent (événements globaux)
+    const handleUpdate = () => {
+      try {
+        setOrders(JSON.parse(localStorage.getItem("shop_orders") || "[]"));
+      } catch {
+        setOrders([]);
+      }
+    };
     window.addEventListener("ordersUpdated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
@@ -68,6 +66,7 @@ const StaffOrders = () => {
 
   // Remonter à la première page quand la recherche change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset volontaire de la pagination
     setPage(1);
   }, [searchTerm]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

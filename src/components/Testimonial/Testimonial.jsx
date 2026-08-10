@@ -10,7 +10,7 @@ const testimonialData = [
     id: 1,
     name: "Adama Hawa Camara",
     text: "Enfin une boutique où je peux m'habiller et habiller mes enfants au même endroit sans sacrifier le style. Kabary Shop est devenu mon rendez-vous shopping mensuel.",
-    img: "/public/testimon1.jpeg",
+    img: "/testimon1.jpeg",
   },
   {
     id: 2,

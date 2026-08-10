@@ -8,14 +8,13 @@
 // Accès : uniquement pour les utilisateurs connectés avec le rôle
 // « livreur » ou « preparateur » (session staff, voir utils/auth.js).
 import React, { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { ShoppingCart, Package, Settings, LogOut, UserRound } from "lucide-react";
 import Navbar from "../components/Navbar/Navbar";
 import { getStaffUser, logoutComplete } from "../utils/auth";
 import { logActivity } from "../utils/history";
 
 const StaffLayout = () => {
-  const navigate = useNavigate();
   const [staffUser, setStaffUser] = useState(null);
 
   // Charger l'utilisateur staff connecté (session)

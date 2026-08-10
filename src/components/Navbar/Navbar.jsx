@@ -19,23 +19,28 @@ const DropdownLinks = [
   { id: 4, name: "Contacts", link: "/contacts" },
 ];
 
-const MobileMenuLinks = [
-  { id: 1, name: "Femmes", link: "/femmes" },
-  { id: 2, name: "Hommes", link: "/hommes" },
-  { id: 3, name: "Enfants", link: "/enfants" },
-  { id: 4, name: "Électroniques", link: "/electroniques" },
-  { id: 5, name: "Meubles", link: "/meubles" },
-  { id: 6, name: "Tendances", link: "/tendances" },
-  { id: 7, name: "Ventes", link: "/ventes" },
-  { id: 8, name: "Notes", link: "/notes" },
-  { id: 9, name: "Contacts", link: "/contacts" },
+// Liens supplémentaires du menu mobile (pages hors catégories)
+const MobileMenuExtras = [
+  { id: "notes", name: "Notes", link: "/notes" },
+  { id: "contacts", name: "Contacts", link: "/contacts" },
 ];
 
 const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
   const { settings } = useSettings();
   const { openCart, getTotalItems } = useCart();
   const { pathname } = useLocation();
-  const [categories, setCategories] = useState([]);
+  // Catégories chargées de façon synchrone (initialisation paresseuse)
+  const [categories, setCategories] = useState(() => {
+    try {
+      // Source unique : les catégories réelles du site (créées au premier
+      // chargement si rien n'est enregistré)
+      const parsedCategories = getCategories();
+      return parsedCategories.filter(cat => cat.status === 'active');
+    } catch (error) {
+      console.error('Erreur chargement catégories:', error);
+      return [];
+    }
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -52,8 +57,7 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
   };
 
   useEffect(() => {
-    loadCategories();
-
+    // Recharger les catégories quand elles changent (événements globaux)
     const handleUpdate = () => {
       loadCategories();
     };
@@ -97,8 +101,8 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
   return (
     <header className="sticky top-0 z-[60] shadow-md bg-white dark:bg-gray-900 dark:text-white duration-200">
       {/* Bandeau supérieur : logo + recherche (desktop) + actions */}
-      <div className="bg-linear-to-r from-primary/70 to-secondary">
-        <div className="container flex justify-between items-center gap-2 sm:gap-4 px-3 sm:px-10 2xl:px-16 py-2">
+      <div className="bg-linear-to-r from-primary/70 to-secondary pt-[env(safe-area-inset-top)]">
+        <div className="container flex justify-between items-center gap-1 sm:gap-4 px-2.5 sm:px-10 2xl:px-16 py-2">
           <Link
             to="/"
             className="font-bold text-lg sm:text-3xl flex items-center gap-2 shrink-0 min-w-0"
@@ -118,7 +122,7 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
           </div>
 
           {/* Actions : panier, mode sombre, menu mobile */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <button
               onClick={openCart}
               className="relative bg-white text-secondary py-1 px-2 sm:px-4 rounded-full flex items-center h-9 gap-2 group"
@@ -222,11 +226,11 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
         </div>
       </div>
 
-      {/* Menu mobile (hamburger) */}
+      {/* Menu mobile (hamburger) : catégories dynamiques du site */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-          <div className="px-4 py-3 space-y-1 max-h-[70vh] overflow-y-auto">
-            {MobileMenuLinks.map((data) => (
+        <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pb-[env(safe-area-inset-bottom)]">
+          <div className="px-4 py-3 space-y-1 max-h-[70vh] overflow-y-auto overscroll-contain">
+            {[...menuItems, ...MobileMenuExtras].map((data) => (
               <NavLink
                 key={data.id}
                 to={data.link}

@@ -1,4 +1,6 @@
 // src/context/SettingsContext.jsx
+/* eslint-disable react-refresh/only-export-components -- contexte React : un
+   Provider (composant) + un hook useSettings() dans le même fichier. */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const SettingsContext = createContext();

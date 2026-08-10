@@ -49,7 +49,6 @@ const guessCivility = (name) => {
 };
 
 const Users = () => {
-  const { settings } = useSettings();
   // ==================== ÉTATS ====================
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
@@ -121,6 +120,7 @@ const Users = () => {
 
   // Remonter à la première page quand les filtres changent
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset volontaire de la pagination
     setPage(1);
   }, [searchTerm, selectedRole]);
 

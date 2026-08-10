@@ -28,7 +28,7 @@ const Subrscribe = () => {
 
     // 1. Enregistrer l'abonné localement (liste utilisée pour les notifications)
     const email = formNewsletter.current?.user_email?.value || "";
-    const list = addSubscriber(email);
+    addSubscriber(email);
     markDeviceSubscribed();
 
     // Journal central : nouvel abonnement newsletter
@@ -143,7 +143,7 @@ const Subrscribe = () => {
                 </p>
               )}
             </form>
-            <div className="flex items-center gap-4 text-xs text-white/60">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/60">
               <span className="flex items-center gap-1.5">✓ Livraison 24h/48h</span>
               <span className="flex items-center gap-1.5">✓ Paiement Mobile Money</span>
               <span className="flex items-center gap-1.5">✓ Qualité garantie</span>

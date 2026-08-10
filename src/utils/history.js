@@ -88,16 +88,18 @@ export const clearHistory = () => {
 };
 
 // Compteurs par type (pour la page Historiques)
-export const getHistoryStats = () => {
-  const list = getHistory();
-  const stats = { total: list.length, today: 0, week: 0, byType: {} };
+export const getHistoryStats = (list = getHistory()) => {
+  // list optionnel : si fourni, évite une relecture localStorage (permet à la
+  // page Historiques de mémoriser sur le journal chargé en état React).
+  const entries = list || getHistory();
+  const stats = { total: entries.length, today: 0, week: 0, byType: {} };
   const now = new Date();
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);
 
-  list.forEach((entry) => {
+  entries.forEach((entry) => {
     const d = new Date(entry.date);
     if (d >= startOfToday) stats.today += 1;
     if (d >= weekAgo) stats.week += 1;
@@ -107,9 +109,11 @@ export const getHistoryStats = () => {
 };
 
 // Liste des acteurs distincts (filtre de la page)
-export const getHistoryActors = () => {
+export const getHistoryActors = (list = getHistory()) => {
+  // list optionnel : voir getHistoryStats.
+  const entries = list || getHistory();
   const seen = new Map();
-  getHistory().forEach((entry) => {
+  entries.forEach((entry) => {
     const name = entry.actor?.name || "Inconnu";
     if (!seen.has(name)) {
       seen.set(name, { name, role: entry.actor?.role || "" });

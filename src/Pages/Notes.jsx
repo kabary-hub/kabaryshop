@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Banner from "../components/Banner/Banner";
 import ImgNote from "../assets/background-pages/note.jpeg";
@@ -106,12 +106,51 @@ const StarPicker = ({ value, onChange }) => {
 };
 
 const Notes = () => {
+  // ===== Chargement des données (avis + produits mieux notés) =====
+  // Fonction synchrone : utilisée à l'initialisation (paresseuse) et au
+  // rechargement, sans setState dans un effet.
+  const computeData = () => {
+    const siteFeedback = getSiteFeedback();
+
+    const allProducts = getAllProducts();
+
+    // Avis produits validés, avec le nom du produit associé
+    const reviews = [];
+    const productsWithStats = [];
+    allProducts.forEach((product) => {
+      const productReviewsList = getAllReviews(product.id);
+      productReviewsList.forEach((r) => {
+        reviews.push({ ...r, productTitle: product.title, productId: product.id });
+      });
+      const stats = computeStats(productReviewsList);
+      if (stats.count > 0) {
+        productsWithStats.push({ product, stats });
+      }
+    });
+    reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Top 6 produits par note moyenne (puis par nombre d'avis)
+    productsWithStats.sort(
+      (a, b) => b.stats.average - a.stats.average || b.stats.count - a.stats.count
+    );
+
+    return {
+      siteFeedback,
+      reviews,
+      topProducts: productsWithStats.slice(0, 6),
+    };
+  };
+
+  // ===== Chargement initial : un SEUL appel à computeData() (paresseux) =====
+  // alimente les trois états ci-dessous (au lieu de trois calculs identiques).
+  const [initialData] = useState(computeData);
+
   // ===== Avis généraux du site (validés) =====
-  const [siteFeedback, setSiteFeedback] = useState(getSiteFeedback);
+  const [siteFeedback, setSiteFeedback] = useState(initialData.siteFeedback);
 
   // ===== Avis produits validés (tous produits confondus) =====
-  const [productReviews, setProductReviews] = useState([]);
-  const [topProducts, setTopProducts] = useState([]);
+  const [productReviews, setProductReviews] = useState(initialData.reviews);
+  const [topProducts, setTopProducts] = useState(initialData.topProducts);
 
   // ===== Formulaire =====
   const [name, setName] = useState("");
@@ -132,37 +171,17 @@ const Notes = () => {
     };
   }, []);
 
-  // Charger les données (avis site + avis produits + produits mieux notés)
-  const loadData = () => {
-    setSiteFeedback(getSiteFeedback());
-
-    const allProducts = getAllProducts();
-
-    // Avis produits validés, avec le nom du produit associé
-    const reviews = [];
-    const productsWithStats = [];
-    allProducts.forEach((product) => {
-      const productReviewsList = getAllReviews(product.id);
-      productReviewsList.forEach((r) => {
-        reviews.push({ ...r, productTitle: product.title, productId: product.id });
-      });
-      const stats = computeStats(productReviewsList);
-      if (stats.count > 0) {
-        productsWithStats.push({ product, stats });
-      }
-    });
-    reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
-    setProductReviews(reviews);
-
-    // Top 6 produits par note moyenne (puis par nombre d'avis)
-    productsWithStats.sort(
-      (a, b) => b.stats.average - a.stats.average || b.stats.count - a.stats.count
-    );
-    setTopProducts(productsWithStats.slice(0, 6));
-  };
+  // Recharger les données (avis site + avis produits + produits mieux notés)
+  const loadData = useCallback(() => {
+    const result = computeData();
+    setSiteFeedback(result.siteFeedback);
+    setProductReviews(result.reviews);
+    setTopProducts(result.topProducts);
+  }, []);
 
   useEffect(() => {
-    loadData();
+    // Les données initiales sont déjà chargées (initialisation paresseuse) :
+    // on ne fait qu'écouter les mises à jour externes.
     const handleUpdate = () => loadData();
     window.addEventListener("reviewsUpdated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
@@ -172,7 +191,7 @@ const Notes = () => {
       window.removeEventListener("storage", handleUpdate);
       window.removeEventListener("productsUpdated", handleUpdate);
     };
-  }, []);
+  }, [loadData]);
 
   // ===== Statistiques globales =====
   const allVisibleReviews = useMemo(() => {

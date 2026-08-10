@@ -61,7 +61,7 @@ const Dashboard = () => {
       .slice(0, 5);
   };
 
-  const loadDashboardData = () => {
+  const loadDashboardData = useCallback(() => {
     try {
       // Produits (même source que la boutique : défauts + personnalisés)
       const products = getAllProducts();
@@ -94,7 +94,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -103,7 +103,7 @@ const Dashboard = () => {
     const events = ['ordersUpdated', 'productsUpdated', 'userChanged', 'subscribersUpdated', 'storage'];
     events.forEach(event => window.addEventListener(event, handleUpdate));
     return () => events.forEach(event => window.removeEventListener(event, handleUpdate));
-  }, []);
+  }, [loadDashboardData]);
 
   // Destination de chaque carte de statistiques
   const statCards = [

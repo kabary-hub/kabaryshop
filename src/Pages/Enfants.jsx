@@ -5,8 +5,10 @@ import Banner from "../components/Banner/Banner";
 import ImgEnfant from "../assets/background-pages/enfant.jpeg";
 
 const Enfants = ({ handleOrder, searchTerm = "" }) => {
-  const [enfantsProducts, setEnfantsProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Produits chargés de façon synchrone (initialisation paresseuse)
+  const [enfantsProducts, setEnfantsProducts] = useState(() =>
+    getAllProducts().filter(item => (item.category || item.categorySlug || "").toLowerCase().trim() === "enfants"),
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -17,11 +19,10 @@ const Enfants = ({ handleOrder, searchTerm = "" }) => {
     // FILTRER : uniquement les enfants
     const filtered = allProducts.filter(item => (item.category || item.categorySlug || "").toLowerCase().trim() === "enfants");
     setEnfantsProducts(filtered);
-    setLoading(false);
   };
 
   useEffect(() => {
-    loadProducts();
+    // Recharger les produits quand le catalogue change (événement global)
     const handleUpdate = () => loadProducts();
     window.addEventListener('productsUpdated', handleUpdate);
     return () => window.removeEventListener('productsUpdated', handleUpdate);
@@ -29,17 +30,6 @@ const Enfants = ({ handleOrder, searchTerm = "" }) => {
 
   // Recherche : filtrer les produits enfants par le terme saisi
   const visibleProducts = filterProductsByTerm(enfantsProducts, searchTerm);
-
-  if (loading) {
-    return (
-      <div className="pt-10">
-        <Banner title="Collection Enfants" subtitle="Mode et confort pour petits et grands" bgImage={ImgEnfant} />
-        <div className="container mx-auto flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="pt-10">

@@ -26,8 +26,8 @@ const LazyTestimonial = () => {
 };
 
 const Home = ({ handleOrder, searchTerm = "" }) => {
-  const [homeProducts, setHomeProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Produits chargés de façon synchrone (initialisation paresseuse)
+  const [homeProducts, setHomeProducts] = useState(() => getAllProducts().slice(0, 10));
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -38,23 +38,14 @@ const Home = ({ handleOrder, searchTerm = "" }) => {
     // Afficher les 10 produits les plus récents (toutes catégories confondues)
     const latestProducts = allProducts.slice(0, 10);
     setHomeProducts(latestProducts);
-    setLoading(false);
   };
 
   useEffect(() => {
-    loadProducts();
+    // Recharger les produits quand le catalogue change (événement global)
     const handleUpdate = () => loadProducts();
     window.addEventListener('productsUpdated', handleUpdate);
     return () => window.removeEventListener('productsUpdated', handleUpdate);
   }, []);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   // Recherche : si un terme est saisi, chercher dans TOUS les produits du site
   const visibleProducts = searchTerm.trim()

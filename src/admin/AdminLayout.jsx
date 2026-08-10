@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import {
   getAdminAlerts,
-  getUnreadAlertsCount,
   markAllAlertsRead,
   markAlertRead,
 } from '../utils/notifications';

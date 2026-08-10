@@ -52,6 +52,7 @@ const NewsletterBanner = () => {
       role="status"
       aria-live="polite"
       className="fixed bottom-5 right-5 z-[9999] max-w-[calc(100vw-2.5rem)] w-[340px] rounded-2xl shadow-2xl border border-primary/30 bg-white dark:bg-gray-900 overflow-hidden newsletter-banner"
+      style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
     >
       <div className="flex items-start justify-between gap-2 px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white">
         <p className="font-bold flex items-center gap-2 text-sm">

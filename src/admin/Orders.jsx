@@ -194,15 +194,17 @@ const Orders = () => {
         case 'date':
           comparison = new Date(a.date) - new Date(b.date);
           break;
-        case 'shipper':
+        case 'shipper': {
           const shipperA = a.shipping?.by || '';
           const shipperB = b.shipping?.by || '';
           comparison = shipperA.localeCompare(shipperB);
           break;
-        case 'status':
+        }
+        case 'status': {
           const statusOrder = { pending: 1, shipped: 2, completed: 3, cancelled: 4 };
           comparison = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
           break;
+        }
         case 'amount':
           comparison = a.total - b.total;
           break;

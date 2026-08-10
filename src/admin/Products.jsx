@@ -1,5 +1,5 @@
 // src/admin/Products.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Edit, Trash2, Plus, Search, Calendar, ArrowUpDown, X, ChevronLeft, ChevronRight, Eye, Tag, Palette } from 'lucide-react';
 import { getAllProducts, saveProduct, deleteProduct } from '../services/productService';
@@ -147,8 +147,8 @@ const Products = () => {
     setFormData({ ...formData, images });
   };
 
-  // Charger et trier les produits
-  const loadProducts = () => {
+  // Charger et trier les produits (mémorisé : recréé quand le tri change)
+  const loadProducts = useCallback(() => {
     setLoading(true);
     let allProducts = getAllProducts();
     
@@ -188,14 +188,14 @@ const Products = () => {
     
     setProducts(productsWithDates);
     setLoading(false);
-  };
+  }, [sortOrder]);
 
   useEffect(() => {
     loadProducts();
     const handleUpdate = () => loadProducts();
     window.addEventListener('productsUpdated', handleUpdate);
     return () => window.removeEventListener('productsUpdated', handleUpdate);
-  }, [sortOrder]);
+  }, [loadProducts]);
 
   const filteredProducts = products.filter(product =>
     product.title && product.title.toLowerCase().includes(searchTerm.toLowerCase())

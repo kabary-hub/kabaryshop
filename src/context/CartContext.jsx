@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components -- contexte React : un
+   Provider (composant) + un hook useCart() dans le même fichier (pattern React
+   standard, la règle Fast Refresh ne s'applique pas aux contextes). */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const CartContext = createContext();
@@ -11,16 +14,16 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-
-  // Charger le panier depuis localStorage
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
+  // Charger le panier depuis localStorage (initialisation paresseuse)
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem('cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Sauvegarder le panier dans localStorage
   useEffect(() => {

@@ -58,6 +58,7 @@ const Subscribers = () => {
 
   // Pagination : remonter à la page 1 quand la recherche change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset volontaire de la pagination
     setPage(1);
   }, [searchTerm]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

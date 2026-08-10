@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, Store, ShieldCheck, RefreshCw, KeyRound, Loader } from 'lucide-react';
 import {
   sendEmail,
-  getSiteName,
-  getAdminEmail,
   buildTwoFactorEmail,
 } from '../utils/emailService';
 import { useSettings } from '../context/SettingsContext';
@@ -206,6 +204,15 @@ const AdminLogin = () => {
     finishAdminSession(profile, false);
   };
 
+  // Vide le formulaire après une connexion réussie : ainsi, même si le
+  // navigateur restaure la page (cache de navigation avant/arrière),
+  // l'utilisateur ne retrouve pas ses identifiants pré-remplis.
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setError('');
+  };
+
   // Établit la session admin et redirige vers /admin
   const finishAdminSession = (profile, via2FA) => {
     localStorage.setItem('adminToken', 'dummy-token');
@@ -235,6 +242,7 @@ const AdminLogin = () => {
         : 'Connexion réussie à l\'administration',
       actor: { name: profile?.name || 'Admin', role: 'admin' },
     });
+    resetForm();
     navigate('/admin');
   };
 
@@ -276,7 +284,17 @@ const AdminLogin = () => {
 
       // Mot de passe local correct → 2FA si activée, puis connexion.
       // Active aussi la session cloud (compte créé automatiquement si besoin).
-      ensureSupabaseAuth(trimmedEmail, password);
+      // ⚠️ On ATTEND la session Supabase Auth : sans elle, les données
+      // sensibles (utilisateurs, logs…) ne seraient PAS synchronisées entre
+      // les ordinateurs (poussée refusée par la politique RLS).
+      const cloudSession = await ensureSupabaseAuth(trimmedEmail, password);
+      if (cloudSession && !cloudSession.ok) {
+        console.warn(
+          "[Auth] Session cloud non établie — la synchronisation des données admin (utilisateurs, logs…) est inactive :",
+          cloudSession.reason,
+          cloudSession.message || "",
+        );
+      }
       await completeAdminLogin(findAppUser());
       return;
     }
@@ -323,8 +341,10 @@ const AdminLogin = () => {
       }
 
       // Rôle admin → espace admin
+      // (session cloud attendue : nécessaire pour synchroniser les données
+      //  sensibles entre les appareils — cf. branche admin principal)
       if (foundUser.role === 'admin') {
-        ensureSupabaseAuth(trimmedEmail, password);
+        await ensureSupabaseAuth(trimmedEmail, password);
         await completeAdminLogin(foundUser);
         return;
       }
@@ -344,7 +364,8 @@ const AdminLogin = () => {
       }
 
       // Livreur / préparateur → espace staff
-      ensureSupabaseAuth(trimmedEmail, password);
+      // (session cloud attendue : nécessaire pour synchroniser les données)
+      await ensureSupabaseAuth(trimmedEmail, password);
       setStaffSession(foundUser.id);
       logActivity({
         type: 'auth',
@@ -353,6 +374,7 @@ const AdminLogin = () => {
         details: `Connexion réussie à l'espace ${foundUser.role === 'livreur' ? 'livreur' : 'préparateur'}`,
         actor: { name: foundUser.name, role: foundUser.role },
       });
+      resetForm();
       navigate('/staff/orders');
       return;
     }
@@ -429,15 +451,16 @@ const AdminLogin = () => {
       }
       if (cloudUser.role === 'livreur' || cloudUser.role === 'preparateur') {
         setStaffSession(cloudUser.id);
-        logActivity({
-          type: 'auth',
-          action: 'connexion',
-          subject: cloudUser.name,
-          details: `Connexion réussie à l'espace ${cloudUser.role === 'livreur' ? 'livreur' : 'préparateur'} (nouvel appareil)`,
-          actor: { name: cloudUser.name, role: cloudUser.role },
-        });
-        navigate('/staff/orders');
-        return;
+      logActivity({
+        type: 'auth',
+        action: 'connexion',
+        subject: cloudUser.name,
+        details: `Connexion réussie à l'espace ${cloudUser.role === 'livreur' ? 'livreur' : 'préparateur'} (nouvel appareil)`,
+        actor: { name: cloudUser.name, role: cloudUser.role },
+      });
+      resetForm();
+      navigate('/staff/orders');
+      return;
       }
 
       setError('Ce compte est un compte client « Utilisateur » : il n\'a pas accès à l\'espace admin ou staff.');
@@ -502,6 +525,10 @@ const AdminLogin = () => {
     setCodeError('');
     setDemoCode('');
     setDeliveryInfo('');
+    // Le mot de passe est aussi vidé : on revient à l'écran de connexion
+    // sans garder d'identifiants pré-remplis.
+    setPassword('');
+    setShowPassword(false);
   };
 
   // ==================== ÉCRAN VÉRIFICATION 2FA ====================

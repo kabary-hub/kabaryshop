@@ -1,4 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components -- contexte React : un
+   Provider (composant) + un hook useUsers() dans le même fichier. */
+import React, { createContext, useState, useContext } from 'react';
 
 const UserContext = createContext();
 
@@ -11,46 +13,42 @@ export const useUsers = () => {
 };
 
 export const UserProvider = ({ children }) => {
-  const [users, setUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Charger les utilisateurs depuis localStorage
-  useEffect(() => {
-    loadUsers();
-    loadCurrentUser();
-  }, []);
-
-  const loadUsers = () => {
+  // Chargement initial synchrone depuis localStorage (initialisation paresseuse)
+  const [users, setUsers] = useState(() => {
     const savedUsers = localStorage.getItem('app_users');
     if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      // Utilisateurs par défaut
-      const defaultUsers = [
-        { id: 1, name: 'Admin Principal', email: 'admin@kabarishop.com', role: 'admin', avatar: '👨‍💼', phone: '+224 600 000 001', status: 'active', createdAt: new Date().toISOString() },
-        { id: 2, name: 'Boubacar Diallo', email: 'boubacar@kabarishop.com', role: 'livreur', avatar: '🚚', phone: '+224 600 000 002', status: 'active', createdAt: new Date().toISOString() },
-        { id: 3, name: 'Mariama Camara', email: 'mariama@kabarishop.com', role: 'livreur', avatar: '🚚', phone: '+224 600 000 003', status: 'active', createdAt: new Date().toISOString() },
-        { id: 4, name: 'Ibrahima Sylla', email: 'ibrahima@kabarishop.com', role: 'preparateur', avatar: '📦', phone: '+224 600 000 004', status: 'active', createdAt: new Date().toISOString() },
-        { id: 5, name: 'Aissatou Bah', email: 'aissatou@kabarishop.com', role: 'preparateur', avatar: '📦', phone: '+224 600 000 005', status: 'active', createdAt: new Date().toISOString() },
-        { id: 6, name: 'Mamadou Diallo', email: 'mamadou@kabarishop.com', role: 'admin', avatar: '👨‍💼', phone: '+224 600 000 006', status: 'active', createdAt: new Date().toISOString() },
-      ];
-      setUsers(defaultUsers);
-      localStorage.setItem('app_users', JSON.stringify(defaultUsers));
+      try {
+        return JSON.parse(savedUsers);
+      } catch {
+        // stockage corrompu : on retombe sur les utilisateurs par défaut
+      }
     }
-    setLoading(false);
-  };
-
-  const loadCurrentUser = () => {
+    // Utilisateurs par défaut
+    const defaultUsers = [
+      { id: 1, name: 'Admin Principal', email: 'admin@kabarishop.com', role: 'admin', avatar: '👨‍💼', phone: '+224 600 000 001', status: 'active', createdAt: new Date().toISOString() },
+      { id: 2, name: 'Boubacar Diallo', email: 'boubacar@kabarishop.com', role: 'livreur', avatar: '🚚', phone: '+224 600 000 002', status: 'active', createdAt: new Date().toISOString() },
+      { id: 3, name: 'Mariama Camara', email: 'mariama@kabarishop.com', role: 'livreur', avatar: '🚚', phone: '+224 600 000 003', status: 'active', createdAt: new Date().toISOString() },
+      { id: 4, name: 'Ibrahima Sylla', email: 'ibrahima@kabarishop.com', role: 'preparateur', avatar: '📦', phone: '+224 600 000 004', status: 'active', createdAt: new Date().toISOString() },
+      { id: 5, name: 'Aissatou Bah', email: 'aissatou@kabarishop.com', role: 'preparateur', avatar: '📦', phone: '+224 600 000 005', status: 'active', createdAt: new Date().toISOString() },
+      { id: 6, name: 'Mamadou Diallo', email: 'mamadou@kabarishop.com', role: 'admin', avatar: '👨‍💼', phone: '+224 600 000 006', status: 'active', createdAt: new Date().toISOString() },
+    ];
+    localStorage.setItem('app_users', JSON.stringify(defaultUsers));
+    return defaultUsers;
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
     const savedCurrentUser = localStorage.getItem('current_user');
     if (savedCurrentUser) {
-      setCurrentUser(JSON.parse(savedCurrentUser));
-    } else {
-      const defaultUser = { id: 1, name: 'Admin Principal', role: 'admin', avatar: '👨‍💼' };
-      setCurrentUser(defaultUser);
-      localStorage.setItem('current_user', JSON.stringify(defaultUser));
+      try {
+        return JSON.parse(savedCurrentUser);
+      } catch {
+        return null;
+      }
     }
-  };
+    const defaultUser = { id: 1, name: 'Admin Principal', role: 'admin', avatar: '👨‍💼' };
+    localStorage.setItem('current_user', JSON.stringify(defaultUser));
+    return defaultUser;
+  });
+  const [loading] = useState(false);
 
   // Sauvegarder l'utilisateur connecté
   const saveCurrentUser = (user) => {

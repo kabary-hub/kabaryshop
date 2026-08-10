@@ -19,40 +19,40 @@ const FooterStyle = {
 
 const FooterLinks = [
   {
-    title: "Homme",
-    link: "/hommes",
+    title: "Femmes",
+    link: "/femmes",
   },
   {
-    title: "Mieux notés",
-    link: "/notes",
+    title: "Hommes",
+    link: "/hommes",
   },
   {
     title: "Enfants",
     link: "/enfants",
   },
   {
-    title: "Femmes",
-    link: "/femmes",
-  },
-  {
     title: "Électroniques",
     link: "/electroniques",
   },
   {
-    title: "Contacts",
-    link: "/contacts",
+    title: "Meubles",
+    link: "/meubles",
   },
   {
-    title: "Vêtements sur la tendance",
+    title: "Tendances",
     link: "/tendances",
   },
   {
-    title: "Meilleurs vente",
+    title: "Ventes & Promotions",
     link: "/ventes",
   },
   {
-    title: "Nouvelle tendances",
-    link: "/tendances",
+    title: "Mieux notés",
+    link: "/notes",
+  },
+  {
+    title: "Contacts",
+    link: "/contacts",
   },
 ];
 
@@ -65,9 +65,9 @@ const Footer = () => {
   return (
     <div style={FooterStyle} className="min-h-100 text-white">
       <div className='container mx-auto w-full'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 py-10 pt-5 gap-10 font-bold'>
-          <div className='py-8 px-4'>
-            <h1 className='text-3xl font-bold mb-3 flex items-center gap-3'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 py-10 pt-5 gap-8 sm:gap-10 font-bold'>
+          <div className='py-8 px-4 sm:col-span-2 lg:col-span-2'>
+            <h1 className='text-2xl sm:text-3xl font-bold mb-3 flex items-center gap-3'>
               <img src={footerLogo} alt="" className="max-w-12.5" />
               {settings.siteName}
             </h1>
@@ -84,22 +84,7 @@ const Footer = () => {
                 <a 
                   key={link.title}
                   href={link.link}
-                  className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary'
-                >
-                  {link.title}
-                </a>
-              ))}
-            </ul>
-          </div>
-          
-          <div className='py-8 px-4'>
-            <h1 className='text-xl md:text-2xl font-bold text-primary mb-3'>Liens Important </h1>
-            <ul className='flex flex-col gap-3'>
-              {FooterLinks.map((link) => (
-                <a 
-                  key={link.title}
-                  href={link.link}
-                  className='cursor-pointer hover:translate-x-1 underline duration-300 text-gray-200 hover:text-primary'
+                  className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary break-words'
                 >
                   {link.title}
                 </a>
@@ -128,7 +113,7 @@ const Footer = () => {
                 <p>{settings.sitePhone}</p>
               </div>
               <div className="flex items-center">
-                <p className="font-light italic underline cursor-pointer hover:text-secondary text-primary">
+                <p className="font-light italic underline cursor-pointer hover:text-secondary text-primary break-all">
                   {settings.siteEmail}
                 </p>
               </div>
@@ -136,7 +121,7 @@ const Footer = () => {
           </div>
         </div>
       </div>
-      <p className="text-center py-10 border-t-2 border-gray-300/50 mt-10">
+      <p className="text-center py-10 px-4 border-t-2 border-gray-300/50 mt-10">
         © {new Date().getFullYear()} {settings.siteName}. Tous droits réservés.
       </p>
     </div>

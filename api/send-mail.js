@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const { to, toName = '', subject, html, fromName = '' } = body;
+  const { to, subject, html, fromName = '' } = body;
 
   // Validation des champs
   if (!to || !subject || !html) {

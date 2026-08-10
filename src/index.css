@@ -20,6 +20,22 @@
 
 html, body {
   overflow-x: clip;
+  /* Éviter la mise à l'échelle automatique du texte sur iOS (rotation) */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Supprimer le surlignage gris au tap sur mobile */
+  -webkit-tap-highlight-color: transparent;
+  /* Largeur de la zone de défilement adaptée aux pouces */
+  scroll-padding-top: 4.5rem;
+}
+
+/* Empêche le zoom iOS sur les champs de saisie (< 16px) :
+   uniquement sur mobile, où Safari zoome automatiquement dans un champ
+   dont la police est inférieure à 16px. */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 /* Conteneur : toujours centré, avec des marges latérales réduites (32px)

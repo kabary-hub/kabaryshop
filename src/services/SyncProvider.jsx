@@ -70,6 +70,9 @@ const KEY_TO_LOCAL_EVENTS = {
 
 // Fréquence du filet de sécurité (poussée périodique)
 const INTERVAL_MS = 10000;
+// Fréquence du re-pull périodique : garantit la convergence entre appareils
+// même si Realtime Supabase n'est pas actif sur le projet.
+const PULL_INTERVAL_MS = 15000;
 
 const SyncProvider = () => {
   useEffect(() => {
@@ -112,6 +115,13 @@ const SyncProvider = () => {
         p_value: value,
       });
       if (error) {
+        // Refus RLS attendu quand un VISITEUR tente d'écrire une clé sensible
+        // (la synchro de ces clés reprend dès qu'une session admin/staff est
+        // active) : on reste silencieux. En revanche, si l'appareil EST
+        // connecté et reçoit quand même un refus, c'est un vrai problème de
+        // configuration → on le signale dans la console.
+        if (!hasSupabaseSession() && String(error.message || "").includes("Accès refusé"))
+          return;
         console.warn(`[Sync] échec de la poussée « ${key} » :`, error.message);
       } else {
         lastPushed.set(key, raw);
@@ -221,8 +231,17 @@ const SyncProvider = () => {
       });
     }, INTERVAL_MS);
 
+    // ---- 5. Filet de sécurité : re-pull périodique ----
+    // Même si Realtime n'est pas activé sur le projet Supabase (table absente
+    // de la publication), chaque appareil re-télécharge régulièrement le nuage
+    // : la DERNIÈRE modification finit toujours par être appliquée partout.
+    const pullInterval = setInterval(() => {
+      doPull();
+    }, PULL_INTERVAL_MS);
+
     return () => {
       clearInterval(interval);
+      clearInterval(pullInterval);
       window.removeEventListener(AUTH_EVENT, handleAuthChange);
       Object.keys(LOCAL_EVENT_TO_PUSH).forEach((evt) =>
         window.removeEventListener(evt, handleLocalEvent),

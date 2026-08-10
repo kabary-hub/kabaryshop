@@ -97,7 +97,7 @@ const Cart = () => {
 
         {/* Pied de page fixe */}
         {cartItems.length > 0 && (
-          <div className="border-t dark:border-gray-700 p-4 flex-shrink-0 bg-white dark:bg-gray-900">
+          <div className="border-t dark:border-gray-700 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex-shrink-0 bg-white dark:bg-gray-900">
             <div className="flex justify-between mb-3">
               <span className="font-semibold">Total :</span>
               <span className="font-bold text-xl text-primary">{getTotalPrice().toLocaleString()} GNF</span>

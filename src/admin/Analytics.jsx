@@ -1,5 +1,5 @@
 // src/admin/Analytics.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Users, ShoppingBag, DollarSign, Calendar, Download, Printer, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -20,23 +20,7 @@ const Analytics = () => {
   const [topProducts, setTopProducts] = useState([]);
   const [exportLoading, setExportLoading] = useState(false);
 
-  // Charger les données depuis localStorage
-  useEffect(() => {
-    loadAnalyticsData();
-  }, [period]);
-
-  // Rafraîchir automatiquement quand les données changent : sur cet
-  // ordinateur (events) ou depuis un autre appareil (synchronisation
-  // Supabase qui déclenche storage).
-  useEffect(() => {
-    const handleUpdate = () => loadAnalyticsData();
-    const events = ['ordersUpdated', 'productsUpdated', 'userChanged', 'storage'];
-    events.forEach((evt) => window.addEventListener(evt, handleUpdate));
-    return () =>
-      events.forEach((evt) => window.removeEventListener(evt, handleUpdate));
-  }, [period]);
-
-  const loadAnalyticsData = () => {
+  const loadAnalyticsData = useCallback(() => {
     try {
       // Récupérer les commandes
       const savedOrders = localStorage.getItem('shop_orders');
@@ -46,10 +30,6 @@ const Analytics = () => {
       const savedUsers = localStorage.getItem('app_users');
       const users = savedUsers ? JSON.parse(savedUsers) : [];
       
-      // Récupérer les produits
-      const savedProducts = localStorage.getItem('custom_products');
-      const products = savedProducts ? JSON.parse(savedProducts) : [];
-
       // Filtrer par période
       const now = new Date();
       let filteredOrders = [];
@@ -193,7 +173,23 @@ const Analytics = () => {
     } catch (error) {
       console.error('Erreur chargement données:', error);
     }
-  };
+  }, [period]);
+
+  // Charger les données quand la période change
+  useEffect(() => {
+    loadAnalyticsData();
+  }, [loadAnalyticsData]);
+
+  // Rafraîchir automatiquement quand les données changent : sur cet
+  // ordinateur (events) ou depuis un autre appareil (synchronisation
+  // Supabase qui déclenche storage).
+  useEffect(() => {
+    const handleUpdate = () => loadAnalyticsData();
+    const events = ['ordersUpdated', 'productsUpdated', 'userChanged', 'storage'];
+    events.forEach((evt) => window.addEventListener(evt, handleUpdate));
+    return () =>
+      events.forEach((evt) => window.removeEventListener(evt, handleUpdate));
+  }, [loadAnalyticsData]);
 
   const generateChartData = (orders, periodType) => {
     const now = new Date();

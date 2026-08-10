@@ -97,8 +97,8 @@ const History = () => {
     };
   }, []);
 
-  const stats = useMemo(() => getHistoryStats(), [entries]);
-  const actors = useMemo(() => getHistoryActors(), [entries]);
+  const stats = useMemo(() => getHistoryStats(entries), [entries]);
+  const actors = useMemo(() => getHistoryActors(entries), [entries]);
 
   // Filtres appliqués
   const filtered = useMemo(() => {

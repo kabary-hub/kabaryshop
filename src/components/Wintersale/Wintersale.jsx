@@ -10,23 +10,23 @@ const Wintersale = () => {
       <div className="container">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
           {/* image section  */}
-          <div data-aos="zoom-in">
+          <div data-aos="zoom-in" className="px-4 sm:px-0">
             <img
               src={WintersaleImg}
               alt=""
               loading="lazy"
               decoding="async"
-              className="max-w-100 h-87.5 w-full mx-auto drop-shadow-[-10px_10px_12px_rgba(0,0,0,1)] object-cover"
+              className="w-full max-w-md sm:max-w-100 mx-auto max-h-80 sm:max-h-87.5 object-contain drop-shadow-[-10px_10px_12px_rgba(0,0,0,1)]"
             />
           </div>
           {/* text detail section  */}
-          <div className="flex flex-col justify-center gap-6 sm:pt-0">
-            <h1 data-aos="fade-up" className="text-3xl sm:text-4xl font-bold">
+          <div className="flex flex-col justify-center gap-6 sm:pt-0 px-4 sm:px-0">
+            <h1 data-aos="fade-up" className="text-2xl sm:text-4xl font-bold leading-snug">
               Soldes d'hiver :  jusqu'à 50 % de réduction
             </h1>
             <p
               data-aos="fade-up"
-              className="text-sm xs:text text-gray-500 tracking-wide leading-5"
+              className="text-sm sm:text-base text-gray-500 tracking-wide leading-5"
             >
               Renouvelez votre garde-robe avec nos pièces phares de la saison à prix sacrifiés. L'élégance n'a jamais été aussi accessible.
             </p>

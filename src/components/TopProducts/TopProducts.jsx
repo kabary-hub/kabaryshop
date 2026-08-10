@@ -43,26 +43,40 @@ const getTopSellingProducts = (orders, allProducts) => {
 };
 
 const TopProducts = ({ handleOrder }) => {
-  const [topProducts, setTopProducts] = useState([]);
-  const [hasOrders, setHasOrders] = useState(true);
-
-  const loadTopProducts = () => {
+  // Meilleures ventes calculées de façon synchrone (initialisation paresseuse)
+  const [topProducts, setTopProducts] = useState(() => {
     try {
       const savedOrders = localStorage.getItem('shop_orders');
       const orders = savedOrders ? JSON.parse(savedOrders) : [];
-      const allProducts = getAllProducts();
-      setHasOrders(orders.length > 0);
-      setTopProducts(getTopSellingProducts(orders, allProducts));
+      return getTopSellingProducts(orders, getAllProducts());
     } catch (error) {
       console.error("Erreur chargement meilleures ventes:", error);
-      setHasOrders(false);
-      setTopProducts([]);
+      return [];
     }
-  };
+  });
+  const [hasOrders, setHasOrders] = useState(() => {
+    try {
+      const savedOrders = localStorage.getItem('shop_orders');
+      return savedOrders ? JSON.parse(savedOrders).length > 0 : false;
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
-    loadTopProducts();
-    const handleUpdate = () => loadTopProducts();
+    // Recharger quand les commandes changent (événements globaux)
+    const handleUpdate = () => {
+      try {
+        const savedOrders = localStorage.getItem('shop_orders');
+        const orders = savedOrders ? JSON.parse(savedOrders) : [];
+        setHasOrders(orders.length > 0);
+        setTopProducts(getTopSellingProducts(orders, getAllProducts()));
+      } catch (error) {
+        console.error("Erreur chargement meilleures ventes:", error);
+        setHasOrders(false);
+        setTopProducts([]);
+      }
+    };
     window.addEventListener('ordersUpdated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -73,19 +87,20 @@ const TopProducts = ({ handleOrder }) => {
 
   return (
     <div className="dark:bg-gray-950 dark:text-white duration-300">
-      <div className="container mx-auto border-b border-yellow-600 ">
+      <div className="container mx-auto border-b border-yellow-600 px-4 sm:px-0">
         {/* Header section  */}
-        <div className="text-left mb-24">
+        <div className="text-left mb-8 sm:mb-24">
           <p data-aos="fade-up" className="text-sm sm:text-xl font-bold text-primary">
             Nos meilleures ventes
           </p>
-          <h1 data-aos="fade-up" className="text-4xl font-bold">
+          <h1 data-aos="fade-up" className="text-2xl sm:text-4xl font-bold leading-snug">
             Les incontournables de la saison réunis au même endroit
           </h1>
-          <p data-aos="fade-up" className="text-sm xs:text text-gray-400">
+          <p data-aos="fade-up" className="text-sm sm:text-base text-gray-400 mt-2">
             Explorez une sélection rigoureuse des pièces les plus convoitées du
-            moment, du chic décontracté aux tenues de soirée, <br />
-            de la mode enfant aux costumes élégants, bref, venez découvrir ce qui définit le style de cette saison chez Kabary Shop.
+            moment, du chic décontracté aux tenues de soirée, de la mode enfant
+            aux costumes élégants, bref, venez découvrir ce qui définit le style
+            de cette saison chez Kabary Shop.
           </p>
         </div>
 

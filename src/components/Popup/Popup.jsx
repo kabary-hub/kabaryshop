@@ -231,7 +231,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
       {orderPopup && (
         <div className="popup">
           <div className="fixed inset-0 bg-black/50 z-[999999] backdrop-blur-sm">
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-5 shadow-md bg-white dark:bg-gray-700 rounded-2xl duration-200 w-[90%] max-w-[500px] z-[10000] max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-gray-600">
+            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-4 sm:p-5 shadow-md bg-white dark:bg-gray-700 rounded-2xl duration-200 w-[92%] sm:w-[90%] max-w-[500px] z-[10000] max-h-[85vh] max-h-[88dvh] overflow-y-auto overscroll-contain border border-gray-200 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="dark:text-white text-primary dark:bg-gradient-to-r from-primary to-secondary bg-black/90 text-center font-extrabold rounded-b-full">

@@ -4,7 +4,7 @@
 // (nom, email, téléphone) et son mot de passe (8 à 15 caractères).
 import React, { useState, useEffect } from "react";
 import { Save, Key, Eye, EyeOff, UserRound } from "lucide-react";
-import { getStaffUser, logoutComplete } from "../utils/auth";
+import { getStaffUser } from "../utils/auth";
 import {
   isValidPassword,
   PASSWORD_ERROR_MESSAGE,
@@ -67,7 +67,7 @@ const StaffSettings = () => {
         actor: { name: form.name, role: staffUser.role },
       });
       showToast("Vos informations ont été mises à jour.", "success");
-    } catch (err) {
+    } catch {
       showToast("Erreur lors de la sauvegarde.", "error");
     } finally {
       setSaving(false);
@@ -116,7 +116,7 @@ const StaffSettings = () => {
       });
       showToast("Mot de passe modifié avec succès.", "success");
       setPasswordForm({ current: "", next: "", confirm: "" });
-    } catch (err) {
+    } catch {
       showToast("Erreur lors de la sauvegarde.", "error");
     } finally {
       setSaving(false);
