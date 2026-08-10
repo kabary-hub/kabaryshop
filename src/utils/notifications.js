@@ -79,8 +79,8 @@ export const sendBrowserPush = (title, body, icon = "") => {
       notification.close();
     };
     return true;
-  } catch (err) {
-    console.warn("Erreur notification push :", err);
+  } catch {
+    // Notification push indisponible : on laisse l'alerte in-app fonctionner
     return false;
   }
 };

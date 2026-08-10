@@ -92,8 +92,8 @@ export const updateCategoryProductCounts = (getAllProductsFn) => {
       window.dispatchEvent(new Event("storage"));
     }
     return updated;
-  } catch (error) {
-    console.error("Erreur mise à jour compteurs:", error);
+  } catch {
+    // Calcul impossible : on laisse les compteurs inchangés
     return null;
   }
 };

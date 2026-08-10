@@ -1,6 +1,6 @@
 // src/admin/Reviews.jsx
 import React, { useState, useEffect } from 'react';
-import { Star, Check, Trash2, MessageSquare, Reply, Store } from 'lucide-react';
+import { Star, Check, Trash2, MessageSquare, Reply, Store, Lightbulb } from 'lucide-react';
 import {
   getAllUserReviews,
   getReviewStatus,
@@ -14,6 +14,8 @@ import {
 } from '../utils/reviews';
 import { getAllProducts } from '../services/productService';
 import { logActivity } from '../utils/history';
+import { showToast } from '../utils/toast';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 
 // Construit la liste des avis utilisateurs (produits + site) avec les infos
 // produit (lecture localStorage). Les avis généraux du site portent le
@@ -48,6 +50,9 @@ const Reviews = () => {
   const [replyingId, setReplyingId] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyError, setReplyError] = useState('');
+  // Avis en attente de confirmation de suppression / de suppression de réponse
+  const [reviewToDelete, setReviewToDelete] = useState(null);
+  const [reviewToRemoveReply, setReviewToRemoveReply] = useState(null);
 
   // Se rafraîchir quand un avis est modifié ailleurs (storage / produits / avis)
   useEffect(() => {
@@ -78,20 +83,26 @@ const Reviews = () => {
   };
 
   const handleDelete = (review) => {
-    if (window.confirm('Supprimer définitivement cet avis ?')) {
-      const ok = review.isSiteReview
-        ? deleteSiteFeedback(review.id)
-        : deleteUserReview(review.productId, review.id);
-      if (ok) {
-        setReviews(buildReviewsList());
-        logActivity({
-          type: 'review',
-          action: 'suppression',
-          subject: `Avis de ${review.name}`,
-          details: `${review.isSiteReview ? 'Avis général' : 'Produit : ' + review.productTitle}`,
-        });
-      }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setReviewToDelete(review);
+  };
+
+  const confirmDeleteReview = () => {
+    if (!reviewToDelete) return;
+    const ok = reviewToDelete.isSiteReview
+      ? deleteSiteFeedback(reviewToDelete.id)
+      : deleteUserReview(reviewToDelete.productId, reviewToDelete.id);
+    if (ok) {
+      setReviews(buildReviewsList());
+      logActivity({
+        type: 'review',
+        action: 'suppression',
+        subject: `Avis de ${reviewToDelete.name}`,
+        details: `${reviewToDelete.isSiteReview ? 'Avis général' : 'Produit : ' + reviewToDelete.productTitle}`,
+      });
+      showToast(`L'avis de ${reviewToDelete.name} a été supprimé`, 'success');
     }
+    setReviewToDelete(null);
   };
 
   const startReply = (review) => {
@@ -137,35 +148,35 @@ const Reviews = () => {
   };
 
   const removeReply = (review) => {
-    if (window.confirm('Supprimer la réponse du vendeur à cet avis ?')) {
-      if (review.isSiteReview) {
-        if (setSiteFeedbackReply(review.id, null)) {
-          setReviews(buildReviewsList());
-        }
-        setReplyingId(null);
-        setReplyText('');
-        setReplyError('');
-        logActivity({
-          type: 'review',
-          action: 'suppression de la réponse',
-          subject: `Réponse à ${review.name}`,
-          details: 'Réponse du vendeur supprimée (avis général)',
-        });
-        return;
-      }
-      if (setReviewReply(review.productId, review.id, null)) {
-        setReviews(buildReviewsList());
-        setReplyingId(null);
-        setReplyText('');
-        setReplyError('');
-        logActivity({
-          type: 'review',
-          action: 'suppression de la réponse',
-          subject: `Réponse à ${review.name}`,
-          details: `Produit : ${review.productTitle}`,
-        });
-      }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setReviewToRemoveReply(review);
+  };
+
+  const confirmRemoveReply = () => {
+    if (!reviewToRemoveReply) return;
+    const review = reviewToRemoveReply;
+    let ok = false;
+    if (review.isSiteReview) {
+      ok = setSiteFeedbackReply(review.id, null);
+    } else {
+      ok = setReviewReply(review.productId, review.id, null);
     }
+    if (ok) {
+      setReviews(buildReviewsList());
+      logActivity({
+        type: 'review',
+        action: 'suppression de la réponse',
+        subject: `Réponse à ${review.name}`,
+        details: review.isSiteReview
+          ? 'Réponse du vendeur supprimée (avis général)'
+          : `Produit : ${review.productTitle}`,
+      });
+      showToast(`La réponse à ${review.name} a été supprimée`, 'success');
+    }
+    setReplyingId(null);
+    setReplyText('');
+    setReplyError('');
+    setReviewToRemoveReply(null);
   };
 
   const pendingCount = reviews.filter((r) => r.status === 'pending').length;
@@ -242,6 +253,30 @@ const Reviews = () => {
         ))}
       </div>
 
+      {/* Modale de confirmation : suppression d'un avis */}
+      <ConfirmModal
+        open={Boolean(reviewToDelete)}
+        title="Supprimer cet avis ?"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement l'avis de ${reviewToDelete?.name || ''} ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmDeleteReview}
+        onCancel={() => setReviewToDelete(null)}
+      />
+
+      {/* Modale de confirmation : suppression d'une réponse */}
+      <ConfirmModal
+        open={Boolean(reviewToRemoveReply)}
+        title="Supprimer la réponse ?"
+        message={`Êtes-vous sûr de vouloir supprimer la réponse du vendeur à l'avis de ${reviewToRemoveReply?.name || ''} ?`}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmRemoveReply}
+        onCancel={() => setReviewToRemoveReply(null)}
+      />
+
       {filtered.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
           {/* Pas d'icône pour le cas « aucun avis en attente » */}
@@ -250,7 +285,7 @@ const Reviews = () => {
           )}
           <p className="text-gray-500">
             {filter === 'pending'
-              ? 'Aucun avis en attente de validation. 🎉'
+              ? 'Aucun avis en attente de validation.'
               : 'Aucun avis soumis par les utilisateurs pour le moment.'}
           </p>
         </div>
@@ -330,9 +365,10 @@ const Reviews = () => {
                         {review.reply ? 'Modifier la réponse' : 'Nouvelle réponse du vendeur'}
                       </p>
                       {review.status === 'pending' && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
-                          💡 Cet avis est en attente de validation : la réponse sera
-                          visible une fois l'avis validé.
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 flex items-start gap-1">
+                          <Lightbulb size={13} className="shrink-0 mt-0.5" />
+                          <span>Cet avis est en attente de validation : la réponse sera
+                          visible une fois l'avis validé.</span>
                         </p>
                       )}
                   <textarea

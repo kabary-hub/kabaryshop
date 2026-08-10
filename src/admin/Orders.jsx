@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import { sendShippingAssignmentEmail } from '../utils/subscribers';
 import Pagination from '../components/Pagination/Pagination';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
+import UserAvatar from '../components/UserAvatar/UserAvatar';
 
 // Nombre de commandes affichées par page
 const PAGE_SIZE = 8;
@@ -26,6 +28,39 @@ const Orders = () => {
   const [adminUsers, setAdminUsers] = useState([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
+  // Commande en attente de confirmation de rejet
+  const [orderToReject, setOrderToReject] = useState(null);
+
+  // Importer / remplacer la photo de l'utilisateur connecté
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner une image valide', 'warning');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const photo = String(reader.result || '');
+      // Mettre à jour l'utilisateur connecté (current_admin_user)
+      setCurrentUser((prev) => ({ ...prev, photo }));
+      // Persister dans app_users pour que la photo suive sur tous les appareils
+      try {
+        const users = JSON.parse(localStorage.getItem('app_users') || '[]');
+        const updated = users.map((u) =>
+          String(u.id) === String(currentUser.id) ? { ...u, photo } : u,
+        );
+        localStorage.setItem('app_users', JSON.stringify(updated));
+        window.dispatchEvent(new Event('userChanged'));
+      } catch {
+        // Persistance secondaire : la photo reste sur current_admin_user
+      }
+      showToast('Photo de profil mise à jour', 'success');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // ==================== CHARGEMENT DES UTILISATEURS ====================
   const loadUsers = () => {
@@ -42,7 +77,7 @@ const Orders = () => {
     if (saved) {
       return JSON.parse(saved);
     }
-    return { id: 1, name: 'Admin Principal', role: 'admin', avatar: '👨‍💼' };
+    return { id: 1, name: 'Admin Principal', role: 'admin', avatar: '' };
   });
 
   // Sauvegarder l'utilisateur connecté
@@ -261,7 +296,7 @@ const Orders = () => {
     );
     saveOrders(updatedOrders);
     addActionLog(orderId, 'shipped', `Commande expédiée par ${shipper.name} (${shipper.role})`);
-    // 📧 Envoyer la commande par email au livreur / préparateur assigné
+    // Envoyer la commande par email au livreur / préparateur assigné
     const emailResult = await sendShippingAssignmentEmail({
       toEmail: shipper.email,
       toName: shipper.name,
@@ -293,13 +328,19 @@ const Orders = () => {
       setShowActionMenu(null);
       return;
     }
-    if (window.confirm('Êtes-vous sûr de vouloir rejeter cette commande ?')) {
-      const updatedOrders = orders.filter(order => order.id !== orderId);
-      saveOrders(updatedOrders);
-      addActionLog(orderId, 'rejected', 'Commande rejetée');
-      showToast(`La commande #${displayOrderId(order)} a été rejetée`, 'success');
-      setShowActionMenu(null);
-    }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setOrderToReject(order);
+  };
+
+  const confirmRejectOrder = () => {
+    if (!orderToReject) return;
+    const orderId = orderToReject.id;
+    const updatedOrders = orders.filter(order => order.id !== orderId);
+    saveOrders(updatedOrders);
+    addActionLog(orderId, 'rejected', 'Commande rejetée');
+    showToast(`La commande #${displayOrderId(orderToReject)} a été rejetée`, 'success');
+    setOrderToReject(null);
+    setShowActionMenu(null);
   };
 
   const viewOrderDetails = (order) => {
@@ -356,7 +397,7 @@ const Orders = () => {
             onClick={() => setShowUserModal(true)}
             className="flex items-center gap-3 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
           >
-            <div className="text-2xl">{currentUser.avatar}</div>
+            <UserAvatar user={currentUser} className="w-10 h-10 sm:w-11 sm:h-11 text-2xl" />
             <div className="text-left">
               <p className="font-semibold text-sm">{currentUser.name}</p>
               <p className="text-xs text-gray-500">
@@ -531,7 +572,8 @@ const Orders = () => {
                   : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              💰 Montant
+              <Banknote size={16} />
+              Montant
               {sortBy === 'amount' && <ArrowUpDown size={14} />}
             </button>
           </div>
@@ -655,6 +697,18 @@ const Orders = () => {
         onChange={setPage}
       />
 
+      {/* Modal de confirmation de rejet */}
+      <ConfirmModal
+        open={Boolean(orderToReject)}
+        title="Rejeter la commande ?"
+        message={`Êtes-vous sûr de vouloir rejeter la commande #${displayOrderId(orderToReject)} de ${orderToReject?.customer?.name || ''} ? Elle sera retirée de la liste.`}
+        confirmLabel="Rejeter"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmRejectOrder}
+        onCancel={() => setOrderToReject(null)}
+      />
+
       {/* Modal de sélection du livreur */}
       {showShippingModal && selectedOrderForShipping && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -681,7 +735,7 @@ const Orders = () => {
                       onClick={() => confirmShipping(selectedOrderForShipping.id, user)}
                       className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition text-left"
                     >
-                      <div className="text-2xl">{user.avatar}</div>
+                      <UserAvatar user={user} className="w-10 h-10 sm:w-11 sm:h-11 text-2xl" showSiteLogo={false} />
                       <div className="flex-1">
                         <p className="font-semibold">{user.name}</p>
                         <p className="text-xs text-gray-500">
@@ -716,7 +770,41 @@ const Orders = () => {
               <p className="text-sm text-gray-500 mb-4">
                 Sélectionnez l'utilisateur qui va gérer le site
               </p>
-              
+
+              {/* Photo de l'utilisateur connecté : import cliquable */}
+              <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-dashed border-primary/40 bg-primary/5">
+                <label className="relative cursor-pointer group shrink-0" title="Importer votre photo">
+                  <UserAvatar user={currentUser} className="w-10 h-10 sm:w-11 sm:h-11 text-2xl" />
+                  <span className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow">
+                    <Camera size={12} />
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{currentUser.name}</p>
+                  <p className="text-xs text-gray-500">
+                    Cliquez sur l'avatar pour importer votre photo
+                  </p>
+                </div>
+                <label className="cursor-pointer shrink-0">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                    <Camera size={14} />
+                    Importer
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+              </div>
+
               <div className="space-y-2">
                 {adminUsers.map(user => (
                   <button
@@ -726,7 +814,9 @@ const Orders = () => {
                         id: user.id,
                         name: user.name,
                         role: user.role,
-                        avatar: user.avatar
+                        avatar: user.avatar,
+                        // Conserver la photo si l'utilisateur en a une
+                        photo: user.photo
                       };
                       setCurrentUser(userToSave);
                       localStorage.setItem('current_admin_user', JSON.stringify(userToSave));
@@ -740,7 +830,7 @@ const Orders = () => {
                         : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
-                    <div className="text-3xl">{user.avatar}</div>
+                    <UserAvatar user={user} className="w-10 h-10 sm:w-11 sm:h-11 text-base" showSiteLogo={false} />
                     <div className="flex-1">
                       <p className="font-semibold">{user.name}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -749,8 +839,8 @@ const Orders = () => {
                           user.role === 'livreur' ? 'bg-blue-100 text-blue-800' :
                           'bg-green-100 text-green-800'
                         }`}>
-                          {user.role === 'admin' ? '👨‍💼 Administrateur' : 
-                           user.role === 'livreur' ? '🚚 Livreur' : '📦 Préparateur'}
+                          {user.role === 'admin' ? <><Shield size={11} /> Administrateur</> : 
+                           user.role === 'livreur' ? <><Truck size={11} /> Livreur</> : <><Package size={11} /> Préparateur</>}
                         </span>
                         <span className="text-xs text-gray-400">{user.email}</span>
                       </div>
@@ -763,8 +853,8 @@ const Orders = () => {
               </div>
               
               <div className="mt-4 pt-3 border-t dark:border-gray-700">
-                <p className="text-xs text-gray-400 text-center">
-                  💡 Les utilisateurs sont gérés dans l'onglet "Utilisateurs" du menu admin
+                <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
+                  <Lightbulb size={12} /> Les utilisateurs sont gérés dans l'onglet "Utilisateurs" du menu admin
                 </p>
               </div>
             </div>
@@ -826,10 +916,10 @@ const Orders = () => {
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Truck size={18} /> Informations d'expédition
                   </h3>
-                  <div className="text-sm space-y-1">
-                    <p>📦 Expédié par : <strong>{selectedOrder.shipping.by}</strong></p>
-                    <p>📅 Date d'expédition : {formatDate(selectedOrder.shipping.date)}</p>
-                    {selectedOrder.shipping.notes && <p>📝 Note : {selectedOrder.shipping.notes}</p>}
+                  <div className="text-sm space-y-1.5">
+                    <p className="flex items-center gap-1.5"><Package size={14} className="text-blue-500 shrink-0" /> Expédié par : <strong>{selectedOrder.shipping.by}</strong></p>
+                    <p className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500 shrink-0" /> Date d'expédition : {formatDate(selectedOrder.shipping.date)}</p>
+                    {selectedOrder.shipping.notes && <p className="flex items-start gap-1.5"><StickyNote size={14} className="text-blue-500 shrink-0 mt-0.5" /> Note : {selectedOrder.shipping.notes}</p>}
                   </div>
                 </div>
               )}

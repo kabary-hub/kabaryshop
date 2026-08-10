@@ -10,6 +10,7 @@ import { useCart } from "../../context/CartContext"; // IMPORTANT: Ajout du pani
 import ShareButton from "../ShareButton/ShareButton";
 import { getReviewStats } from "../../utils/reviews";
 import { PRODUCT_DEFAULT_PRICES } from "../../utils/productDefaultPrices";
+import { getDeletedProductIds } from "../../services/productService";
 
 // 1. Importation de tous les dossiers
 const womenImages = import.meta.glob(
@@ -100,8 +101,8 @@ const getCustomProducts = () => {
     if (custom) {
       return JSON.parse(custom);
     }
-  } catch (error) {
-    console.error('Erreur chargement produits:', error);
+  } catch {
+    // Stockage illisible : on repart d'une liste vide
   }
   return [];
 };
@@ -124,11 +125,24 @@ export const deleteCustomProduct = (id) => {
 // Les produits personnalisés avec `originalId` remplacent le produit par
 // défaut correspondant (même logique que src/services/productService.js)
 // pour éviter les doublons quand l'admin modifie un produit du catalogue.
+// Les produits supprimés (tombstones deleted_products) sont exclus.
 export const getAllProducts = () => {
   const customProducts = getCustomProducts();
-  const allProducts = [...defaultProducts];
+  const deletedIds = new Set(getDeletedProductIds());
 
+  // 1) Produits par défaut, SAUF ceux supprimés
+  const allProducts = defaultProducts.filter(
+    (p) => !deletedIds.has(String(p.id)),
+  );
+
+  // 2) Produits personnalisés, sauf ceux supprimés (ou dont l'original l'est)
   customProducts.forEach((customProduct) => {
+    const hidden =
+      deletedIds.has(String(customProduct.id)) ||
+      (customProduct.originalId &&
+        deletedIds.has(String(customProduct.originalId)));
+    if (hidden) return;
+
     if (customProduct.originalId) {
       const index = allProducts.findIndex(
         (p) => String(p.id) === String(customProduct.originalId),
@@ -153,8 +167,10 @@ export const getAllProducts = () => {
 };
 
 // 9. Obtenir uniquement les produits par défaut (pour la page d'accueil)
+// (les produits supprimés par l'admin sont exclus)
 export const getDefaultProducts = () => {
-  return [...defaultProducts];
+  const deletedIds = new Set(getDeletedProductIds());
+  return defaultProducts.filter((p) => !deletedIds.has(String(p.id)));
 };
 
 // 10. Export pour compatibilité
@@ -202,12 +218,14 @@ const Products = ({ data, searchTerm = "" }) => {
 
   // Liste des produits TRIÉS, calculée de façon synchrone (données + localStorage)
   const products = useMemo(() => {
+    const deletedIds = new Set(getDeletedProductIds());
+    const isVisible = (product) => !deletedIds.has(String(product.id));
     let allProducts;
     
     if (data && data.length > 0) {
       const productMap = new Map();
       [...data].forEach((product) => {
-        if (!productMap.has(product.id)) {
+        if (isVisible(product) && !productMap.has(product.id)) {
           productMap.set(product.id, product);
         }
       });
@@ -215,7 +233,7 @@ const Products = ({ data, searchTerm = "" }) => {
     } else {
       const productMap = new Map();
       [...defaultProducts, ...customProducts].forEach(product => {
-        if (!productMap.has(product.id)) {
+        if (isVisible(product) && !productMap.has(product.id)) {
           productMap.set(product.id, product);
         }
       });

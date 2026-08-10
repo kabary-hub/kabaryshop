@@ -43,8 +43,8 @@ const CategoryProducts = ({ handleOrder, searchTerm = "" }) => {
       });
 
       setProducts(categoryProducts);
-    } catch (error) {
-      console.error('Erreur chargement produits:', error);
+    } catch {
+      // Catalogue illisible : catégorie vide affichée
       setProducts([]);
     } finally {
       setLoading(false);

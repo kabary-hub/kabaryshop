@@ -44,7 +44,7 @@ import {
 // Événements locaux → clés localStorage à pousser vers le nuage
 const LOCAL_EVENT_TO_PUSH = {
   ordersUpdated: ["shop_orders"],
-  productsUpdated: ["custom_products"],
+  productsUpdated: ["custom_products", "deleted_products"],
   userChanged: ["app_users"],
   settingsUpdated: ["kabary_settings"],
   categoriesUpdated: ["categories"],
@@ -58,6 +58,7 @@ const KEY_TO_LOCAL_EVENTS = {
   shop_orders: ["ordersUpdated", "storage"],
   app_users: ["userChanged", "storage"],
   custom_products: ["productsUpdated", "storage"],
+  deleted_products: ["productsUpdated", "storage"],
   categories: ["categoriesUpdated", "storage"],
   kabary_settings: ["settingsUpdated", "storage"],
   site_history: ["historyUpdated", "storage"],
@@ -80,6 +81,12 @@ const SyncProvider = () => {
 
     const client = getSupabase();
     const lastPushed = new Map();
+    // Clés modifiées LOCALEMENT dont la poussée vers le nuage a échoué ou n'a
+    // pas encore eu lieu (ex. admin non connecté à Supabase Auth) : le re-pull
+    // périodique ne doit PAS écraser ces changements locaux avec la valeur
+    // distante périmée, sinon une suppression de produit « reviendrait ».
+    // La clé reste « sale » jusqu'à ce que la poussée réussisse.
+    const dirtyKeys = new Set();
 
     // Pousse une clé localStorage vers Supabase (upsert)
     // Une clé sensible (app_users, logs…) ne peut être envoyée que si
@@ -117,14 +124,15 @@ const SyncProvider = () => {
       if (error) {
         // Refus RLS attendu quand un VISITEUR tente d'écrire une clé sensible
         // (la synchro de ces clés reprend dès qu'une session admin/staff est
-        // active) : on reste silencieux. En revanche, si l'appareil EST
-        // connecté et reçoit quand même un refus, c'est un vrai problème de
-        // configuration → on le signale dans la console.
+        // active) : on reste silencieux.
         if (!hasSupabaseSession() && String(error.message || "").includes("Accès refusé"))
           return;
-        console.warn(`[Sync] échec de la poussée « ${key} » :`, error.message);
+        // Échec réel de synchronisation : silencieux côté utilisateur
+        // (la poussée sera re-tentée par le filet de sécurité).
       } else {
         lastPushed.set(key, raw);
+        // Changement local bien propagé → la clé n'est plus « sale »
+        dirtyKeys.delete(key);
       }
     };
 
@@ -137,6 +145,11 @@ const SyncProvider = () => {
     // Applique une valeur distante au localStorage (si différente)
     const applyRemote = (key, value) => {
       if (!SYNC_KEYS.includes(key)) return;
+      // Garde-fou : un changement LOCAL non encore poussé (suppression de
+      // produit, modification…) ne doit pas être écrasé par une valeur
+      // distante périmée. La poussée reprendra dès qu'une session cloud sera
+      // active, puis la clé redeviendra propre.
+      if (dirtyKeys.has(key)) return;
       if (sameValue(localStorage.getItem(key), value)) return;
       try {
         const raw = JSON.stringify(value);
@@ -157,7 +170,7 @@ const SyncProvider = () => {
         .from(SYNC_TABLE)
         .select("key, value");
       if (error) {
-        console.warn("[Sync] pull initial impossible :", error.message);
+        // Pull impossible (réseau, config…) : on conserve l'état local
         return;
       }
       const remoteKeys = new Set();
@@ -173,9 +186,12 @@ const SyncProvider = () => {
       });
       // Pour les clés présentes dans le nuage, l'état local est maintenant
       // identique à la valeur distante → on les marque « déjà poussées »
-      // pour éviter un double-push à la première passe.
+      // pour éviter un double-push à la première passe. Exception : les clés
+      // « sales » (modifiées localement, non encore poussées) ne sont PAS
+      // marquées, pour que le filet de sécurité les renvoie dès que la
+      // session cloud le permettra.
       SYNC_KEYS.forEach((key) => {
-        if (remoteKeys.has(key)) {
+        if (remoteKeys.has(key) && !dirtyKeys.has(key)) {
           try {
             lastPushed.set(key, localStorage.getItem(key));
           } catch {
@@ -210,14 +226,25 @@ const SyncProvider = () => {
     const handleLocalEvent = (e) => {
       const keys = LOCAL_EVENT_TO_PUSH[e.type];
       if (!keys) return;
-      keys.forEach((key) => pushKey(key));
+      keys.forEach((key) => {
+        // Écho d'une MAJ distante déjà appliquée (valeur identique à la
+        // dernière poussée) : ce n'est pas un changement local à protéger.
+        let raw;
+        try {
+          raw = localStorage.getItem(key);
+        } catch {
+          return;
+        }
+        if (lastPushed.get(key) === raw) return;
+        dirtyKeys.add(key);
+        pushKey(key);
+      });
     };
-    Object.keys(LOCAL_EVENT_TO_PUSH).forEach((evt) =>
-      window.addEventListener(evt, handleLocalEvent),
-    );
 
-    // ---- 4. Filet de sécurité : poussée périodique ----
-    const interval = setInterval(() => {
+    // Filet de sécurité : si une poussée échoue (visiteur non connecté), la
+    // clé reste « sale » (dirtyKeys) et sera re-tentée périodiquement ; les
+    // écritures directes sans événement sont aussi rattrapées ici.
+    const pushKeys = () => {
       SYNC_KEYS.forEach((key) => {
         let raw;
         try {
@@ -229,6 +256,14 @@ const SyncProvider = () => {
         if (lastPushed.get(key) === raw) return;
         pushKey(key);
       });
+    };
+    Object.keys(LOCAL_EVENT_TO_PUSH).forEach((evt) =>
+      window.addEventListener(evt, handleLocalEvent),
+    );
+
+    // ---- 4. Filet de sécurité : poussée périodique ----
+    const interval = setInterval(() => {
+      pushKeys();
     }, INTERVAL_MS);
 
     // ---- 5. Filet de sécurité : re-pull périodique ----

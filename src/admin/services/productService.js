@@ -12,6 +12,7 @@ import {
   getAllProducts as getPublicProducts,
   saveProduct as savePublicProduct,
   deleteProduct as deletePublicProduct,
+  getDeletedProductIds,
 } from "../../services/productService";
 import { updateCategoryProductCounts as recalcCounts } from "../../utils/categories";
 
@@ -23,11 +24,13 @@ export const getAllProducts = () => {
   try {
     const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || "[]");
     const ids = new Set(products.map((p) => String(p.id)));
+    // Les produits supprimés (tombstones) ne doivent pas revenir via l'héritage
+    const deletedIds = new Set(getDeletedProductIds());
     legacy.forEach((p) => {
-      if (!ids.has(String(p.id))) products.push(p);
+      if (!ids.has(String(p.id)) && !deletedIds.has(String(p.id))) products.push(p);
     });
-  } catch (error) {
-    console.error("Erreur chargement produits hérités:", error);
+  } catch {
+    // Héritage illisible : on ignore les anciennes données
   }
   return products;
 };
@@ -37,8 +40,8 @@ export const getAdminProducts = () => {
   try {
     const savedProducts = localStorage.getItem("custom_products");
     return savedProducts ? JSON.parse(savedProducts) : [];
-  } catch (error) {
-    console.error("Erreur chargement produits admin:", error);
+  } catch {
+    // Stockage illisible : aucune copie admin
     return [];
   }
 };
@@ -60,8 +63,8 @@ export const saveProduct = (product) => {
           String(p.id) !== String(saved.originalId),
       );
       localStorage.setItem(LEGACY_KEY, JSON.stringify(filtered));
-    } catch (error) {
-      console.error("Erreur nettoyage produits hérités:", error);
+    } catch {
+      // Nettoyage impossible : sans impact sur la sauvegarde
     }
     recalcCounts(getAllProducts);
   }
@@ -77,8 +80,8 @@ export const deleteProduct = (id, originalId) => {
       (p) => String(p.id) !== String(id) && String(p.id) !== String(originalId),
     );
     localStorage.setItem(LEGACY_KEY, JSON.stringify(filtered));
-  } catch (error) {
-    console.error("Erreur nettoyage produits hérités:", error);
+  } catch {
+    // Nettoyage impossible : sans impact sur la suppression
   }
   recalcCounts(getAllProducts);
   return ok;
@@ -92,8 +95,8 @@ export const getProductsByCategory = (categorySlug) => {
       const productCategory = (product.category || product.categorySlug || "").toLowerCase();
       return productCategory === categorySlug.toLowerCase();
     });
-  } catch (error) {
-    console.error("Erreur récupération produits par catégorie:", error);
+  } catch {
+    // Catalogue illisible : catégorie vide
     return [];
   }
 };

@@ -29,6 +29,7 @@ export const SYNC_KEYS = [
   "shop_orders", // commandes
   "app_users", // utilisateurs (rôles, statuts, mots de passe des comptes staff/admin créés)
   "custom_products", // produits personnalisés
+  "deleted_products", // IDs des produits supprimés (tombstones)
   "categories", // catégories
   "kabary_settings", // paramètres du site
   "site_history", // journal d'activité

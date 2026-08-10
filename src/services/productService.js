@@ -94,10 +94,43 @@ export const getCustomProducts = () => {
     if (custom) {
       return JSON.parse(custom);
     }
-  } catch (error) {
-    console.error('Erreur chargement produits:', error);
+  } catch {
+    // Stockage illisible : on repart d'une liste vide
   }
   return [];
+};
+
+// 5bis. Produits supprimés (« tombstones »)
+//
+// 🔥 Les produits PAR DÉFAUT du catalogue (DEFAULT_PRODUCTS) sont régénérés
+// à chaque chargement depuis les images du bundle : ils ne sont PAS dans
+// custom_products, donc les retirer de cette liste ne suffit pas à les
+// supprimer. On conserve donc ici la liste des IDs supprimés ; toutes les
+// fonctions getAllProducts() filtrent cette liste pour masquer durablement
+// le produit (par défaut OU personnalisé) après suppression.
+export const DELETED_KEY = 'deleted_products';
+
+// Récupérer les IDs des produits supprimés
+export const getDeletedProductIds = () => {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY);
+    const ids = raw ? JSON.parse(raw) : [];
+    return Array.isArray(ids) ? ids.map(String) : [];
+  } catch {
+    // Stockage illisible : aucune suppression mémorisée
+    return [];
+  }
+};
+
+// Enregistrer la liste des produits supprimés (dédupliquée)
+const saveDeletedProductIds = (ids) => {
+  try {
+    const unique = [...new Set(ids.map(String))];
+    localStorage.setItem(DELETED_KEY, JSON.stringify(unique));
+    window.dispatchEvent(new Event('productsUpdated'));
+  } catch {
+    // Stockage indisponible : la suppression restera locale à la session
+  }
 };
 
 // 6. Sauvegarder les produits personnalisés
@@ -113,6 +146,13 @@ export const saveProduct = (product) => {
   // Vérifier si le produit existe déjà
   const existingIndex = customProducts.findIndex(p => p.id === product.id);
   
+  // 🔥 Ré-ajouter un produit (ou rééditer un produit supprimé) le fait
+  // réapparaître : on retire son ID (et son originalId) des tombstones.
+  const deletedIds = new Set(getDeletedProductIds());
+  if (product.id) deletedIds.delete(String(product.id));
+  if (product.originalId) deletedIds.delete(String(product.originalId));
+  saveDeletedProductIds([...deletedIds]);
+
   if (existingIndex !== -1) {
     // Modification - GARDER la date originale
     const existingProduct = customProducts[existingIndex];
@@ -139,9 +179,21 @@ export const saveProduct = (product) => {
 };
 
 // 8. Supprimer un produit
+//
+// 🔥 En PLUS du retrait de custom_products (comportement d'origine), on
+// enregistre l'ID supprimé (et son originalId) dans la liste deleted_products
+// : c'est elle qui masque durablement les produits PAR DÉFAUT du catalogue,
+// régénérés à chaque chargement depuis les images du bundle.
 export const deleteProduct = (id, originalId = null) => {
   const customProducts = getCustomProducts();
-  
+
+  // 1) Tombstone : mémoriser l'ID supprimé pour toutes les vues du catalogue
+  const deleted = new Set(getDeletedProductIds());
+  if (id != null) deleted.add(String(id));
+  if (originalId != null) deleted.add(String(originalId));
+  saveDeletedProductIds([...deleted]);
+
+  // 2) Retirer les copies personnalisées (produits modifiés ou créés)
   if (originalId || !id.toString().startsWith('custom_')) {
     const productIdToRemove = originalId || id;
     const filtered = customProducts.filter(p => p.originalId !== productIdToRemove);
@@ -153,12 +205,24 @@ export const deleteProduct = (id, originalId = null) => {
 };
 
 // 9. Obtenir tous les produits (fusion)
+// Les produits supprimés (tombstones deleted_products) sont exclus : qu'ils
+// viennent du catalogue par défaut ou des produits personnalisés.
 export const getAllProducts = () => {
   const customProducts = getCustomProducts();
-  const allProducts = [...DEFAULT_PRODUCTS];
-  
-  // Appliquer les modifications des produits personnalisés
+  const deletedIds = new Set(getDeletedProductIds());
+
+  // 1) Produits par défaut, SAUF ceux supprimés
+  const allProducts = DEFAULT_PRODUCTS.filter(p => !deletedIds.has(String(p.id)));
+
+  // 2) Appliquer les modifications des produits personnalisés
   customProducts.forEach(customProduct => {
+    // Produit masqué : soit son propre ID est supprimé, soit il s'agit d'une
+    // copie modifiée dont le produit d'origine (originalId) est supprimé.
+    const hidden =
+      deletedIds.has(String(customProduct.id)) ||
+      (customProduct.originalId && deletedIds.has(String(customProduct.originalId)));
+    if (hidden) return;
+
     if (customProduct.originalId) {
       const index = allProducts.findIndex(p => p.id === customProduct.originalId);
       if (index !== -1) {
@@ -170,6 +234,6 @@ export const getAllProducts = () => {
       allProducts.push(customProduct);
     }
   });
-  
+
   return allProducts;
 };

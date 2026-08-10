@@ -49,8 +49,8 @@ const TopProducts = ({ handleOrder }) => {
       const savedOrders = localStorage.getItem('shop_orders');
       const orders = savedOrders ? JSON.parse(savedOrders) : [];
       return getTopSellingProducts(orders, getAllProducts());
-    } catch (error) {
-      console.error("Erreur chargement meilleures ventes:", error);
+    } catch {
+      // Meilleures ventes indisponibles : section vide
       return [];
     }
   });
@@ -71,8 +71,8 @@ const TopProducts = ({ handleOrder }) => {
         const orders = savedOrders ? JSON.parse(savedOrders) : [];
         setHasOrders(orders.length > 0);
         setTopProducts(getTopSellingProducts(orders, getAllProducts()));
-      } catch (error) {
-        console.error("Erreur chargement meilleures ventes:", error);
+      } catch {
+        // Données illisibles : on masque la section
         setHasOrders(false);
         setTopProducts([]);
       }

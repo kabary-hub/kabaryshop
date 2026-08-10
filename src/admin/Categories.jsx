@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Grid, Plus, Edit, Trash2, X, Check } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import {
   getAllProducts,
 } from '../services/productService';
@@ -25,29 +26,31 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({ name: '', slug: '' });
   const [loading, setLoading] = useState(true);
+  // Catégorie en attente de confirmation de suppression
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
-  // 🔥 Compteurs RÉELS : le nombre de produits est calculé sur le catalogue
+  // Compteurs RÉELS : le nombre de produits est calculé sur le catalogue
   // complet (produits par défaut + personnalisés), pas seulement sur les
   // produits personnalisés comme avant.
   const updateCategoryProductCounts = useCallback(() => {
     return recalcAllCounts(getAllProducts);
   }, []);
 
-  // 🔥 Charger les catégories (les vraies catégories du site sont créées au
+  // Charger les catégories (les vraies catégories du site sont créées au
   // premier chargement si rien n'est enregistré)
   const loadCategories = useCallback(() => {
     setLoading(true);
     try {
       const parsed = loadStoredCategories();
       setCategories(parsed);
-    } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+    } catch {
+      // Chargement silencieux : on garde l'état actuel en cas d'erreur
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // 🔥 Chargement initial
+  // Chargement initial
   useEffect(() => {
     loadCategories();
     // Mettre à jour les compteurs après chargement
@@ -59,7 +62,7 @@ const Categories = () => {
     }, 100);
   }, [loadCategories, updateCategoryProductCounts]);
 
-  // 🔥 Écouter les changements
+  // Écouter les changements
   useEffect(() => {
     const handleUpdate = () => {
       loadCategories();
@@ -82,7 +85,7 @@ const Categories = () => {
     };
   }, [loadCategories, updateCategoryProductCounts]);
 
-  // 🔥 Sauvegarder quand les catégories changent
+  // Sauvegarder quand les catégories changent
   useEffect(() => {
     if (categories.length > 0 && !loading) {
       localStorage.setItem('categories', JSON.stringify(categories));
@@ -159,26 +162,30 @@ const Categories = () => {
   const handleDelete = (id) => {
     const target = categories.find(cat => cat.id === id);
     if (target && isProtected(target)) {
-      alert('Impossible de supprimer cette catégorie : elle est fixe et possède une page dédiée du site.');
+      showToast('Impossible de supprimer cette catégorie : elle est fixe et possède une page dédiée du site.', 'warning');
       return;
     }
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-      const updatedCategories = categories.filter(cat => cat.id !== id);
-      setCategories(updatedCategories);
-      localStorage.setItem('categories', JSON.stringify(updatedCategories));
-      window.dispatchEvent(new Event('categoriesUpdated'));
-      window.dispatchEvent(new Event('storage'));
-      if (target) {
-        logActivity({
-          type: 'category',
-          action: 'suppression',
-          subject: target.name,
-          details: `Slug : ${target.slug}`,
-        });
-        // Toast de suppression
-        showToast(`La catégorie « ${target.name} » a été supprimée`, 'success');
-      }
-    }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setCategoryToDelete(target);
+  };
+
+  const confirmDeleteCategory = () => {
+    if (!categoryToDelete) return;
+    const id = categoryToDelete.id;
+    const updatedCategories = categories.filter(cat => cat.id !== id);
+    setCategories(updatedCategories);
+    localStorage.setItem('categories', JSON.stringify(updatedCategories));
+    window.dispatchEvent(new Event('categoriesUpdated'));
+    window.dispatchEvent(new Event('storage'));
+    logActivity({
+      type: 'category',
+      action: 'suppression',
+      subject: categoryToDelete.name,
+      details: `Slug : ${categoryToDelete.slug}`,
+    });
+    // Toast de suppression
+    showToast(`La catégorie « ${categoryToDelete.name} » a été supprimée`, 'success');
+    setCategoryToDelete(null);
   };
 
   const handleToggleStatus = (id) => {
@@ -302,6 +309,18 @@ const Categories = () => {
           ))
         )}
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmModal
+        open={Boolean(categoryToDelete)}
+        title="Supprimer la catégorie ?"
+        message={`Êtes-vous sûr de vouloir supprimer la catégorie « ${categoryToDelete?.name || ''} » ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmDeleteCategory}
+        onCancel={() => setCategoryToDelete(null)}
+      />
 
       {/* Modal Ajout/Modification */}
       {showModal && (

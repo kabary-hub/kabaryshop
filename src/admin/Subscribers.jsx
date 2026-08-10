@@ -7,7 +7,9 @@ import {
   removeSubscriber,
 } from '../utils/subscribers';
 import { logActivity } from '../utils/history';
+import { showToast } from '../utils/toast';
 import Pagination from '../components/Pagination/Pagination';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 
 // Nombre d'abonnés affichés par page
 const PAGE_SIZE = 10;
@@ -17,6 +19,8 @@ const Subscribers = () => {
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
+  // Abonné en attente de confirmation de suppression
+  const [subscriberToDelete, setSubscriberToDelete] = useState(null);
 
   useEffect(() => {
     const handleUpdate = () => setSubscribers(getSubscribers());
@@ -29,15 +33,21 @@ const Subscribers = () => {
   }, []);
 
   const handleDelete = (email) => {
-    if (window.confirm(`Supprimer l'abonné ${email} ?`)) {
-      removeSubscriber(email);
-      logActivity({
-        type: 'subscriber',
-        action: 'désabonnement',
-        subject: email,
-        details: 'Abonné supprimé de la liste newsletter',
-      });
-    }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setSubscriberToDelete(email);
+  };
+
+  const confirmDeleteSubscriber = () => {
+    if (!subscriberToDelete) return;
+    removeSubscriber(subscriberToDelete);
+    logActivity({
+      type: 'subscriber',
+      action: 'désabonnement',
+      subject: subscriberToDelete,
+      details: 'Abonné supprimé de la liste newsletter',
+    });
+    showToast(`L'abonné ${subscriberToDelete} a été supprimé`, 'success');
+    setSubscriberToDelete(null);
   };
 
   const handleCopyAll = async () => {
@@ -48,7 +58,7 @@ const Subscribers = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      alert('Impossible de copier : ' + emails);
+      showToast('Impossible de copier les emails', 'error');
     }
   };
 
@@ -110,10 +120,7 @@ const Subscribers = () => {
           <p className="font-semibold mb-1">Notifications par email</p>
           <p>
             Les emails sont envoyés via Resend (fonction Vercel) : à chaque nouveau produit
-            publié sur le site, un email est envoyé à tous les abonnés — aucun template
-            externe à configurer. Vérifiez que <strong>RESEND_API_KEY</strong> et{' '}
-            <strong>EMAIL_FROM</strong> sont renseignées dans les variables d'environnement
-            sur Vercel (voir <code className="font-mono">.env.example</code>).
+            publié sur le site, un email est envoyé à tous les abonnés.
           </p>
         </div>
       </div>
@@ -129,6 +136,18 @@ const Subscribers = () => {
           className="w-full pl-9 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmModal
+        open={Boolean(subscriberToDelete)}
+        title="Supprimer l'abonné ?"
+        message={`Êtes-vous sûr de vouloir supprimer l'abonné « ${subscriberToDelete || ''} » de la liste newsletter ?`}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmDeleteSubscriber}
+        onCancel={() => setSubscriberToDelete(null)}
+      />
 
       {filtered.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">

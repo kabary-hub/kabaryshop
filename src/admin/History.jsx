@@ -20,6 +20,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  Home,
+  FileText,
 } from "lucide-react";
 import {
   getHistory,
@@ -29,6 +31,7 @@ import {
   formatHistoryDate,
   HISTORY_TYPES,
 } from "../utils/history";
+import UserAvatar from "../components/UserAvatar/UserAvatar";
 
 const PERIODS = [
   { key: "all", label: "Tout" },
@@ -439,9 +442,8 @@ const History = () => {
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span className="inline-flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold">
-                                {(e.actor?.name || "?").charAt(0).toUpperCase()}
-                              </span>
+                              {/* Avatar de l'acteur : photo → logo du site → initiales */}
+                              <UserAvatar user={e.actor} className="w-6 h-6 text-[10px] shrink-0" />
                               <span className="text-sm text-gray-700 dark:text-gray-200">
                                 {e.actor?.name || "Inconnu"}
                               </span>
@@ -497,7 +499,7 @@ const History = () => {
             usersWithHistory.map((u) => (
               <div key={u.id} className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="text-3xl">{u.avatar || "👤"}</div>
+                  <UserAvatar user={u} className="w-12 h-12 text-base shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold text-lg text-gray-800 dark:text-white">{u.name}</h3>
@@ -605,7 +607,7 @@ const History = () => {
                       <div className="flex justify-between text-sm mb-1">
                         <span className="font-medium text-gray-700 dark:text-gray-200 truncate">
                           <span className="text-gray-400 mr-1.5">{idx + 1}.</span>
-                          {p.path === "/" ? "🏠 Accueil" : p.path}
+                          {p.path === "/" ? (<><Home size={13} className="inline mr-1 text-gray-400" /> Accueil</>) : p.path}
                         </span>
                         <span className="font-bold text-blue-600">{p.count}</span>
                       </div>
@@ -637,7 +639,13 @@ const History = () => {
               <ul className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[480px] overflow-y-auto">
                 {pageVisits.map((v) => (
                   <li key={v.id} className="py-2 flex items-center gap-3">
-                    <span className="text-lg">{v.subject === "/" ? "🏠" : "📄"}</span>
+                    <span className="text-lg flex items-center justify-center">
+                      {v.subject === "/" ? (
+                        <Home size={16} className="text-gray-400" />
+                      ) : (
+                        <FileText size={16} className="text-gray-400" />
+                      )}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
                         {v.subject === "/" ? "Accueil" : v.subject}

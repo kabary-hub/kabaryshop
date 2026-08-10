@@ -88,8 +88,8 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
       localStorage.setItem('shop_orders', JSON.stringify(existingOrders));
       window.dispatchEvent(new Event('ordersUpdated'));
       return newOrder;
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la commande:', error);
+    } catch {
+      // Sauvegarde impossible : la commande ne sera pas enregistrée
       return null;
     }
   };
@@ -197,8 +197,8 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
             address: customerQuartier,
           }),
         });
-      } catch (error) {
-        console.error('Erreur d\'envoi du mail de confirmation :', error);
+      } catch {
+        // Email de confirmation non envoyé : la commande reste enregistrée
       }
     }
 

@@ -2,43 +2,17 @@
 // détails au clic sur une ligne, toasts explicites, validations (mdp 8-15, téléphone 9-14)
 // et pagination.
 import React, { useState, useEffect } from 'react';
-import { Users as UsersIcon, Edit, Trash2, Shield, UserCheck, UserX, Search, X, Truck, Package, CheckCircle, ChevronDown, Calendar, MoreVertical, Mail, Phone, ShieldAlert } from 'lucide-react';
+import { Users as UsersIcon, Edit, Trash2, Shield, UserCheck, UserX, Search, X, Truck, Package, CheckCircle, ChevronDown, Calendar, MoreVertical, Mail, Phone, ShieldAlert, KeyRound, AlertTriangle } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import { isValidPhone, PHONE_ERROR_MESSAGE, isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
 import Pagination from '../components/Pagination/Pagination';
-import { useSettings } from '../context/SettingsContext';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
+import UserAvatar from '../components/UserAvatar/UserAvatar';
 import { ensureSupabaseAuth } from '../services/db';
 
 // Nombre d'utilisateurs affichés par page
 const PAGE_SIZE = 8;
-
-// Avatar : logo du site s'il existe, sinon initiales du nom/prénom
-const UserAvatar = ({ user, className = 'w-10 h-10 text-sm' }) => {
-  const { settings } = useSettings();
-  if (settings.siteLogo) {
-    return (
-      <img
-        src={settings.siteLogo}
-        alt="Logo du site"
-        className={`${className} rounded-full object-cover border border-gray-200 dark:border-gray-600`}
-      />
-    );
-  }
-  // Initiales : deux premières lettres du nom et du prénom
-  const initials = (user?.name || '?')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-  return (
-    <div className={`${className} rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold border border-primary/30`}>
-      {initials}
-    </div>
-  );
-};
 
 // Devine approximativement la civilité (M./Mme) à partir du prénom
 // pour rendre le toast d'ajout plus explicite.
@@ -59,7 +33,7 @@ const Users = () => {
   const [currentAdminUser, setCurrentAdminUser] = useState(() => {
     const savedCurrentUser = localStorage.getItem('current_admin_user');
     if (savedCurrentUser) return JSON.parse(savedCurrentUser);
-    const defaultUser = { id: 1, name: 'Admin Principal', role: 'admin', avatar: '👨‍💼' };
+    const defaultUser = { id: 1, name: 'Admin Principal', role: 'admin', avatar: '' };
     localStorage.setItem('current_admin_user', JSON.stringify(defaultUser));
     return defaultUser;
   });
@@ -68,9 +42,9 @@ const Users = () => {
     const savedUsers = localStorage.getItem('app_users');
     if (savedUsers) return JSON.parse(savedUsers);
     const defaultUsers = [
-      { id: 1, name: 'Admin Principal', email: 'admin@kabarishop.com', role: 'admin', status: 'active', orders: 12, totalSpent: 450000, phone: '+224 620980117', avatar: '👨‍💼', createdAt: '2024-01-15T10:30:00' },
-      { id: 2, name: 'Boubacar Diallo', email: 'boubacar@kabarishop.com', role: 'livreur', status: 'active', orders: 5, totalSpent: 125000, phone: '+224 620980117', avatar: '🚚', createdAt: '2024-02-20T14:20:00' },
-      { id: 3, name: 'Mariama Camara', email: 'mariama@kabarishop.com', role: 'livreur', status: 'active', orders: 8, totalSpent: 289000, phone: '+224 620980117', avatar: '🚚', createdAt: '2024-03-10T09:15:00' },
+      { id: 1, name: 'Admin Principal', email: 'admin@kabarishop.com', role: 'admin', status: 'active', orders: 12, totalSpent: 450000, phone: '+224 620980117', avatar: '', createdAt: '2024-01-15T10:30:00' },
+      { id: 2, name: 'Boubacar Diallo', email: 'boubacar@kabarishop.com', role: 'livreur', status: 'active', orders: 5, totalSpent: 125000, phone: '+224 620980117', avatar: '', createdAt: '2024-02-20T14:20:00' },
+      { id: 3, name: 'Mariama Camara', email: 'mariama@kabarishop.com', role: 'livreur', status: 'active', orders: 8, totalSpent: 289000, phone: '+224 620980117', avatar: '', createdAt: '2024-03-10T09:15:00' },
     ];    localStorage.setItem('app_users', JSON.stringify(defaultUsers));
     return defaultUsers;
   });
@@ -80,6 +54,8 @@ const Users = () => {
   // Détails de l'utilisateur (modale)
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  // Utilisateur en attente de confirmation de suppression
+  const [userToDelete, setUserToDelete] = useState(null);
   // Pagination
   const [page, setPage] = useState(1);
 
@@ -92,7 +68,7 @@ const Users = () => {
     password: '',
     confirmPassword: '',
     phone: '',
-    avatar: '👤',
+    avatar: '',
     // Permission : voir les commandes en attente (espace staff)
     ordersFullAccess: false
   });
@@ -230,11 +206,14 @@ const Users = () => {
     const res = await ensureSupabaseAuth(user.email, user.password);
     if (res && res.reason === 'stale-password') {
       showToast(
-        `⚠️ Un compte cloud existe déjà pour ${user.email} avec un autre mot de passe. Réinitialisez-le dans Supabase (Authentication → Users).`,
+        `Un compte cloud existe déjà pour ${user.email} avec un autre mot de passe. Réinitialisez-le dans Supabase (Authentication → Users).`,
         'warning'
       );
     } else if (res && res.reason && res.reason !== 'unconfigured') {
-      console.warn('[Auth] création du compte cloud impossible :', res.reason, res.message || '');
+      showToast(
+        `Compte cloud impossible à créer pour ${user.email} (${res.reason}). La connexion multi-appareils peut être indisponible.`,
+        'warning'
+      );
     }
   };
 
@@ -260,8 +239,8 @@ const Users = () => {
       status: newUser.status,
       createdAt: now,
       phone: newUser.phone || '',
-      avatar: '👤',
-      // 🔑 Mot de passe : indispensable pour que le livreur/préparateur puisse
+      avatar: '',
+      // Mot de passe : indispensable pour que le livreur/préparateur puisse
       // se connecter à son espace staff (/staff)
       password: newUser.password,
       ordersFullAccess: !!newUser.ordersFullAccess
@@ -307,7 +286,7 @@ const Users = () => {
           status: newUser.status,
           phone: newUser.phone || user.phone,
           avatar: user.avatar,
-          // 🔑 Met à jour le mot de passe uniquement si un nouveau est saisi
+          // Met à jour le mot de passe uniquement si un nouveau est saisi
           ...(newUser.password ? { password: newUser.password } : {}),
           ordersFullAccess: !!newUser.ordersFullAccess,
         };
@@ -350,7 +329,7 @@ const Users = () => {
       password: '',
       confirmPassword: '',
       phone: '',
-      avatar: '👤',
+      avatar: '',
       ordersFullAccess: false
     });
     setErrors({});
@@ -383,20 +362,25 @@ const Users = () => {
 
   const handleDeleteUser = (id) => {
     const target = users.find(user => user.id === id);
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      const updatedUsers = users.filter(user => user.id !== id);
-      saveUsersToLocalStorage(updatedUsers);
-      if (target) {
-        logActivity({
-          type: 'user',
-          action: 'suppression',
-          subject: target.name,
-          details: `Rôle : ${getRoleLabel(target.role)} · Email : ${target.email}`,
-        });
-        // Toast de suppression (au lieu d'un console.log)
-        showToast(`${target.name} a été supprimé de la liste des utilisateurs`, 'success');
-      }
-    }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setUserToDelete(target);
+    setShowActionMenu(null);
+  };
+
+  const confirmDeleteUser = () => {
+    if (!userToDelete) return;
+    const id = userToDelete.id;
+    const updatedUsers = users.filter(user => user.id !== id);
+    saveUsersToLocalStorage(updatedUsers);
+    logActivity({
+      type: 'user',
+      action: 'suppression',
+      subject: userToDelete.name,
+      details: `Rôle : ${getRoleLabel(userToDelete.role)} · Email : ${userToDelete.email}`,
+    });
+    // Toast de suppression (au lieu d'un console.log)
+    showToast(`${userToDelete.name} a été supprimé de la liste des utilisateurs`, 'success');
+    setUserToDelete(null);
     setShowActionMenu(null);
   };  const handleToggleStatus = (id) => {
     const target = users.find(user => user.id === id);
@@ -629,11 +613,11 @@ const Users = () => {
                     <div className="mt-1">
                       {hasPassword(user) ? (
                         <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                          🔑 Mot de passe défini
+                          <KeyRound size={12} /> Mot de passe défini
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs text-orange-500">
-                          ⚠️ Mot de passe à définir
+                          <AlertTriangle size={12} /> Mot de passe à définir
                         </span>
                       )}
                     </div>
@@ -767,8 +751,8 @@ const Users = () => {
                 <label className="block text-sm font-medium mb-1">{isEditMode ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe *'}</label>
                 <input type="password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 ${errors.password ? 'border-red-500' : 'border-gray-300'}`} placeholder={isEditMode ? "Laisser vide pour garder l'ancien" : "Entre 8 et 15 caractères"} />
                 {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
-                <p className="mt-1 text-xs text-gray-500">
-                  🔑 Requis pour que le livreur / préparateur puisse se connecter à son espace staff.
+                <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                  <KeyRound size={12} className="shrink-0" /> Requis pour que le livreur / préparateur puisse se connecter à son espace staff.
                 </p>
               </div>
               <div>
@@ -816,6 +800,18 @@ const Users = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmModal
+        open={Boolean(userToDelete)}
+        title="Supprimer l'utilisateur ?"
+        message={`Êtes-vous sûr de vouloir supprimer « ${userToDelete?.name || ''} » (${userToDelete?.role ? getRoleLabel(userToDelete.role) : ''}) ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmDeleteUser}
+        onCancel={() => setUserToDelete(null)}
+      />
 
       {/* MODAL DÉTAILS UTILISATEUR */}
       {showDetailsModal && selectedUser && (

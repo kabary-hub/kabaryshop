@@ -89,8 +89,8 @@ const Dashboard = () => {
 
       // Produits les plus vendus (calculés depuis les commandes)
       setPopularProducts(generatePopularProducts(orders));
-    } catch (error) {
-      console.error('Erreur chargement données dashboard:', error);
+    } catch {
+      // Données illisibles : le tableau de bord reste sur ses valeurs par défaut
     } finally {
       setLoading(false);
     }
@@ -125,8 +125,9 @@ const Dashboard = () => {
     try {
       // Si le produit existe encore au catalogue, aller sur sa fiche publique
       exists = getAllProducts().some(p => String(p.id) === String(product.id));
-    } catch (error) {
-      console.error('Erreur vérification produit:', error);
+    } catch {
+      // Vérification impossible : on considère que le produit n'existe plus
+      exists = false;
     }
     if (exists) {
       navigate(`/produit/${product.id}`);

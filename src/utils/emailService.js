@@ -37,6 +37,17 @@ export const getSiteName = () => {
   }
 };
 
+// Logo du site (URL d'image, lu depuis les paramètres stockés).
+// Utilisé dans le bandeau de TOUS les emails envoyés par le site.
+export const getSiteLogo = () => {
+  try {
+    const s = JSON.parse(localStorage.getItem("kabary_settings") || "{}");
+    return s.siteLogo || "";
+  } catch {
+    return "";
+  }
+};
+
 // Email de l'administrateur (réception des alertes).
 // Admin figé dans le code : boubacarelbalde94@gmail.com
 // (modifiable depuis Admin > Paramètres > Coordonnées).
@@ -105,8 +116,11 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-// Mise en page commune : bandeau, contenu, pied de page.
-const emailLayout = ({ siteName, preheader, contentHtml }) => `
+// Mise en page commune : bandeau (logo + nom), contenu, pied de page.
+const emailLayout = ({ siteName, preheader, contentHtml }) => {
+  // Logo du site s'il est configuré (Paramètres → Identité du site → Logo).
+  const siteLogo = getSiteLogo();
+  return `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -122,8 +136,13 @@ const emailLayout = ({ siteName, preheader, contentHtml }) => `
           <!-- Bandeau -->
           <tr>
             <td style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:22px 24px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:20px;letter-spacing:0.5px;">${escapeHtml(siteName)}</h1>
-              <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">Boutique en ligne — Livraison 24h/48h</p>
+              ${siteLogo
+                ? `<img src="${escapeHtml(siteLogo)}" alt="${escapeHtml(siteName)}" width="72" height="72" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:inline-block;background-color:#ffffff;padding:3px;box-sizing:border-box;vertical-align:middle;margin-right:12px;border:2px solid rgba(255,255,255,0.25);" />`
+                : ""}
+              <div style="display:inline-block;vertical-align:middle;text-align:left;">
+                <h1 style="margin:0;color:#ffffff;font-size:20px;letter-spacing:0.5px;">${escapeHtml(siteName)}</h1>
+                <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">Boutique en ligne — Livraison 24h/48h</p>
+              </div>
             </td>
           </tr>
           <!-- Contenu -->
@@ -148,6 +167,7 @@ const emailLayout = ({ siteName, preheader, contentHtml }) => `
 </body>
 </html>
 `;
+};
 
 // Encadré coloré réutilisable.
 const infoBox = ({ bg = "#f0f9ff", border = "#bae6fd", color = "#0369a1", html }) => `

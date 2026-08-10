@@ -7,6 +7,7 @@ import { getReviewStats } from '../utils/reviews';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import Pagination from '../components/Pagination/Pagination';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 
 // Nombre de produits affichés par page
 const PAGE_SIZE = 10;
@@ -32,6 +33,8 @@ const Products = () => {
   // Détails du produit (modale ouverte au clic sur une ligne)
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  // Produit en attente de confirmation de suppression
+  const [productToDelete, setProductToDelete] = useState(null);
   // Pagination
   const [page, setPage] = useState(1);
   const [formData, setFormData] = useState({
@@ -99,9 +102,9 @@ const Products = () => {
       } else {
         throw new Error('Erreur upload');
       }
-    } catch (error) {
-      console.error('Erreur ImgBB:', error);
-      alert('Erreur lors de l\'upload vers ImgBB');
+    } catch {
+      // Upload en échec → notification visuelle au lieu d'un console.log/alert
+      showToast('Erreur lors de l\'upload vers ImgBB', 'error');
       return null;
     } finally {
       setUploading(false);
@@ -114,11 +117,11 @@ const Products = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image valide');
+      showToast('Veuillez sélectionner une image valide', 'warning');
       return;
     }
     if (formData.images.length >= MAX_IMAGES) {
-      alert(`Nombre maximal d'images atteint (${MAX_IMAGES})`);
+      showToast(`Nombre maximal d'images atteint (${MAX_IMAGES})`, 'warning');
       return;
     }
 
@@ -210,22 +213,28 @@ const Products = () => {
   const currentPageProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleDelete = (product) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-      deleteProduct(product.id, product.originalId);
-      loadProducts();
-      // Déclencher les événements pour mettre à jour les autres composants
-      window.dispatchEvent(new Event('productsUpdated'));
-      window.dispatchEvent(new Event('storage'));
-      // Journal
-      logActivity({
-        type: 'product',
-        action: 'suppression',
-        subject: product.title || product.name || 'Produit',
-        details: `ID : ${product.id} · Catégorie : ${product.category || '—'}`,
-      });
-      // Toast de suppression (au lieu d'un console.log)
-      showToast(`Le produit « ${product.title || product.name || 'Produit'} » a été supprimé`, 'success');
-    }
+    // Ouvre la modale de confirmation au lieu de window.confirm
+    setProductToDelete(product);
+  };
+
+  const confirmDeleteProduct = () => {
+    if (!productToDelete) return;
+    const product = productToDelete;
+    deleteProduct(product.id, product.originalId);
+    loadProducts();
+    // Déclencher les événements pour mettre à jour les autres composants
+    window.dispatchEvent(new Event('productsUpdated'));
+    window.dispatchEvent(new Event('storage'));
+    // Journal
+    logActivity({
+      type: 'product',
+      action: 'suppression',
+      subject: product.title || product.name || 'Produit',
+      details: `ID : ${product.id} · Catégorie : ${product.category || '—'}`,
+    });
+    // Toast de suppression (au lieu d'un console.log)
+    showToast(`Le produit « ${product.title || product.name || 'Produit'} » a été supprimé`, 'success');
+    setProductToDelete(null);
   };
 
   // Affiche la modale de détails du produit (clic sur une ligne)
@@ -245,7 +254,7 @@ const Products = () => {
       }
     }
     
-    // 🔥 IMPORTANT: La catégorie doit être en minuscules
+    // IMPORTANT: La catégorie doit être en minuscules
     const categorySlug = formData.category.toLowerCase().trim();
     
     const productToSave = {
@@ -271,11 +280,11 @@ const Products = () => {
     saveProduct(productToSave);
     loadProducts();
     
-    // 🔥 DÉCLENCHER LES ÉVÉNEMENTS POUR METTRE À JOUR TOUS LES COMPOSANTS
+    // DÉCLENCHER LES ÉVÉNEMENTS POUR METTRE À JOUR TOUS LES COMPOSANTS
     window.dispatchEvent(new Event('productsUpdated'));
     window.dispatchEvent(new Event('storage'));
 
-    // 📣 Nouveau produit : informer les abonnés (bannière site + email)
+    // Nouveau produit : informer les abonnés (bannière site + email)
     if (isNewProduct) {
       recordPublication(productToSave);
       notifySubscribersNewProduct(productToSave).catch(() => {});
@@ -706,6 +715,18 @@ const Products = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmModal
+        open={Boolean(productToDelete)}
+        title="Supprimer le produit ?"
+        message={`Êtes-vous sûr de vouloir supprimer « ${productToDelete?.title || productToDelete?.name || 'ce produit'} » ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        danger
+        onConfirm={confirmDeleteProduct}
+        onCancel={() => setProductToDelete(null)}
+      />
 
       {/* MODAL DÉTAILS PRODUIT (clic sur une ligne) */}
       {showDetailsModal && selectedProduct && (

@@ -35,8 +35,8 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
       // chargement si rien n'est enregistré)
       const parsedCategories = getCategories();
       return parsedCategories.filter(cat => cat.status === 'active');
-    } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+    } catch {
+      // Menu sans catégories en cas de stockage illisible
       return [];
     }
   });
@@ -50,8 +50,8 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
       const parsedCategories = getCategories();
       const activeCategories = parsedCategories.filter(cat => cat.status === 'active');
       setCategories(activeCategories);
-    } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+    } catch {
+      // On conserve les catégories déjà affichées en cas d'erreur
     }
   };
 

@@ -129,7 +129,7 @@ const AdminLogin = () => {
     if (res.ok) {
       delivery = 'email';
     } else {
-      console.warn('Envoi du code 2FA impossible :', res.message);
+      // Envoi du code 2FA impossible → repli sur le code démo affiché
     }
 
     localStorage.setItem(CODE_DELIVERY_KEY, delivery);
@@ -256,7 +256,7 @@ const AdminLogin = () => {
           id: profile.id || 1,
           name: profile.name,
           role: 'admin',
-          avatar: profile.avatar || '👨\u200d💼',
+          avatar: profile.avatar || '',
         })
       );
       window.dispatchEvent(new Event('userChanged'));
@@ -312,16 +312,14 @@ const AdminLogin = () => {
 
       // Mot de passe local correct → 2FA si activée, puis connexion.
       // Active aussi la session cloud (compte créé automatiquement si besoin).
-      // ⚠️ On ATTEND la session Supabase Auth : sans elle, les données
+      // On ATTEND la session Supabase Auth : sans elle, les données
       // sensibles (utilisateurs, logs…) ne seraient PAS synchronisées entre
       // les ordinateurs (poussée refusée par la politique RLS).
       const cloudSession = await ensureSupabaseAuth(trimmedEmail, password);
       if (cloudSession && !cloudSession.ok) {
-        console.warn(
-          "[Auth] Session cloud non établie — la synchronisation des données admin (utilisateurs, logs…) est inactive :",
-          cloudSession.reason,
-          cloudSession.message || "",
-        );
+        // Session cloud non établie — la synchronisation multi-appareils des
+        // données admin (utilisateurs, logs…) restera inactive sur cet appareil.
+        // Sans notification bloquante : la connexion admin fonctionne quand même.
       }
       await completeAdminLogin(findAppUser());
       return;

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Users, ShoppingBag, DollarSign, Calendar, Download, Printer, FileText, ArrowUp, ArrowDown } from 'lucide-react';
+import { showToast } from '../utils/toast';
 
 const Analytics = () => {
   const navigate = useNavigate();
@@ -170,8 +171,8 @@ const Analytics = () => {
       // Générer les top produits
       generateTopProducts(filteredOrders);
 
-    } catch (error) {
-      console.error('Erreur chargement données:', error);
+    } catch {
+      // Chargement silencieux : on garde les données affichées en cas d'erreur
     }
   }, [period]);
 
@@ -367,9 +368,9 @@ const Analytics = () => {
       } else if (format === 'json') {
         exportJSON(data);
       }
-    } catch (error) {
-      console.error('Erreur export:', error);
-      alert('Erreur lors de l\'export');
+    } catch {
+      // Export en échec → notification visuelle au lieu d'un console.log/alert
+      showToast('Erreur lors de l\'export', 'error');
     } finally {
       setExportLoading(false);
     }
@@ -432,10 +433,10 @@ const Analytics = () => {
             onChange={(e) => setPeriod(e.target.value)}
             className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="day">📅 Aujourd'hui</option>
-            <option value="week">📅 Cette semaine</option>
-            <option value="month">📅 Ce mois</option>
-            <option value="year">📅 Cette année</option>
+            <option value="day">Aujourd'hui</option>
+            <option value="week">Cette semaine</option>
+            <option value="month">Ce mois</option>
+            <option value="year">Cette année</option>
           </select>
           
           <button 

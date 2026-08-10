@@ -1,6 +1,6 @@
 // src/admin/Settings.jsx
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import {
   isAutoNotifyEnabled,
@@ -14,6 +14,7 @@ import {
   sendBrowserPush,
 } from '../utils/notifications';
 import { logActivity } from '../utils/history';
+import { showToast } from '../utils/toast';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
 import { getSupabase, ensureSupabaseAuth } from '../services/db';
 
@@ -91,8 +92,10 @@ const Settings = () => {
     // Pas de session active → on tente une (re)création du compte cloud
     const res = await ensureSupabaseAuth(admin, newPassword);
     if (res && res.reason === 'stale-password') {
-      console.warn(
-        '[Auth] mot de passe cloud obsolète : réinitialisation requise dans Supabase (Authentication → Users).'
+      // Mot de passe cloud obsolète → notification visuelle au lieu d'un console.warn
+      showToast(
+        'Le mot de passe cloud est obsolète : réinitialisation requise dans Supabase (Authentication → Users).',
+        'warning'
       );
     }
   };
@@ -117,7 +120,7 @@ const Settings = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     updateSettings(formData);
-    alert('Paramètres enregistrés avec succès !');
+    showToast('Paramètres enregistrés avec succès !', 'success');
     logActivity({
       type: 'settings',
       action: 'modification des paramètres',
@@ -135,7 +138,7 @@ const Settings = () => {
       // Notifier le changement dans les paramètres
       handleChange('notifications', 'push', true);
       sendBrowserPush(
-        `🔔 ${formData.siteName || 'Notifications activées'}`,
+        `${formData.siteName || 'Notifications activées'}`,
         'Les notifications push sont maintenant actives.'
       );
     }
@@ -248,7 +251,10 @@ const Settings = () => {
         localStorage.setItem('resetCode', generatedCode);
         localStorage.setItem('resetCodeExpiry', Date.now() + 300000);
         
-        alert(`Code de vérification envoyé à ${passwordData.recoveryEmail || passwordData.recoveryPhone}\nCode: ${generatedCode} (simulation)`);
+        showToast(
+          `Code de vérification envoyé à ${passwordData.recoveryEmail || passwordData.recoveryPhone} — Code : ${generatedCode} (simulation)`,
+          'info'
+        );
         
         setPasswordStep(2);
         setIsLoading(false);
@@ -774,8 +780,9 @@ const Settings = () => {
                       )}
                     </button>
                     {pushState.permission === 'denied' && (
-                      <p className="text-xs text-red-500">
-                        ⚠️ Permission bloquée par le navigateur. Autorisez les notifications dans les réglages du site (icône 🔒 près de l'URL).
+                      <p className="text-xs text-red-500 flex items-start gap-1">
+                        <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                        <span>Permission bloquée par le navigateur. Autorisez les notifications dans les réglages du site (icône de cadenas près de l'URL).</span>
                       </p>
                     )}
                   </div>
@@ -803,22 +810,7 @@ const Settings = () => {
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                     </label>
                   </div>
-                  <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
-                    <p className="text-sm font-medium flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                      <Mail size={16} />
-                      Envoi par Resend (via la fonction Vercel)
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-                      Plus besoin de créer des templates EmailJS : les emails (alertes admin,
-                      expédition aux livreurs, commandes, 2FA, newsletter) sont construits
-                      automatiquement par le site en français et envoyés via Resend.
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-                      Pour les activer, configurez sur Vercel : <code className="font-mono bg-white/60 dark:bg-gray-800 px-1 rounded">RESEND_API_KEY</code>,
-                      <code className="font-mono bg-white/60 dark:bg-gray-800 px-1 rounded">EMAIL_FROM</code> (votre domaine vérifié)
-                      et vérifiez votre domaine dans le tableau de bord Resend. Détails dans le fichier <code className="font-mono bg-white/60 dark:bg-gray-800 px-1 rounded">.env.example</code>.
-                    </p>
-                  </div>
+
                 </div>
 
                 {/* Alertes nouvelles commandes */}
@@ -881,7 +873,7 @@ const Settings = () => {
                           key={i}
                           className={`text-sm font-medium ${r.ok ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
                         >
-                          {r.ok ? '✅' : '⚠️'} {r.message}
+                          {r.ok ? <CheckCircle2 size={14} className="inline text-green-600" /> : <AlertTriangle size={14} className="inline text-amber-500" />} {r.message}
                         </li>
                       ))}
                     </ul>
@@ -914,12 +906,7 @@ const Settings = () => {
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                     </label>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 leading-relaxed">
-                    🎨 Le contenu de l'email « Nouveaux arrivages » (titre, prix,
-                    image et bouton « Voir le produit ») est généré automatiquement
-                    en français par le site — aucune configuration externe requise.
-                    Il suffit que Resend soit configuré (voir l'encart ci-dessus).
-                  </p>
+
 
                   {/* Email de test */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
@@ -976,7 +963,7 @@ const Settings = () => {
                             : 'text-red-600 dark:text-red-400'
                         }`}
                       >
-                        {testResult.type === 'success' ? '✅' : '❌'} {testResult.message}
+                        {testResult.type === 'success' ? <CheckCircle2 size={14} className="inline text-green-600" /> : <AlertTriangle size={14} className="inline text-red-500" />} {testResult.message}
                       </p>
                     )}
                   </div>
