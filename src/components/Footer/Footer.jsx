@@ -132,7 +132,7 @@ const Footer = () => {
         <a
           href="/admin/login"
           onClick={grantAdminAccess}
-          className="text-[10px] text-gray-800/30 hover:text-gray-600/50 transition-colors cursor-default select-none"
+          className="text-2xl text-primary/40 hover:text-primary/60 transition-colors cursor-default select-none"
           title="Espace administration"
         >
           ·
