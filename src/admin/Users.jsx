@@ -236,7 +236,11 @@ const Users = () => {
       id: newId,
       name: newUser.name,
       email: newUser.email,
-      role: newUser.role === 'admin' ? 'admin' : newUser.role === 'livreur' ? 'livreur' : 'preparateur',
+      // Rôle conservé EXACTEMENT comme choisi dans le formulaire
+      // (admin / livreur / preparateur / Utilisateur). Auparavant, le rôle
+      // « Utilisateur » était silencieusement converti en « preparateur »,
+      // ce qui empêchait de comprendre pourquoi la connexion échouait.
+      role: newUser.role,
       status: newUser.status,
       createdAt: now,
       phone: newUser.phone || '',
@@ -271,7 +275,8 @@ const Users = () => {
     }
 
     const originalUser = users.find(user => user.id === editingUserId);
-    const newRole = newUser.role === 'admin' ? 'admin' : newUser.role === 'livreur' ? 'livreur' : 'preparateur';
+    // Rôle conservé tel quel (plus de conversion silencieuse)
+    const newRole = newUser.role;
     const updatedUsers = users.map(user => {
       if (user.id === editingUserId) {
         return {
@@ -750,7 +755,7 @@ const Users = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">Rôle *</label>
                 <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700">
-                  <option value="Utilisateur">Utilisateur</option>
+                  <option value="Utilisateur">Utilisateur (client — sans espace admin)</option>
                   <option value="preparateur">Préparateur</option>
                   <option value="livreur">Livreur</option>
                   <option value="admin">Administrateur</option>

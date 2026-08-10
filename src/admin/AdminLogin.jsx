@@ -135,6 +135,9 @@ const AdminLogin = () => {
     };
   };
 
+  // Profil admin en attente de validation 2FA (pour finaliser la connexion)
+  const pendingProfileRef = useRef(null);
+
   // Démarrer le compte à rebours du renvoi
   const resendIntervalRef = useRef(null);
   const startResendTimer = () => {
@@ -174,6 +177,76 @@ const AdminLogin = () => {
     } catch {
       return null;
     }
+  };
+
+  // Recherche n'importe quel utilisateur enregistré (tous rôles) avec cet email
+  const findAppUser = () => {
+    try {
+      const users = JSON.parse(localStorage.getItem('app_users') || '[]');
+      const normalized = email.trim().toLowerCase();
+      return (
+        users.find((u) => (u.email || '').trim().toLowerCase() === normalized) ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  // Termine la connexion admin : 2FA si activée, sinon connexion directe
+  const completeAdminLogin = async (profile) => {
+    if (twoFactorEnabled) {
+      pendingProfileRef.current = profile;
+      setSending(true);
+      try {
+        const result = await sendVerificationCode();
+        sessionStorage.setItem(PENDING_KEY, '1');
+        setCode('');
+        setCodeError('');
+        setDeliveryInfo(result.message);
+        setDemoCode(result.delivery === 'demo' ? result.code : '');
+        setStep('verify');
+        startResendTimer();
+      } catch (err) {
+        setError(`Erreur lors de l'envoi du code : ${err.message || err}`);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+    finishAdminSession(profile, false);
+  };
+
+  // Établit la session admin et redirige vers /admin
+  const finishAdminSession = (profile, via2FA) => {
+    localStorage.setItem('adminToken', 'dummy-token');
+    localStorage.setItem('isAuthenticated', 'true');
+    sessionStorage.setItem('adminLoggedIn', 'true');
+    sessionStorage.setItem('admin_2fa_verified', '1');
+    // Si l'admin connecté est un utilisateur créé, afficher son identité
+    // dans tout le panneau (Utilisateurs, Commandes, Historiques…)
+    if (profile && profile.name) {
+      localStorage.setItem(
+        'current_admin_user',
+        JSON.stringify({
+          id: profile.id || 1,
+          name: profile.name,
+          role: 'admin',
+          avatar: profile.avatar || '👨\u200d💼',
+        })
+      );
+      window.dispatchEvent(new Event('userChanged'));
+    }
+    logActivity({
+      type: 'auth',
+      action: via2FA ? 'connexion (2FA validée)' : 'connexion',
+      subject: profile?.name || email,
+      details: via2FA
+        ? 'Connexion réussie à l\'administration avec vérification en deux étapes'
+        : 'Connexion réussie à l\'administration',
+      actor: { name: profile?.name || 'Admin', role: 'admin' },
+    });
+    navigate('/admin');
   };
 
   const handleLogin = async (e) => {
@@ -229,59 +302,109 @@ const AdminLogin = () => {
       return;
     }
 
-    // ---- Cas ADMIN ----
-    const storedPassword = getStoredPassword();
+    // ---- Cas ADMIN PRINCIPAL (email admin configuré dans Paramètres) ----
+    if (email.toLowerCase() === adminEmail.toLowerCase()) {
+      const storedPassword = getStoredPassword();
 
-    // Le mot de passe admin doit respecter la règle 8-15 caractères
-    if (storedPassword && !isValidPassword(storedPassword)) {
-      setError(PASSWORD_ERROR_MESSAGE);
+      // Le mot de passe admin doit respecter la règle 8-15 caractères
+      if (storedPassword && !isValidPassword(storedPassword)) {
+        setError(PASSWORD_ERROR_MESSAGE);
+        return;
+      }
+
+      if (password !== storedPassword) {
+        setError('Email ou mot de passe incorrect');
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion',
+          subject: email || 'Inconnu',
+          details: 'Tentative de connexion admin avec identifiants incorrects',
+        });
+        return;
+      }
+
+      // Email correct → 2FA si activée, puis connexion
+      await completeAdminLogin(findAppUser());
       return;
     }
 
-    if (email.toLowerCase() !== adminEmail.toLowerCase() || password !== storedPassword) {
+    // ---- Cas utilisateur créé dans Admin > Utilisateurs ----
+    const foundUser = findAppUser();
+    if (foundUser) {
+      // Compte bloqué ?
+      if (foundUser.status === 'blocked') {
+        setError('Ce compte est bloqué. Contactez l\'administrateur.');
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion (compte bloqué)',
+          subject: email || 'Inconnu',
+          details: `Tentative de connexion sur le compte bloqué ${foundUser.name}`,
+        });
+        return;
+      }
+
+      // Rôle admin → connexion à l'espace admin avec son propre mot de passe
+      if (foundUser.role === 'admin') {
+        if (!foundUser.password) {
+          setError(
+            'Aucun mot de passe défini pour ce compte. L\'administrateur doit en définir un (Admin > Utilisateurs > Modifier).'
+          );
+          logActivity({
+            type: 'auth',
+            action: 'échec de connexion admin (mot de passe manquant)',
+            subject: email || 'Inconnu',
+            details: `Le compte admin ${foundUser.name} n'a pas de mot de passe défini`,
+          });
+          return;
+        }
+        if (password !== foundUser.password) {
+          setError('Email ou mot de passe incorrect');
+          logActivity({
+            type: 'auth',
+            action: 'échec de connexion admin',
+            subject: email || 'Inconnu',
+            details: `Tentative de connexion (${foundUser.role}) avec mot de passe incorrect`,
+          });
+          return;
+        }
+        await completeAdminLogin(foundUser);
+        return;
+      }
+
+      // Rôle « Utilisateur » : compte client, sans espace admin/staff
+      if (foundUser.role === 'Utilisateur') {
+        setError(
+          'Ce compte est un compte client « Utilisateur » : il n\'a pas accès à l\'espace admin ou staff. Choisissez un rôle Livreur, Préparateur ou Administrateur dans Admin > Utilisateurs.'
+        );
+        logActivity({
+          type: 'auth',
+          action: 'échec de connexion (compte client)',
+          subject: email || 'Inconnu',
+          details: `Tentative de connexion du compte client ${foundUser.name}`,
+        });
+        return;
+      }
+
+      // Livreur / préparateur : mot de passe incorrect (le flux staff ci-dessus
+      // ne s'est pas déclenché car le mot de passe ne correspondait pas)
       setError('Email ou mot de passe incorrect');
       logActivity({
         type: 'auth',
         action: 'échec de connexion',
         subject: email || 'Inconnu',
-        details: 'Tentative de connexion admin avec identifiants incorrects',
+        details: 'Tentative de connexion avec identifiants incorrects',
       });
       return;
     }
 
-    // Email correct → vérifier la 2FA si elle est activée
-    if (twoFactorEnabled) {
-      setSending(true);
-      try {
-        const result = await sendVerificationCode();
-        sessionStorage.setItem(PENDING_KEY, '1');
-        setCode('');
-        setCodeError('');
-        setDeliveryInfo(result.message);
-        setDemoCode(result.delivery === 'demo' ? result.code : '');
-        setStep('verify');
-        startResendTimer();
-      } catch (err) {
-        setError(`Erreur lors de l'envoi du code : ${err.message || err}`);
-      } finally {
-        setSending(false);
-      }
-      return;
-    }
-
-    // Pas de 2FA → connexion directe
-    localStorage.setItem('adminToken', 'dummy-token');
-    localStorage.setItem('isAuthenticated', 'true');
-    sessionStorage.setItem('adminLoggedIn', 'true');
-    sessionStorage.setItem('admin_2fa_verified', '1');
+    // ---- Aucun compte correspondant ----
+    setError('Email ou mot de passe incorrect');
     logActivity({
       type: 'auth',
-      action: 'connexion',
-      subject: email,
-      details: 'Connexion réussie à l\'administration',
-      actor: { name: 'Admin', role: 'admin' },
+      action: 'échec de connexion',
+      subject: email || 'Inconnu',
+      details: 'Tentative de connexion avec identifiants incorrects',
     });
-    navigate('/admin');
   };
 
   const handleResend = async () => {
@@ -319,22 +442,14 @@ const AdminLogin = () => {
 
     // Code valide → connexion
     clean2FA();
-    localStorage.setItem('adminToken', 'dummy-token');
-    localStorage.setItem('isAuthenticated', 'true');
-    sessionStorage.setItem('adminLoggedIn', 'true');
-    sessionStorage.setItem('admin_2fa_verified', '1');
-    logActivity({
-      type: 'auth',
-      action: 'connexion (2FA validée)',
-      subject: email,
-      details: 'Connexion réussie à l\'administration avec vérification en deux étapes',
-      actor: { name: 'Admin', role: 'admin' },
-    });
-    navigate('/admin');
+    const profile = pendingProfileRef.current;
+    pendingProfileRef.current = null;
+    finishAdminSession(profile, true);
   };
 
   const handleBackToPassword = () => {
     clean2FA();
+    pendingProfileRef.current = null;
     setStep('password');
     setCode('');
     setCodeError('');
