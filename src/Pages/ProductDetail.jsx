@@ -133,6 +133,7 @@ const ProductGallery = ({ images, extraImages = [], title, badge }) => {
             key={current}
             src={current}
             alt={title}
+            decoding="async"
             className="w-full max-h-[320px] lg:max-h-[440px] object-contain rounded-lg drop-shadow-2xl transition-transform duration-300 hover:scale-105 animate-fadeIn"
             onError={handleImageError}
           />
@@ -182,6 +183,8 @@ const ProductGallery = ({ images, extraImages = [], title, badge }) => {
                 <img
                   src={img}
                   alt={`${title} - photo ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-20 sm:h-24 object-cover"
                   onError={handleImageError}
                 />
@@ -631,6 +634,8 @@ const ProductDetail = ({ handleOrder }) => {
                     <img
                       src={item.img}
                       alt={item.title}
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => {
                         e.target.src = "https://via.placeholder.com/300x300?text=Image";
                       }}

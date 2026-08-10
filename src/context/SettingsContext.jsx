@@ -23,8 +23,8 @@ const DEFAULT_SETTINGS = {
   heroSubtitle: '',
   siteDescription:
     'Votre destination privilégiée pour une mode authentique et élégante. Qualité supérieure et tendances actuelles pour sublimer votre style au quotidien.',
-  siteEmail: 'contact@kabary.com',
-  adminEmail: 'admin@kabary.com',
+  siteEmail: 'boubacarelbalde94@gmail.com',
+  adminEmail: 'boubacarelbalde94@gmail.com',
   sitePhone: '+224 123 456 789',
   whatsapp: '+224 620 980 117',
   siteAddress: 'Cobayah-Conakry, Rep. Guinée',
@@ -90,8 +90,6 @@ export const SettingsProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('kabary_settings', JSON.stringify(settings));
-    // Mettre à jour le titre du document
-    document.title = `${settings.siteName} - Administration`;
     // Déclencher un événement pour notifier les composants du changement de devise
     window.dispatchEvent(new CustomEvent('currencyChanged', { detail: settings.currency }));
     window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: settings }));

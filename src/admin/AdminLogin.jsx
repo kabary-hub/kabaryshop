@@ -84,13 +84,15 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   const twoFactorEnabled = !!settings.security?.twoFactor;
-  const adminEmail = settings.adminEmail || settings.siteEmail || 'admin@kabary.com';
+  const adminEmail = settings.adminEmail || settings.siteEmail || 'boubacarelbalde94@gmail.com';
   const siteName = settings.siteName || 'Kabary Shop';
 
   // Récupérer le mot de passe stocké dans localStorage
+  // (admin figé dans le code : mot de passe initial Diaraye@620,
+  // modifiable ensuite dans Admin > Paramètres > Sécurité)
   const getStoredPassword = () => {
     const storedPassword = localStorage.getItem('admin_password');
-    return storedPassword || 'admin123'; // Valeur par défaut si rien n'est stocké
+    return storedPassword || 'Diaraye@620'; // Valeur par défaut si rien n'est stocké
   };
 
   const clean2FA = () => {

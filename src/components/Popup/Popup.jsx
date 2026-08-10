@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IoCloseOutline } from "react-icons/io5";
+import { FaCheckCircle } from "react-icons/fa";
 import { useSettings } from "../../context/SettingsContext";
 import { useCart } from "../../context/CartContext";
 import { convertPrice, formatPrice } from "../../utils/currencyUtils";
@@ -17,15 +18,22 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
   const form = useRef();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState("");
+  // Détails de la commande validée → affichés dans une modale de confirmation
+  const [orderSuccess, setOrderSuccess] = useState(null);
   const { cartItems, getTotalPrice, clearCart, closeCart } = useCart();
   
   let settings = { currency: 'GNF' };
   try {
     const context = useSettings();
     settings = context.settings;
-  } catch (error) {
-    console.warn('SettingsContext not available, using default currency GNF');
+  } catch {
+    // Contexte indisponible : on utilise la devise par défaut (GNF)
   }
+
+  // À chaque ouverture du popup, on réinitialise l'écran de confirmation
+  useEffect(() => {
+    if (orderPopup) setOrderSuccess(null);
+  }, [orderPopup]);
 
   // Vérifier si c'est une commande directe ou depuis le panier
   const isCartOrder = cartItems.length > 1 || (cartItems.length === 1 && !selectedProduct);
@@ -194,15 +202,23 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
       }
     }
 
-    alert(`✅ Commande #${orderRef || savedOrder?.id} validée avec succès !\n\n📦 Détails :\n${itemsToOrder.map(i => `- ${i.name} x${i.quantity}${i.id ? ` (ID: ${i.id})` : ''}`).join('\n')}\n💰 Total: ${totalAmount.toLocaleString()} GNF\n📝 Référence: ${orderRef}\n\n📍 Livraison: ${customerQuartier}`);
-    
+    // Affichage de la confirmation : modale dédiée (au lieu d'un alert/console.log)
+    setOrderSuccess({
+      ref: orderRef || (savedOrder ? `CMD-${savedOrder.id}` : ""),
+      name: customerName || "cher client",
+      email: customerEmail || "",
+      items: itemsToOrder,
+      total: totalAmount,
+      quartier: customerQuartier,
+      emailSent: Boolean(customerEmail),
+    });
+
     // Vider le panier après commande
     if (isCartOrder) {
       clearCart();
       closeCart();
     }
-    
-    setOrderPopup(false);
+
     form.current.reset();
     setIsSubmitting(false);
   };
@@ -222,17 +238,98 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
                     Kabary Shop
                   </p>
                   <h1 className="text-xl font-semibold">
-                    {isCartOrder ? `Votre commande (${cartItemsCount} articles)` : "Votre adresse"}
+                    {orderSuccess
+                      ? "Commande validée ✅"
+                      : isCartOrder
+                        ? `Votre commande (${cartItemsCount} articles)`
+                        : "Votre adresse"}
                   </h1>
                 </div>
                 <div>
                   <IoCloseOutline
                     className="text-2xl cursor-pointer"
-                    onClick={() => setOrderPopup(false)}
+                    onClick={() => {
+                      setOrderSuccess(null);
+                      setOrderPopup(false);
+                    }}
                   />
                 </div>
               </div>
 
+              {/* ===== Écran de confirmation de commande (remplace alert/console.log) ===== */}
+              {orderSuccess && (
+                <div className="mt-4 text-center animate-pop-in">
+                  <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                    <FaCheckCircle className="text-green-500 text-5xl" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-1">Merci {orderSuccess.name} !</h2>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                    Votre commande a bien été validée avec succès.
+                  </p>
+
+                  {/* Référence de la commande */}
+                  <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 mb-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide">Référence</p>
+                    <p className="text-lg font-bold text-primary">{orderSuccess.ref}</p>
+                  </div>
+
+                  {/* Récapitulatif des articles */}
+                  <div className="text-left rounded-lg bg-gray-100 dark:bg-gray-800 p-3 mb-4 max-h-52 overflow-y-auto">
+                    <p className="font-semibold text-sm mb-2">🛒 Votre commande :</p>
+                    {orderSuccess.items.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 py-2 border-b dark:border-gray-700 text-sm">
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-10 h-10 object-cover rounded"
+                            loading="lazy"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.name}</p>
+                          <p className="text-xs text-gray-500">Quantité : {item.quantity}</p>
+                        </div>
+                        <p className="font-semibold text-primary whitespace-nowrap">
+                          {(item.price * item.quantity).toLocaleString()} GNF
+                        </p>
+                      </div>
+                    ))}
+                    <div className="mt-2 pt-2 border-t dark:border-gray-700 flex justify-between font-bold">
+                      <span>Total :</span>
+                      <span className="text-primary">{orderSuccess.total.toLocaleString()} GNF</span>
+                    </div>
+                  </div>
+
+                  {/* Livraison & paiement */}
+                  <div className="text-left rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 mb-4">
+                    <p className="text-sm mb-1">
+                      <span className="font-semibold">📍 Livraison :</span>{" "}
+                      <span className="text-gray-600 dark:text-gray-300">{orderSuccess.quartier}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">💳 Paiement à la livraison (Mobile Money)</p>
+                    {orderSuccess.emailSent && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        ✉️ Un email de confirmation a été envoyé à {orderSuccess.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setOrderSuccess(null);
+                      setOrderPopup(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-primary to-secondary hover:scale-105 duration-200 text-white py-2.5 px-6 rounded-full text-sm font-semibold"
+                  >
+                    Continuer mes achats
+                  </button>
+                </div>
+              )}
+
+              {/* ===== Formulaire (masqué après validation) ===== */}
+              {!orderSuccess && (
+                <>
               {/* Récapitulatif du panier */}
               {isCartOrder && cartItems.length > 0 && (
                 <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg max-h-60 overflow-y-auto">
@@ -327,6 +424,8 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
                   </button>
                 </div>
               </form>
+                </>
+              )}
             </div>
           </div>
         </div>

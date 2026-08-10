@@ -157,6 +157,8 @@ const SearchBar = ({ searchTerm, setSearchTerm, className = "", autoFocus = fals
                     <img
                       src={p.img}
                       alt={p.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                       onError={(e) => {
                         e.target.style.display = "none";

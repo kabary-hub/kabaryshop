@@ -14,6 +14,8 @@ const Wintersale = () => {
             <img
               src={WintersaleImg}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="max-w-100 h-87.5 w-full mx-auto drop-shadow-[-10px_10px_12px_rgba(0,0,0,1)] object-cover"
             />
           </div>

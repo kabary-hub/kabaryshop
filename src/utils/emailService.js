@@ -38,12 +38,14 @@ export const getSiteName = () => {
 };
 
 // Email de l'administrateur (réception des alertes).
+// Admin figé dans le code : boubacarelbalde94@gmail.com
+// (modifiable depuis Admin > Paramètres > Coordonnées).
 export const getAdminEmail = () => {
   try {
     const s = JSON.parse(localStorage.getItem("kabary_settings") || "{}");
-    return s.adminEmail || s.siteEmail || "admin@kabary.com";
+    return s.adminEmail || s.siteEmail || "boubacarelbalde94@gmail.com";
   } catch {
-    return "admin@kabary.com";
+    return "boubacarelbalde94@gmail.com";
   }
 };
 

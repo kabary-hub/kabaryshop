@@ -310,6 +310,8 @@ const Products = ({ data, searchTerm = "" }) => {
                       <img
                         src={item.img}
                         alt={item.title}
+                        loading="lazy"
+                        decoding="async"
                         onError={handleImageError}
                         className="w-full h-56 sm:h-72.5 object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
                       />

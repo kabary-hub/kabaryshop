@@ -9,6 +9,8 @@ import React, { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { UserProvider } from './context/UserContext';
 import { logActivity } from './utils/history';
+import { updatePageMeta } from './utils/seo';
+import { getAllProducts } from './services/productService';
 
 // 🔥 Code-splitting : chaque page est chargée à la demande (lazy)
 // → le chunk initial est beaucoup plus léger, les autres sont chargés
@@ -55,7 +57,7 @@ import NewsletterBanner from "./components/NewsletterBanner/NewsletterBanner";
 import "./admin/admin.css";
 
 // IMPORTANT: Importer le SettingsProvider
-import { SettingsProvider } from "./context/SettingsContext";
+import { SettingsProvider, useSettings } from "./context/SettingsContext";
 
 // IMPORTANT: Importer le CartProvider et Cart
 import { CartProvider } from "./context/CartContext";
@@ -67,6 +69,99 @@ const SiteNavbar = (props) => {
   const { pathname } = useLocation();
   if (pathname.startsWith("/staff")) return null;
   return <Navbar {...props} />;
+};
+
+// ===== SEO : titre + description + canonical uniques par page =====
+// Permet au site d'apparaître dans les résultats de recherche (Google…)
+// avec des titres pertinents par catégorie au lieu d'un titre générique.
+const CATEGORY_SEO = {
+  femmes: { title: 'Mode Femmes', desc: 'Vêtements et accessoires pour femmes — robes, talons, tenues tendance. Livraison rapide à Conakry.' },
+  hommes: { title: 'Mode Hommes', desc: 'Costumes, chemises et tenues pour hommes — élégance et qualité. Livraison rapide à Conakry.' },
+  enfants: { title: 'Mode Enfants', desc: 'Vêtements doux et résistants pour enfants — qualité garantie Kabary Shop. Livraison rapide à Conakry.' },
+  electroniques: { title: 'Électroniques', desc: 'Téléphones, accessoires et appareils électroniques — dernières nouveautés au meilleur prix.' },
+  meubles: { title: 'Meubles', desc: 'Lits, matelas orthopédiques et meubles de qualité pour équiper votre maison. Livraison à Conakry.' },
+  tendances: { title: 'Tendances', desc: 'Nouvelles collections et pièces tendance de la saison chez Kabary Shop.' },
+  ventes: { title: 'Ventes & Promotions', desc: 'Soldes et promotions exclusives — jusqu\'à -75 % sur une sélection d\'articles.' },
+};
+
+const RouteMeta = () => {
+  const { pathname } = useLocation();
+  const { settings } = useSettings();
+
+  React.useEffect(() => {
+    const siteName = settings.siteName || 'Kabary Shop';
+
+    // Zone admin / staff : ne pas indexer
+    if (pathname.startsWith('/admin') || pathname.startsWith('/staff')) {
+      updatePageMeta({
+        title: `Administration - ${siteName}`,
+        path: pathname,
+      });
+      return;
+    }
+
+    // Page produit : titre avec le nom du produit
+    const productMatch = pathname.match(/^\/produit\/(.+)$/);
+    if (productMatch) {
+      const product = getAllProducts().find((p) => String(p.id) === String(productMatch[1]));
+      updatePageMeta({
+        title: product
+          ? `${product.title} - ${siteName}`
+          : `Produit - ${siteName}`,
+        description: product
+          ? `${product.title} — disponible chez ${siteName}. Livraison rapide à Conakry, paiement Mobile Money.`
+          : undefined,
+        path: pathname,
+      });
+      return;
+    }
+
+    // Catégorie connue
+    const clean = pathname.replace(/^\//, '').split('/')[0];
+    const category = CATEGORY_SEO[clean];
+    if (category) {
+      updatePageMeta({
+        title: `${category.title} - ${siteName}`,
+        description: category.desc,
+        path: pathname,
+      });
+      return;
+    }
+
+    // Recherche
+    if (pathname.startsWith('/recherche')) {
+      updatePageMeta({
+        title: `Recherche - ${siteName}`,
+        description: `Recherchez un produit dans la boutique ${siteName}.`,
+        path: pathname,
+      });
+      return;
+    }
+
+    // Contacts / Notes / autres
+    const pageNames = {
+      contacts: { title: 'Contact', desc: `Contactez ${siteName} : WhatsApp, téléphone et adresse.` },
+      notes: { title: 'Notes', desc: `Notes et informations sur ${siteName}.` },
+    };
+    const page = pageNames[clean];
+    if (page) {
+      updatePageMeta({
+        title: `${page.title} - ${siteName}`,
+        description: page.desc,
+        path: pathname,
+      });
+      return;
+    }
+
+    // Accueil / défaut
+    updatePageMeta({
+      title: `${siteName} — Boutique en ligne en Guinée`,
+      description: `Mode femmes, hommes, enfants, électronique, meubles et tendances. Livraison rapide 24h/48h à Conakry, paiement Mobile Money.`,
+      path: pathname,
+    });
+  }, [pathname, settings.siteName]);
+
+  return null;
 };
 
 // Journalise les visites de pages (toutes les pages du site)
@@ -166,6 +261,8 @@ const App = () => {
         <UserProvider>
         <Router>
           <div className="dark:bg-gray-900 dark:text-white min-h-screen">
+            {/* SEO : titre + description + canonical par page */}
+            <RouteMeta />
             {/* Journalise les visites de toutes les pages */}
             <PageVisitTracker />
             <SiteNavbar

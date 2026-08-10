@@ -20,7 +20,7 @@
 | **AOS (Animate On Scroll)** | Animations d'apparition au défilement |
 | **react-slick / slick-carousel** | Carrousels (héros, témoignages) |
 | **lucide-react / react-icons** | Icônes |
-| **@emailjs/browser** | Envoi d'emails (commandes, newsletters, alertes, codes 2FA) |
+| **Resend** + fonction Vercel (`api/send-mail.js`) | Envoi d'emails (commandes, newsletters, alertes, codes 2FA) — templates HTML construits en français dans `src/utils/emailService.js`, aucun template externe à créer |
 | **LocalStorage** | Base de données du site (produits, commandes, avis, abonnés, paramètres…) |
 | **ImgBB API** | Hébergement des images uploadées par l'admin |
 
@@ -155,14 +155,14 @@ Menu contextuel avec :
 - À la validation :
   1. La commande est **enregistrée** (`localStorage` clé `shop_orders`) avec **ID numérique unique** et **référence lisible unique** (format `CMD-AAMMJJ-NNNN`, numéro séquentiel par jour) ;
   2. Chaque article conserve son **ID produit** ;
-  3. **Email récapitulatif** envoyé au client via EmailJS avec : référence commande, liste des articles avec leurs ID produits, quantités, prix, total, date, devise ;
+  3. **Email récapitulatif** envoyé au client via **Resend** (fonction Vercel) avec : référence commande, liste des articles avec leurs ID produits, quantités, prix, total, date, devise ;
   4. **Notification de l'admin** déclenchée (voir section Notifications) ;
-  5. Confirmation à l'écran avec les détails et la référence ; panier vidé.
+  5. **Écran de confirmation** (modale dédiée, remplace l'ancien `alert()`) : icône ✅, référence de la commande, récapitulatif des articles avec photos, total, quartier de livraison, mention du paiement Mobile Money et de l'email envoyé au client — bouton « Continuer mes achats » ; panier vidé.
 
 ### 3.9 Newsletter & abonnés
-- **Formulaire d'abonnement** (section accueil) : l'email est enregistré (dédupliqué, clé `site_subscribers`) + email de confirmation envoyé via EmailJS (template « Abonnement »).
+- **Formulaire d'abonnement** (section accueil) : l'email est enregistré (dédupliqué, clé `site_subscribers`) + email de confirmation envoyé via **Resend** (aucun template externe à créer).
 - **Bannière « Nouveautés du site ! »** : affichée aux visiteurs abonnés (sur ce navigateur) quand l'admin publie un nouveau produit — boutons « Voir les nouveautés » et « Plus tard », ne se réaffiche qu'à la prochaine publication.
-- **Email automatique aux abonnés** à chaque nouveau produit publié (template « Nouveaux arrivages », activable/customisable dans Paramètres).
+- **Email automatique aux abonnés** à chaque nouveau produit publié : l'email « Nouveaux arrivages » (titre, prix, image, bouton « Voir le produit ») est généré automatiquement en français par le site, activable/désactivable dans Paramètres → Notifications.
 - Liste des abonnés consultable et gérable dans l'admin (copier les emails, supprimer).
 
 ### 3.10 Recherche globale
@@ -182,14 +182,22 @@ Menu contextuel avec :
 - Coordonnées dynamiques (siteName, téléphone, email).
 - Copyright : « © 2026 {Nom du site}. Tous droits réservés. »
 
+### 3.13 Référencement (SEO) & performance
+- **Titres, descriptions et canonical uniques par page** : le composant `RouteMeta` (dans `App.jsx`) met à jour dynamiquement le `<title>`, la meta description et la balise `<link rel="canonical">` à chaque navigation — accueil, catégories (Femmes, Hommes…), fiche produit (titre du produit), recherche, contacts, notes. Les pages `/admin` et `/staff` ne sont pas indexées.
+- **Balises sociales dans `index.html`** : Open Graph (partage Facebook, WhatsApp, Telegram) + Twitter Card, avec logo et description du site.
+- **`public/sitemap.xml`** : plan du site (10 URLs) à soumettre à Google Search Console. ⚠️ Remplacer `kabaryshop.com` par le domaine réellement utilisé tant que le domaine n'est pas actif (voir `GUIDE_DOMAINE.md`).
+- **`public/robots.txt`** : autorise l'indexation, bloque `/admin/` et `/staff/`, référence le sitemap.
+- **`vercel.json`** : réécriture de toutes les routes vers `index.html` (corrige les 404 SPA au rafraîchissement sur Vercel).
+- **Performance** : `loading="lazy"` + `decoding="async"` sur toutes les images du site, `fetchPriority="high"` sur l'image principale du héros, code-splitting des pages (chunks légers chargés à la demande).
+
 ---
 
 ## 4. 🔐 ESPACE ADMINISTRATION
 
 ### 4.1 Connexion (`/admin/login`)
 - Écran moderne (dégradé sombre), email + mot de passe avec **affichage/masquage**.
-- **Email admin modifiable** dans Paramètres (l'email affiché dans le placeholder est celui des paramètres).
-- Mot de passe par défaut : `admin123` (modifiable dans Paramètres → Sécurité).
+- **Email admin** : `boubacarelbalde94@gmail.com` par défaut (modifiable dans Paramètres → Coordonnées).
+- Mot de passe par défaut : `Diaraye@620` (modifiable dans Paramètres → Sécurité).
 - **Authentification à deux facteurs (2FA)** optionnelle (voir section Sécurité).
 - Écran « Vérification en deux étapes » : saisie du code à 6 chiffres (champ formaté, chiffres uniquement), **renvoi du code** avec compte à rebours 30 s, retour à l'écran précédent.
 
@@ -249,7 +257,7 @@ Toutes les statistiques sont **calculées depuis les vraies données du site** (
 
 ### 4.9 Abonnés newsletter (admin)
 - Liste des abonnés avec date d'abonnement, recherche, **« Copier les emails »** (presse-papiers), suppression.
-- **Rappel de configuration EmailJS** : état du template « Nouveaux arrivages » (configuré ou non) avec instructions.
+- **Rappel de configuration Resend** : encart d'information confirmant que les emails partent via Resend (fonction Vercel) et rappelant les variables `RESEND_API_KEY` / `EMAIL_FROM` à renseigner dans les variables d'environnement sur Vercel (voir `GUIDE_RESEND_VERCEL.md`).
 
 ### 4.10 Catégories (admin)
 - Liste en cartes : nom, slug, **nombre de produits réel** (compteurs recalculés automatiquement), statut.
@@ -311,16 +319,17 @@ Module `src/utils/notifications.js` — 3 canaux activables indépendamment dans
 - Bouton « Activer le push » dans Paramètres (demande la permission, détecte les états : autorisé / bloqué / non supporté, avec guidage si bloqué).
 - Notifications système affichées par le navigateur (ex. « 🛒 Nouvelle commande #CMD-… ») quand la permission est accordée.
 
-### 5.3 Emails (EmailJS)
-- **Alerte email admin** à chaque nouvelle commande (template « Alerte admin », ID modifiable) : référence, client, total, liste des articles **avec leurs ID produits**.
+### 5.3 Emails (Resend + fonction Vercel)
+Tous les emails sont envoyés via **Resend**, relayés par la fonction Vercel `api/send-mail.js` (la clé API ne figure jamais dans le code du site). Le contenu de chaque email est **généré automatiquement en français** par `src/utils/emailService.js` — aucun template externe à configurer :
+- **Alerte email admin** à chaque nouvelle commande : référence, client, total, liste des articles **avec leurs ID produits**.
 - **Email de confirmation au client** à chaque commande (avec référence + ID produits).
-- **Email aux abonnés** à chaque nouveau produit (template « Nouveaux arrivages »).
+- **Email aux abonnés** à chaque nouveau produit (email « Nouveaux arrivages »).
 - **Email de confirmation d'abonnement** newsletter.
 - **Email du code 2FA** (voir Sécurité).
 
 ### 5.4 Paramètres de notification
 - Interrupteurs : push, email, alertes nouvelles commandes, notifier les abonnés des nouveaux produits.
-- Champs : ID template « Alerte admin », ID template « Nouveaux arrivages ».
+- **Aucun champ de template** : le contenu de chaque email est construit automatiquement par le site en français.
 - **Bouton « Tester les notifications »** : teste les 3 canaux et affiche le résultat clair de chacun (✅/⚠️) — in-app, push, email.
 - **Email de test aux abonnés** : vers une adresse précise ou vers tous les abonnés (avec un produit fictif, sans rien publier).
 
@@ -332,7 +341,7 @@ Module `src/utils/notifications.js` — 3 canaux activables indépendamment dans
 - Activable/désactivable dans **Paramètres → Sécurité** (interrupteur + bannière d'état).
 - **Déroulement à la connexion** :
   1. Saisie email + mot de passe ;
-  2. Un **code à 6 chiffres** est généré et **envoyé par email** à l'email admin (template EmailJS dédié, ID configurable ; variables : `user_email`, `order_reference` = le code, `message`) ;
+  2. Un **code à 6 chiffres** est généré et **envoyé par email** (via Resend) à l'email admin ;
   3. Écran de vérification : saisie du code (5 min de validité), **renvoi** avec compte à rebours 30 s, **retour** possible ;
   4. **Si l'envoi email échoue, un code de secours s'affiche à l'écran** (le flux reste testable) ;
   5. Code validé → session sécurisée (`admin_2fa_verified`).
@@ -369,9 +378,8 @@ Le site fonctionne **sans serveur** : toutes les données sont dans le `localSto
 | `site_publications` | Dernières publications (pour la bannière Nouveautés) |
 | `site_last_seen_publications` | Dernière consultation des nouveautés |
 | `admin_alerts` | Notifications in-app de l'admin |
-| `admin_password` | Mot de passe admin (défaut `admin123`) |
+| `admin_password` | Mot de passe admin (défaut `Diaraye@620`) |
 | `adminToken`, `isAuthenticated`, `adminLoggedIn`, `admin_2fa_*` | Session admin + 2FA |
-| `emailjs_*_template` | IDs des templates EmailJS configurés |
 | `theme` | Mode sombre/clair choisi |
 | `resetCode`, `resetCodeExpiry` | Code de réinitialisation de mot de passe |
 
@@ -383,16 +391,15 @@ Le site utilise des **événements JavaScript** (`window.dispatchEvent`) pour qu
 
 ## 8. 🔌 SERVICES EXTERNES
 
-### EmailJS (emails)
+### Resend (emails)
 | Élément | Valeur |
 |---|---|
-| Service ID | `service_t0i7gkk` |
-| Public Key | `A7aPwAqqYKTYk5dOE` |
-| Template commande client | `template_wxq56ky` (variables : form_name, user_email, order_items, order_reference, product_ids, order_total…) |
-| Template abonnement newsletter | `template_t0o01dh` |
-| Template nouveaux arrivages (abonnés) | `template_t0o01dh` (modifiable dans Paramètres) |
-| Template alerte admin | `template_wxq56ky` (modifiable dans Paramètres) |
-| Template code 2FA | modifiable dans Paramètres → Sécurité |
+| Fournisseur | Resend (resend.com) — plan gratuit : 3 000 emails/mois |
+| Clé API | `RESEND_API_KEY` (variable d'environnement Vercel, jamais dans le code) |
+| Expéditeur | `EMAIL_FROM` (domaine vérifié, ex. `contact@kabaryshop.com`) |
+| Fonction d'envoi | `api/send-mail.js` (Vercel serverless — `POST /api/send-mail`) |
+| Templates | **Aucun** — tous les emails (commande, arrivages, abonnement, 2FA, expédition livreur, alerte admin) sont construits en français par `src/utils/emailService.js` |
+| Test local | `node scripts/dev-mail-server.mjs` + `npm run dev` (mode simulation → emails visibles sur http://localhost:3010/dev-emails) |
 
 ### ImgBB (images uploadées par l'admin)
 - API Key intégrée dans l'admin Produits (upload jusqu'à 6 images par produit, galerie ordonnée).
@@ -411,6 +418,7 @@ Le site utilise des **événements JavaScript** (`window.dispatchEvent`) pour qu
 8. **Newsletter automatisée** : les abonnés sont prévenus par email à chaque nouveau produit + bannière « Nouveautés » sur le site.
 9. **Journalisation** : toutes les actions sur les commandes sont tracées (qui, quand, quoi).
 10. **Export des analytiques** : rapports CSV / JSON / impression.
+11. **SEO prêt pour Google** : titres + descriptions + canonical uniques par page, sitemap.xml, robots.txt, balises Open Graph/Twitter — le site est optimisé pour apparaître dans les résultats de recherche.
 
 ---
 
@@ -423,9 +431,10 @@ Le site utilise des **événements JavaScript** (`window.dispatchEvent`) pour qu
 | Composants | `src/components/` : Navbar, Hero, HeroCard, Products, TopProducts, Wintersale, Subscribe, Testimonial, Cart, Popup, Footer, Banner, SearchBar, ShareButton, DarkMode, NewsletterBanner, ProductReviews |
 | Admin | `src/admin/` : AdminLogin, AdminLayout, ProtectedRoute, Dashboard, Products, Orders, Users, Reviews, Subscribers, Categories, Analytics, Settings |
 | Contextes | `src/context/` : SettingsContext, CartContext, CategoryContext, UserContext |
+| SEO | `src/utils/seo.js` (titre/description/canonical), `RouteMeta` dans `App.jsx`, `public/robots.txt`, `public/sitemap.xml`, meta OG dans `index.html` |
 | Services | `src/services/productService.js`, `src/admin/services/productService.js` |
-| Utilitaires | `src/utils/` : currencyUtils, reviews, subscribers, notifications |
-| Configuration | `package.json`, `vite.config.js`, `tailwind.config.js`, `index.html` |
+| Utilitaires | `src/utils/` : currencyUtils, reviews, subscribers, notifications, history, seo, emailService |
+| Configuration | `package.json`, `vite.config.js`, `tailwind.config.js`, `index.html`, `vercel.json`, `public/robots.txt`, `public/sitemap.xml` |
 
 ---
 

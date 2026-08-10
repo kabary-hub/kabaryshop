@@ -54,6 +54,8 @@ const Cart = () => {
                   <img 
                     src={item.img} 
                     alt={item.title} 
+                    loading="lazy"
+                    decoding="async"
                     className="w-16 h-16 object-cover rounded-lg flex-shrink-0" 
                   />
                   <div className="flex-1 min-w-0">

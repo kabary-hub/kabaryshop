@@ -64,9 +64,10 @@ const Settings = () => {
   }));
 
   // Récupérer le mot de passe stocké dans localStorage
+  // (admin figé dans le code : mot de passe initial Diaraye@620)
   const getStoredPassword = () => {
     const storedPassword = localStorage.getItem('admin_password');
-    return storedPassword || 'admin123'; // Valeur par défaut si rien n'est stocké
+    return storedPassword || 'Diaraye@620'; // Valeur par défaut si rien n'est stocké
   };
 
   // Sauvegarder le mot de passe dans localStorage

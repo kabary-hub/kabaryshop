@@ -1,6 +1,6 @@
 import React from "react";
 
-const HeroCard = ({ hero, title, description, handleOrder }) => {
+const HeroCard = ({ hero, title, description, handleOrder, priority = false }) => {
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-10">
       {/* text contain section  */}
@@ -41,6 +41,9 @@ const HeroCard = ({ hero, title, description, handleOrder }) => {
           <img
             src={hero}
             alt=""
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={priority ? "high" : "auto"}
             className="w-56 h-56 sm:w-112.5 sm:h-112.5 sm:scale-125 lg:scale-120 object-contain mx-auto"
           />
         </div>

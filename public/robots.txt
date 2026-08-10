@@ -1,0 +1,11 @@
+# robots.txt — Kabary Shop
+# Autorise tous les robots à indexer le site.
+
+User-agent: *
+Allow: /
+
+# Blocage des zones internes (admin, staff)
+Disallow: /admin/
+Disallow: /staff/
+
+Sitemap: https://kabaryshop.com/sitemap.xml

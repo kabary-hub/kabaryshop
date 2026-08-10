@@ -118,6 +118,8 @@ const TopProducts = ({ handleOrder }) => {
                     <img
                       src={data.img}
                       alt={data.title}
+                      loading="lazy"
+                      decoding="async"
                       className="max-w-[185px] max-h-[150px] object-contain block mx-auto transform  group-hover:scale-180 group-hover:-translate-y-10 duration-300 drop-shadow-md group-hover:rounded-tl-2xl px-1"
                     />
                   </div>

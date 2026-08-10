@@ -147,6 +147,7 @@ const Hero = ({ handleOrder }) => {
                   title={item.title}
                   description={item.description}
                   handleOrder={handleOrder}
+                  priority={index === 0}
                 />
               </div>
             ))}
