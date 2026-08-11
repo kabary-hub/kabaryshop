@@ -1,7 +1,12 @@
 // src/admin/Settings.jsx
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle, Plus, ChevronUp, ChevronDown, Image as ImageIcon, Info } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Globe, Clock, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle, Plus, ChevronUp, ChevronDown, Image as ImageIcon, Info } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
+import {
+  getEffectiveComingSoon,
+  formatOpenDate,
+} from '../utils/visibility';
 import {
   isAutoNotifyEnabled,
   setAutoNotifyEnabled,
@@ -69,6 +74,9 @@ const Settings = () => {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // Confirmation de bascule « site en ligne / page d'attente »
+  // (null = aucune, sinon 'online' | 'waiting')
+  const [siteModeConfirm, setSiteModeConfirm] = useState(null);
 
   // Configuration des notifications aux abonnés (Resend)
   const [autoNotifySubscribers, setAutoNotifySubscribers] = useState(isAutoNotifyEnabled);
@@ -118,6 +126,58 @@ const Settings = () => {
         'Le mot de passe cloud est obsolète : réinitialisation requise dans Supabase (Authentication → Users).',
         'warning'
       );
+    }
+  };
+
+  // Convertit la date ISO stockée vers la valeur attendue par <input type="datetime-local">
+  const toLocalInputValue = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  // Bascule le mode « Ouverture prochaine » (1 clic, synchronisé partout).
+  // La date d'ouverture planifiée n'est supprimée QUE si elle est déjà passée
+  // au moment du masquage : sinon, une planification future (ex. ouverture le
+  // 15 sept) resterait intacte après une démo temporaire, puis se
+  // re-déclencherait à la date prévue. Mettre en ligne ne touche jamais la
+  // date (la bascule manuelle prime toujours sur la planification).
+  const handleToggleSiteMode = (goingOnline) => {
+    // Base sur formData (et non settings) pour ne pas écraser les autres
+    // champs modifiés mais pas encore enregistrés dans le formulaire.
+    const next = { ...formData, comingSoon: !goingOnline };
+    if (!goingOnline && formData.scheduledOpenDate) {
+      const t = Date.parse(formData.scheduledOpenDate);
+      if (!Number.isNaN(t) && t <= Date.now()) {
+        next.scheduledOpenDate = ''; // date déjà atteinte → on l'efface
+      }
+    }
+    updateSettings(next);
+    // Garde le formulaire synchronisé pour ne pas écraser ces réglages lors
+    // d'un enregistrement ultérieur des paramètres.
+    setFormData(next);
+    setSiteModeConfirm(null);
+    const siteName = settings.siteName || 'Site';
+    if (goingOnline) {
+      showToast('Site en ligne : la boutique est visible pour tout le monde', 'success');
+      logActivity({
+        type: 'settings',
+        action: 'mise en ligne du site',
+        subject: siteName,
+        details: 'Le site est visible pour tous les visiteurs',
+        actor: { name: 'Admin', role: 'admin' },
+      });
+    } else {
+      showToast('Page d\'attente activée : le site est masqué', 'info');
+      logActivity({
+        type: 'settings',
+        action: 'activation du mode « ouverture prochaine »',
+        subject: siteName,
+        details: 'Le site affiche la page d\'attente',
+        actor: { name: 'Admin', role: 'admin' },
+      });
     }
   };
 
@@ -1103,6 +1163,104 @@ const Settings = () => {
             {/* ONGLET SÉCURITÉ */}
             {activeTab === 'security' && (
               <div className="space-y-6">
+                {/* Visibilité du site : bascule « en ligne / page d'attente » */}
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium flex items-center gap-2">
+                        <Globe
+                          size={17}
+                          className={
+                            getEffectiveComingSoon(settings)
+                              ? 'text-amber-500'
+                              : 'text-emerald-600'
+                          }
+                        />
+                        Visibilité du site
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {getEffectiveComingSoon(settings)
+                          ? 'Les visiteurs voient la page « Ouverture prochaine ».'
+                          : 'La boutique est visible par tout le monde.'}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        getEffectiveComingSoon(settings)
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300'
+                          : 'bg-green-500/15 text-green-600 dark:text-green-300'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          getEffectiveComingSoon(settings) ? 'bg-amber-400' : 'bg-green-400'
+                        }`}
+                      />
+                      {getEffectiveComingSoon(settings) ? 'Page d\'attente' : 'Site en ligne'}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSiteModeConfirm(getEffectiveComingSoon(settings) ? 'online' : 'waiting')
+                    }
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition ${
+                      getEffectiveComingSoon(settings)
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-amber-600 hover:bg-amber-700'
+                    }`}
+                  >
+                    {getEffectiveComingSoon(settings) ? (
+                      <>
+                        <Globe size={15} />
+                        Mettre le site en ligne
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={15} />
+                        Masquer le site
+                      </>
+                    )}
+                  </button>
+
+                  {/* Ouverture automatique planifiée */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <label className="block text-sm font-medium mb-2 flex items-center gap-1.5">
+                      <Clock size={15} className="text-blue-500" />
+                      Ouverture automatique (date & heure)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalInputValue(settings.scheduledOpenDate)}
+                      min={toLocalInputValue(new Date().toISOString())}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        // Le champ datetime-local donne l'heure locale → ISO UTC pour le stockage
+                        const iso = raw ? new Date(raw).toISOString() : '';
+                        updateSettings({ ...formData, scheduledOpenDate: iso });
+                        setFormData((f) => ({ ...f, scheduledOpenDate: iso }));
+                        showToast(
+                          iso
+                            ? `Ouverture automatique planifiée le ${formatOpenDate(iso)}`
+                            : 'Ouverture automatique désactivée',
+                          'info'
+                        );
+                      }}
+                      className="w-full max-w-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-gray-700 dark:border-gray-600 dark:[color-scheme:dark]"
+                    />
+                    {settings.scheduledOpenDate && (
+                      <p className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400 leading-snug">
+                        🗓 Le site passera en ligne automatiquement le{' '}
+                        {formatOpenDate(settings.scheduledOpenDate)}.
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      À la date choisie, le site s'ouvre tout seul, même sans action manuelle.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Authentification à deux facteurs */}
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                   <div className="flex items-center justify-between">
@@ -1419,6 +1577,21 @@ const Settings = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation de bascule de visibilité du site */}
+      <ConfirmModal
+        open={Boolean(siteModeConfirm)}
+        title={siteModeConfirm === 'online' ? 'Mettre le site en ligne ?' : 'Masquer le site ?'}
+        message={
+          siteModeConfirm === 'online'
+            ? 'La boutique deviendra visible par TOUS les visiteurs (et sur tous les appareils via la synchronisation Supabase). Vous pourrez la remasquer à tout moment avec ce même bouton.'
+            : 'Le site affichera à nouveau la page « Ouverture prochaine ». La boutique sera masquée pour tous les visiteurs.'
+        }
+        confirmLabel={siteModeConfirm === 'online' ? 'Oui, mettre en ligne' : 'Oui, masquer'}
+        cancelLabel="Annuler"
+        onConfirm={() => handleToggleSiteMode(siteModeConfirm === 'online')}
+        onCancel={() => setSiteModeConfirm(null)}
+      />
     </div>
   );
 };

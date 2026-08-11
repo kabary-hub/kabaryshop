@@ -10,6 +10,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "r
 import { UserProvider } from './context/UserContext';
 import { logActivity } from './utils/history';
 import { updatePageMeta, setNoIndex, setPageTitle } from './utils/seo';
+import { getEffectiveComingSoon } from './utils/visibility';
 import { getAllProducts } from './services/productService';
 import { grantAdminAccess } from './utils/auth';
 // Synchronisation multi-appareils (Supabase). Ne fait rien si Supabase
@@ -176,15 +177,28 @@ const RouteMeta = () => {
 };
 
 // ===== Porte du site : mode « Ouverture prochaine » =====
-// Quand le réglage comingSoon est actif, l'écran d'attente remplace toute la
+// Quand le mode d'attente est actif, l'écran d'attente remplace toute la
 // boutique — SAUF dans l'espace admin/staff (pour pouvoir rebasculer).
-// Le mode est synchronisé sur tous les appareils via Supabase (kabary_settings).
+// Le mode est synchronisé sur tous les appareils via Supabase (kabary_settings)
+// et s'éteint automatiquement quand la date d'ouverture planifiée est atteinte
+// (getEffectiveComingSoon).
 const SiteGate = ({ children }) => {
   const { settings } = useSettings();
   const { pathname } = useLocation();
   const isBackoffice =
     pathname.startsWith('/admin') || pathname.startsWith('/staff');
-  const comingSoonActive = Boolean(settings.comingSoon) && !isBackoffice;
+  // Ré-évaluation périodique : quand la date d'ouverture planifiée est
+  // atteinte, la bascule se produit même sur un onglet déjà ouvert (sans
+  // rechargement ni navigation). Un timer court est inactif tant qu'aucune
+  // date n'est planifiée.
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (!settings.scheduledOpenDate) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, [settings.scheduledOpenDate]);
+  const comingSoonActive =
+    getEffectiveComingSoon(settings, now) && !isBackoffice;
 
   // SEO : pas d'indexation pendant la page d'attente (ni admin/staff).
   // pathname dans les dépendances : RouteMeta (rendu avant la porte) réécrit

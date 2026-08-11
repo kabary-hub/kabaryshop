@@ -49,6 +49,10 @@ const DEFAULT_SETTINGS = {
   // depuis Admin → sidebar → « Mettre le site en ligne / Masquer le site ».
   // Synchronisé sur tous les appareils via Supabase (kabary_settings).
   comingSoon: true,
+  // Ouverture automatique planifiée (date ISO, ex. '2026-09-15T09:00:00.000Z') :
+  // quand la date est atteinte, le site passe en ligne tout seul (voir
+  // src/utils/visibility.js). Vide = aucune planification.
+  scheduledOpenDate: '',
   // ===== Page contact =====
   contactPageTitle: 'Contactez-nous',
   contactPageSubtitle: 'Nous sommes à votre écoute pour toute question',

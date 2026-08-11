@@ -1,14 +1,28 @@
 // src/Pages/ComingSoon.jsx
-// Écran « Ouverture prochaine » — affiché à la place du site quand le réglage
-// `comingSoon` est actif (bascule en 1 clic depuis Admin → sidebar).
-import React from "react";
+// Écran « Ouverture prochaine » — affiché à la place du site quand le mode
+// d'attente est actif (bascule en 1 clic depuis Admin → sidebar).
+// Si une date d'ouverture automatique est planifiée, un compte à rebours
+// s'affiche jusqu'au lancement du site.
+import React, { useEffect, useState } from "react";
 import { useSettings } from "../context/SettingsContext";
+import { getTimeUntilOpen, formatOpenDate } from "../utils/visibility";
 
 const ComingSoon = () => {
   const { settings } = useSettings();
   const siteName = settings.siteName || "Kabary Shop";
   const facebookUrl =
     settings.social?.facebook || "https://www.facebook.com/boubacarelbalde";
+
+  // Compte à rebours (rafraîchi chaque minute) vers l'ouverture planifiée.
+  // Timer inactif quand aucune date n'est planifiée.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!settings.scheduledOpenDate) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, [settings.scheduledOpenDate]);
+  const remaining = getTimeUntilOpen(settings.scheduledOpenDate, now);
+  const openDateLabel = formatOpenDate(settings.scheduledOpenDate);
 
   return (
     <>
@@ -84,6 +98,17 @@ const ComingSoon = () => {
         }
         .cs-facebook:hover { transform: scale(1.05); background: #0f6ad4; }
         .cs-facebook svg { width: 1.15rem; height: 1.15rem; fill: #ffffff; }
+        .cs-countdown {
+          display: inline-flex; gap: 0.9rem; margin-top: 1.6rem;
+          padding: 0.9rem 1.4rem;
+          border-radius: 1.2rem;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          backdrop-filter: blur(6px);
+        }
+        .cs-cd-cell { display: flex; flex-direction: column; align-items: center; min-width: 3.6rem; }
+        .cs-cd-num { font-size: 1.9rem; font-weight: 800; line-height: 1.1; color: #ffffff; }
+        .cs-cd-label { margin-top: 0.15rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
         .cs-footer { margin-top: 3rem; font-size: 0.75rem; color: #64748b; }
         @media (max-width: 480px) { .cs-ring { display: none; } }
         /* Respect des préférences de mouvement réduit */
@@ -103,11 +128,38 @@ const ComingSoon = () => {
           <h1 className="cs-name">{siteName}</h1>
           <p className="cs-tagline">Plateforme numérique guinéenne</p>
           <div className="cs-divider" />
-          <p className="cs-message">
-            Ouverture prévue dans quelques semaines.
-            <br />
-            <strong>Abonnez-vous à notre page Facebook pour être informé !</strong>
-          </p>
+          {remaining ? (
+            <>
+              <p className="cs-message">
+                Ouverture prévue{openDateLabel ? ` le ${openDateLabel}` : " dans quelques semaines"}.
+                <br />
+                <strong>Abonnez-vous à notre page Facebook pour être informé !</strong>
+              </p>
+              <div className="cs-countdown" role="timer" aria-label="Compte à rebours avant l'ouverture">
+                <div className="cs-cd-cell">
+                  <span className="cs-cd-num">{remaining.days}</span>
+                  <span className="cs-cd-label">jours</span>
+                </div>
+                <div className="cs-cd-cell">
+                  <span className="cs-cd-num">{remaining.hours}</span>
+                  <span className="cs-cd-label">heures</span>
+                </div>
+                <div className="cs-cd-cell">
+                  <span className="cs-cd-num">{remaining.minutes}</span>
+                  <span className="cs-cd-label">min</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="cs-message">
+              {/* Date planifiée atteinte (fenêtre < 30 s avant la bascule auto) */}
+              {settings.scheduledOpenDate
+                ? "Ouverture imminente ! La boutique arrive dans quelques instants."
+                : "Ouverture prévue dans quelques semaines."}
+              <br />
+              <strong>Abonnez-vous à notre page Facebook pour être informé !</strong>
+            </p>
+          )}
           <a
             className="cs-facebook"
             href={facebookUrl}
