@@ -302,7 +302,7 @@ const Products = ({ data, searchTerm = "" }) => {
                   )}
                 </div>
               ) : (
-                products.map((item) => (
+                products.map((item, index) => (
                   <div
                     data-aos="fade-up"
                     data-aos-delay={item.aosDelay}
@@ -311,11 +311,16 @@ const Products = ({ data, searchTerm = "" }) => {
                     onClick={() => navigate(`/produit/${item.id}`)}
                   >
                     <div className="overflow-hidden rounded-md shadow-md drop-shadow-[2px_10px_15px_rgba(0,0,0,0.2)] w-full">
+                      {/* Les 5 premiers produits sont au-dessus de la ligne de flottaison :
+                          chargement immédiat (eager) avec priorité élevée pour afficher le
+                          premier écran le plus vite possible. Les suivants restent en lazy
+                          (chargés seulement quand ils approchent de l'écran). */}
                       <img
                         src={item.img}
                         alt={item.title}
-                        loading="lazy"
+                        loading={index < 5 ? "eager" : "lazy"}
                         decoding="async"
+                        fetchPriority={index < 5 ? "high" : "auto"}
                         onError={handleImageError}
                         className="w-full aspect-[3/4] object-cover cursor-pointer hover:scale-110 transition-transform duration-300 sm:aspect-auto sm:h-72.5"
                       />

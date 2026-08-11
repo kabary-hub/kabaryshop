@@ -132,6 +132,24 @@ const Hero = ({ handleOrder }) => {
         }));
   const extendeList = hasCustomHero ? displayList : [...displayList, displayList[0]];
 
+  // Préchargement de la première image du premier écran (LCP) : on prévient le
+  // navigateur le plus tôt possible pour qu'il démarre le téléchargement de
+  // l'image du premier slide dès le parsing, avant même la fin du chargement
+  // du JavaScript. Fonctionne aussi pour les images personnalisées (URL).
+  const firstSlideImage = displayList[0]?.img || "";
+  useEffect(() => {
+    if (!firstSlideImage) return undefined;
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = firstSlideImage;
+    // Le preload lui-même doit être chargé en priorité élevée (par défaut il
+    // serait en priorité moyenne, ce qui retarderait l'image du premier écran).
+    link.fetchPriority = "high";
+    document.head.appendChild(link);
+    return () => link.remove();
+  }, [firstSlideImage]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setIsTransitioning(true);
