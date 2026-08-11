@@ -9,7 +9,7 @@ import React, { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { UserProvider } from './context/UserContext';
 import { logActivity } from './utils/history';
-import { updatePageMeta } from './utils/seo';
+import { updatePageMeta, setNoIndex, setPageTitle } from './utils/seo';
 import { getAllProducts } from './services/productService';
 import { grantAdminAccess } from './utils/auth';
 // Synchronisation multi-appareils (Supabase). Ne fait rien si Supabase
@@ -34,6 +34,9 @@ const CategoryProducts = lazy(() => import("./Pages/CategoryProducts"));
 const SearchResults = lazy(() => import("./Pages/SearchResults"));
 const ProductDetail = lazy(() => import("./Pages/ProductDetail"));
 const NotFound = lazy(() => import("./Pages/NotFound"));
+// Écran « Ouverture prochaine » — affiché à la place du site quand le
+// réglage comingSoon est actif (bascule depuis Admin → sidebar).
+const ComingSoon = lazy(() => import("./Pages/ComingSoon"));
 
 // Importation des composants admin (chargés à la demande aussi)
 const AdminLayout = lazy(() => import("./admin/AdminLayout"));
@@ -172,6 +175,38 @@ const RouteMeta = () => {
   return null;
 };
 
+// ===== Porte du site : mode « Ouverture prochaine » =====
+// Quand le réglage comingSoon est actif, l'écran d'attente remplace toute la
+// boutique — SAUF dans l'espace admin/staff (pour pouvoir rebasculer).
+// Le mode est synchronisé sur tous les appareils via Supabase (kabary_settings).
+const SiteGate = ({ children }) => {
+  const { settings } = useSettings();
+  const { pathname } = useLocation();
+  const isBackoffice =
+    pathname.startsWith('/admin') || pathname.startsWith('/staff');
+  const comingSoonActive = Boolean(settings.comingSoon) && !isBackoffice;
+
+  // SEO : pas d'indexation pendant la page d'attente (ni admin/staff).
+  // pathname dans les dépendances : RouteMeta (rendu avant la porte) réécrit
+  // le titre à chaque navigation → on le rétablit ensuite en mode attente.
+  React.useEffect(() => {
+    setNoIndex(comingSoonActive || isBackoffice);
+    if (comingSoonActive) {
+      const siteName = settings.siteName || 'Kabary Shop';
+      setPageTitle(`${siteName} — Ouverture prochaine`);
+    }
+  }, [comingSoonActive, isBackoffice, settings.siteName, pathname]);
+
+  if (comingSoonActive) {
+    return (
+      <Suspense fallback={null}>
+        <ComingSoon />
+      </Suspense>
+    );
+  }
+  return children;
+};
+
 // Journalise les visites de pages (toutes les pages du site)
 // Variable module : résiste au double-montage de StrictMode en développement
 let lastLoggedPath = null;
@@ -301,6 +336,7 @@ const App = () => {
             <Suspense fallback={null}>
               <SyncProvider />
             </Suspense>
+            <SiteGate>
             <SiteNavbar
               handleOrderPopup={handleOrder}
               setSearchTerm={setSearchTerm}
@@ -417,6 +453,7 @@ const App = () => {
 
             {/* Bouton WhatsApp flottant (contact client en un tap) */}
             <WhatsAppButton />
+            </SiteGate>
           </div>
         </Router>
         </UserProvider>

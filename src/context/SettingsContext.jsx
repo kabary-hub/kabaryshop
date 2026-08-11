@@ -44,6 +44,11 @@ const DEFAULT_SETTINGS = {
   },
   deliveryInfo: 'Livraison sous 24h/48h dans tout Conakry',
   freeDeliveryThreshold: 300000, // Livraison gratuite à partir de ce montant (GNF)
+  // Mode « Ouverture prochaine » : quand true, le site affiche l'écran
+  // d'attente (ComingSoon) à la place de la boutique. Bascule en 1 clic
+  // depuis Admin → sidebar → « Mettre le site en ligne / Masquer le site ».
+  // Synchronisé sur tous les appareils via Supabase (kabary_settings).
+  comingSoon: true,
   // ===== Page contact =====
   contactPageTitle: 'Contactez-nous',
   contactPageSubtitle: 'Nous sommes à votre écoute pour toute question',

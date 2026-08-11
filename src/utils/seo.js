@@ -41,3 +41,15 @@ export const updatePageMeta = ({ title, description, path = "" }) => {
   if (description) setPageDescription(description);
   if (path) setCanonical(path);
 };
+
+// Active/désactive l'indexation (robots meta) — utilisé par l'écran
+// « Ouverture prochaine » pour ne pas référencer le site en attente.
+export const setNoIndex = (noIndex = true) => {
+  let meta = document.querySelector('meta[name="robots"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "robots";
+    document.head.appendChild(meta);
+  }
+  meta.content = noIndex ? "noindex, nofollow" : "index, follow";
+};

@@ -19,7 +19,10 @@ import {
   Info,
   AlertTriangle,
   History as HistoryIcon,
-  Wrench
+  Wrench,
+  Globe,
+  EyeOff,
+  Clock
 } from 'lucide-react';
 import {
   getAdminAlerts,
@@ -29,15 +32,20 @@ import {
 import { logActivity } from '../utils/history';
 import { logoutComplete } from '../utils/auth';
 import { useSettings } from '../context/SettingsContext';
+import { showToast } from '../utils/toast';
+import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import {
   getShopOrdersMigrationReport,
   dismissShopOrdersMigrationReport,
 } from '../utils/migrations';
 
 const AdminLayout = () => {
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  // Confirmation de bascule « site en ligne / page d'attente »
+  // (null = aucune, sinon 'online' | 'waiting')
+  const [siteModeConfirm, setSiteModeConfirm] = useState(null);
   const [alerts, setAlerts] = useState(getAdminAlerts);
   // Bandeau « commandes réparées par la migration » (présent uniquement si la
   // migration shop_orders a réellement corrigé des données sur cet appareil)
@@ -124,6 +132,32 @@ const AdminLayout = () => {
     { path: '/admin/history', name: 'Historiques', icon: HistoryIcon },
     { path: '/admin/settings', name: 'Paramètres', icon: Settings },
   ];
+
+  // Bascule le mode « Ouverture prochaine » (1 clic, synchronisé partout)
+  const handleToggleSiteMode = (goingOnline) => {
+    updateSettings({ ...settings, comingSoon: !goingOnline });
+    setSiteModeConfirm(null);
+    const siteName = settings.siteName || 'Site';
+    if (goingOnline) {
+      showToast('Site en ligne : la boutique est visible pour tout le monde', 'success');
+      logActivity({
+        type: 'settings',
+        action: 'mise en ligne du site',
+        subject: siteName,
+        details: 'Le site est visible pour tous les visiteurs',
+        actor: { name: 'Admin', role: 'admin' },
+      });
+    } else {
+      showToast('Page d\'attente activée : le site est masqué', 'info');
+      logActivity({
+        type: 'settings',
+        action: 'activation du mode « ouverture prochaine »',
+        subject: siteName,
+        details: 'Le site affiche la page d\'attente',
+        actor: { name: 'Admin', role: 'admin' },
+      });
+    }
+  };
 
   const handleLogout = () => {
     let actor = null;
@@ -246,6 +280,61 @@ const AdminLayout = () => {
               {item.name}
             </NavLink>
           ))}
+          {/* Visibilité du site : bascule « en ligne / page d'attente » */}
+          <div className="mt-4 p-3 rounded-lg border border-gray-700/70 bg-gray-800/60">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
+              {settings.comingSoon ? (
+                <Clock size={12} className="text-amber-400" />
+              ) : (
+                <Globe size={12} className="text-green-400" />
+              )}
+              Visibilité du site
+            </p>
+            <div className="flex items-center gap-2 mb-2.5">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                  settings.comingSoon
+                    ? 'bg-amber-500/15 text-amber-300'
+                    : 'bg-green-500/15 text-green-300'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    settings.comingSoon ? 'bg-amber-400' : 'bg-green-400'
+                  }`}
+                />
+                {settings.comingSoon ? 'Page d\'attente' : 'Site en ligne'}
+              </span>
+            </div>
+            <button
+              onClick={() =>
+                setSiteModeConfirm(settings.comingSoon ? 'online' : 'waiting')
+              }
+              className={`w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                settings.comingSoon
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+              }`}
+            >
+              {settings.comingSoon ? (
+                <>
+                  <Globe size={15} />
+                  Mettre le site en ligne
+                </>
+              ) : (
+                <>
+                  <EyeOff size={15} />
+                  Masquer le site
+                </>
+              )}
+            </button>
+            <p className="mt-2 text-[10px] text-gray-500 leading-snug">
+              {settings.comingSoon
+                ? 'Les visiteurs voient la page « Ouverture prochaine ».'
+                : 'La boutique est visible par tout le monde.'}
+            </p>
+          </div>
+
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition mt-4"
@@ -356,6 +445,21 @@ const AdminLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Confirmation de bascule de visibilité */}
+      <ConfirmModal
+        open={Boolean(siteModeConfirm)}
+        title={siteModeConfirm === 'online' ? 'Mettre le site en ligne ?' : 'Masquer le site ?'}
+        message={
+          siteModeConfirm === 'online'
+            ? 'La boutique deviendra visible par TOUS les visiteurs (et sur tous les appareils via la synchronisation Supabase). Vous pourrez la remasquer à tout moment avec ce même bouton.'
+            : 'Le site affichera à nouveau la page « Ouverture prochaine ». La boutique sera masquée pour tous les visiteurs.'
+        }
+        confirmLabel={siteModeConfirm === 'online' ? 'Oui, mettre en ligne' : 'Oui, masquer'}
+        cancelLabel="Annuler"
+        onConfirm={() => handleToggleSiteMode(siteModeConfirm === 'online')}
+        onCancel={() => setSiteModeConfirm(null)}
+      />
     </div>
   );
 };
