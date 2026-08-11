@@ -18,7 +18,8 @@ import {
   ShoppingBag,
   Info,
   AlertTriangle,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Wrench
 } from 'lucide-react';
 import {
   getAdminAlerts,
@@ -28,12 +29,19 @@ import {
 import { logActivity } from '../utils/history';
 import { logoutComplete } from '../utils/auth';
 import { useSettings } from '../context/SettingsContext';
+import {
+  getShopOrdersMigrationReport,
+  dismissShopOrdersMigrationReport,
+} from '../utils/migrations';
 
 const AdminLayout = () => {
   const { settings } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState(getAdminAlerts);
+  // Bandeau « commandes réparées par la migration » (présent uniquement si la
+  // migration shop_orders a réellement corrigé des données sur cet appareil)
+  const [migrationReport, setMigrationReport] = useState(() => getShopOrdersMigrationReport());
   const navigate = useNavigate();
 
   // Rafraîchir les alertes quand une nouvelle arrive (cloche admin)
@@ -93,6 +101,15 @@ const AdminLayout = () => {
     success: <CheckCheck size={15} className="text-green-500" />,
     warning: <AlertTriangle size={15} className="text-amber-500" />,
     info: <Info size={15} className="text-gray-500" />,
+  };
+
+  // Texte du bandeau de migration selon ce qui a été corrigé
+  const migrationMessage = (report) => {
+    if (report.note) return report.note;
+    const parts = [];
+    if (report.repaired > 0) parts.push(`${report.repaired} commande(s) réparée(s)`);
+    if (report.dropped > 0) parts.push(`${report.dropped} entrée(s) invalide(s) supprimée(s)`);
+    return parts.join(' et ') || 'Des commandes malformées ont été nettoyées.';
   };
 
   const menuItems = [
@@ -304,6 +321,36 @@ const AdminLayout = () => {
             </div>
           </div>
         </div>
+
+        {/* Bandeau : des commandes malformées ont été réparées par la migration */}
+        {migrationReport && (
+          <div className="animate-fadeIn mx-4 md:mx-6 mt-4 md:mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+            <Wrench size={18} className="shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1 text-sm text-amber-800 dark:text-amber-200">
+              <p className="font-semibold">Commandes nettoyées automatiquement</p>
+              <p className="text-xs opacity-80">
+                {migrationMessage(migrationReport)} — vérifiez la liste des commandes.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/admin/orders')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700"
+            >
+              <ShoppingCart size={14} />
+              Voir les commandes
+            </button>
+            <button
+              onClick={() => {
+                dismissShopOrdersMigrationReport();
+                setMigrationReport(null);
+              }}
+              aria-label="Fermer le bandeau"
+              className="rounded-full p-1.5 text-amber-700 transition hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/40"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         <main className="flex-1 min-w-0 mt-4 md:mt-6 mr-0 md:mr-6 ml-0 md:ml-7 overflow-x-auto">
           <Outlet />
