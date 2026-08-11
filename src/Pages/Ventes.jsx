@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Products from "../components/Products/products";
 import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
 import Banner from "../components/Banner/Banner";
-import ImgVente from "../assets/background-pages/vente.jpeg";
+import ImgVente from "../assets/background-pages/vente.webp";
 
 const Ventes = ({ handleOrder, searchTerm = "" }) => {
   // Produits chargés de façon synchrone (initialisation paresseuse)

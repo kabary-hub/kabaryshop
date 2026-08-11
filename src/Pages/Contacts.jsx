@@ -1,7 +1,7 @@
 import React from "react";
 import Banner from "../components/Banner/Banner";
 import { FaPhone, FaEnvelope, FaWhatsapp, FaMapMarkerAlt } from "react-icons/fa";
-import ImgContact from "../assets/background-pages/contact.jpeg";
+import ImgContact from "../assets/background-pages/contact.webp";
 import { useSettings } from "../context/SettingsContext";
 
 const Contacts = () => {

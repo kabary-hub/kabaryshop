@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Products from "../components/Products/products";
 import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
 import Banner from "../components/Banner/Banner";
-import ImgEnfant from "../assets/background-pages/enfant.jpeg";
+import ImgEnfant from "../assets/background-pages/enfant.webp";
 
 const Enfants = ({ handleOrder, searchTerm = "" }) => {
   // Produits chargés de façon synchrone (initialisation paresseuse)

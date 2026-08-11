@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Products from "../components/Products/products";
 import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
 import Banner from "../components/Banner/Banner";
-import ImgElectronique from "../assets/background-pages/electronique.jpeg";
+import ImgElectronique from "../assets/background-pages/electronique.webp";
 import { useSettings } from "../context/SettingsContext";
 
 const Electroniques = ({ handleOrder, searchTerm = "" }) => {

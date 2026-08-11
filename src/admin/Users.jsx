@@ -468,7 +468,7 @@ const Users = () => {
       <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <img src="/testimon4.jpeg" alt="" className='w-15 h-15 rounded-full'/>
+            <img src="/testimon4.webp" alt="" className='w-15 h-15 rounded-full'/>
              DG {settings.siteName}
           </h1>
           <p className="text-gray-500 mt-1">Gestion de tous les utilisateurs de la plateforme</p>

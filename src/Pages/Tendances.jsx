@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Products from "../components/Products/products";
 import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
 import Banner from "../components/Banner/Banner";
-import ImgTendance from "../assets/background-pages/tendance.jpeg";
+import ImgTendance from "../assets/background-pages/tendance.webp";
 
 const Tendances = ({ handleOrder, searchTerm = "" }) => {
   // Produits chargés de façon synchrone (initialisation paresseuse)

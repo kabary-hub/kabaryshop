@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Banner from "../components/Banner/Banner";
-import ImgNote from "../assets/background-pages/note.jpeg";
+import ImgNote from "../assets/background-pages/note.webp";
 import {
   FaStar,
   FaStarHalfAlt,

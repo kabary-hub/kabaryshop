@@ -31,7 +31,7 @@ const CODE_DELIVERY_KEY = 'admin_2fa_delivery'; // 'email' | 'demo'
 // Grande image e-commerce imposante affichée à gauche de la page de connexion
 // (attire naturellement les utilisateurs à revenir se connecter).
 // Fallback : image locale de la newsletter si le réseau est indisponible.
-import fallbackLoginImage from '../assets/website/banner.jpeg';
+import fallbackLoginImage from '../assets/website/banner.webp';
 const LOGIN_IMAGE =
   'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80';
 

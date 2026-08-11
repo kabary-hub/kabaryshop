@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useSettings } from "../../context/SettingsContext";
-import hero from "../../assets/hero/hero.png";
-import hero1 from "../../assets/hero/hero1.png";
-import hero2 from "../../assets/hero/hero2.png";
-import hero3 from "../../assets/hero/hero3.png";
-import hero4 from "../../assets/hero/hero4.png";
-import hero5 from "../../assets/hero/hero5.png";
-import hero6 from "../../assets/hero/hero6.png";
-import hero7 from "../../assets/hero/hero7.png";
-import hero8 from "../../assets/hero/hero8.png";
-import hero9 from "../../assets/hero/hero9.png";
+import hero from "../../assets/hero/hero.webp";
+import hero1 from "../../assets/hero/hero1.webp";
+import hero2 from "../../assets/hero/hero2.webp";
+import hero3 from "../../assets/hero/hero3.webp";
+import hero4 from "../../assets/hero/hero4.webp";
+import hero5 from "../../assets/hero/hero5.webp";
+import hero6 from "../../assets/hero/hero6.webp";
+import hero7 from "../../assets/hero/hero7.webp";
+import hero8 from "../../assets/hero/hero8.webp";
+import hero9 from "../../assets/hero/hero9.webp";
 import HeroCard from "./HeroCard";
 
 // import Slider from "react-slick";

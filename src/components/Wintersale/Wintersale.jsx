@@ -1,5 +1,5 @@
 import React from "react";
-import WintersaleImg from "../../assets/wintersale/Wintersale.png";
+import WintersaleImg from "../../assets/wintersale/Wintersale.webp";
 import { GrSecure } from "react-icons/gr";
 import { IoFastFood } from "react-icons/io5";
 import { GiFoodTruck } from "react-icons/gi";

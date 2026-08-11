@@ -1,7 +1,7 @@
 // src/components/Navbar/Navbar.jsx
 import React, { useState, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import Logo from "../../assets/Logo.png";
+import Logo from "../../assets/Logo.webp";
 import { FaCartShopping } from "react-icons/fa6";
 import { FaCaretDown, FaHome } from "react-icons/fa";
 import { IoMenu, IoClose } from "react-icons/io5";

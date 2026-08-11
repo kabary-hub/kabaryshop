@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import SubscribeImage from "../../assets/website/banner.jpeg";
+import SubscribeImage from "../../assets/website/banner.webp";
 import {
   addSubscriber,
   markDeviceSubscribed,
