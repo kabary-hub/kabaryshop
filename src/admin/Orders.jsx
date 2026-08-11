@@ -266,14 +266,20 @@ const Orders = () => {
     return sorted;
   };
 
-  // Afficher la référence lisible si disponible, sinon l'ID numérique
-  const displayOrderId = (order) => order.reference || `CMD-${order.id}`;
+  // Afficher la référence lisible si disponible, sinon l'ID numérique.
+  // Null-safe : appelé aussi quand orderToReject est null (la modale de rejet
+  // évalue ses props à chaque rendu, même fermée).
+  const displayOrderId = (order) =>
+    order?.reference || (order ? `CMD-${order.id}` : '');
 
-  const searchFilteredOrders = orders.filter(order =>
-    order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.id.toString().includes(searchTerm) ||
-    (order.reference || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const searchFilteredOrders = orders.filter(order => {
+    const term = searchTerm.toLowerCase();
+    return (
+      order?.customer?.name?.toLowerCase().includes(term) ||
+      String(order?.id ?? '').includes(term) ||
+      (order?.reference || '').toLowerCase().includes(term)
+    );
+  });
 
   let processedOrders = filterOrdersByPeriod(searchFilteredOrders);
   processedOrders = filterOrdersByShipper(processedOrders);
@@ -626,9 +632,9 @@ const Orders = () => {
                     onClick={() => viewOrderDetails(order)}
                   >
                     <td className="px-6 py-4 font-medium">#{displayOrderId(order)}</td>
-                    <td className="px-6 py-4">{order.customer.name}</td>
+                    <td className="px-6 py-4">{order.customer?.name || '—'}</td>
                     <td className="px-6 py-4">{formatDate(order.date)}</td>
-                    <td className="px-6 py-4 font-semibold text-primary">{order.total.toLocaleString()} GNF</td>
+                    <td className="px-6 py-4 font-semibold text-primary">{(order.total || 0).toLocaleString()} GNF</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusBadge.color}`}>
                         {statusBadge.icon}
@@ -739,7 +745,7 @@ const Orders = () => {
                 </button>
               </div>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Client : <strong>{selectedOrderForShipping.customer.name}</strong>
+                Client : <strong>{selectedOrderForShipping.customer?.name || '—'}</strong>
               </p>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Choisir le responsable de l'expédition :</label>
@@ -900,19 +906,19 @@ const Orders = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <User size={14} className="text-gray-400" />
-                    <span>{selectedOrder.customer.name}</span>
+                    <span>{selectedOrder.customer?.name || '—'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail size={14} className="text-gray-400" />
-                    <span>{selectedOrder.customer.email || 'Non renseigné'}</span>
+                    <span>{selectedOrder.customer?.email || 'Non renseigné'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone size={14} className="text-gray-400" />
-                    <span>{selectedOrder.customer.phone}</span>
+                    <span>{selectedOrder.customer?.phone || '—'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin size={14} className="text-gray-400" />
-                    <span>{selectedOrder.customer.address}</span>
+                    <span>{selectedOrder.customer?.address || '—'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar size={14} className="text-gray-400" />
@@ -920,7 +926,7 @@ const Orders = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <CreditCard size={14} className="text-gray-400" />
-                    <span>{selectedOrder.paymentMethod}</span>
+                    <span>{selectedOrder.paymentMethod || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -953,7 +959,7 @@ const Orders = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedOrder.items.map((item, idx) => (
+                    {selectedOrder.items?.map((item, idx) => (
                       <tr key={idx} className="border-b dark:border-gray-700">
                         <td className="py-2">{item.name}</td>
                         <td className="text-center py-2">
@@ -974,7 +980,7 @@ const Orders = () => {
                   <tfoot>
                     <tr>
                       <td colSpan="4" className="text-right py-3 font-bold">Total :</td>
-                      <td className="text-right py-3 font-bold text-primary">{selectedOrder.total.toLocaleString()} GNF</td>
+                      <td className="text-right py-3 font-bold text-primary">{(selectedOrder.total || 0).toLocaleString()} GNF</td>
                     </tr>
                   </tfoot>
                 </table>
