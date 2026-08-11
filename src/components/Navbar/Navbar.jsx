@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import Logo from "../../assets/Logo.png";
 import { FaCartShopping } from "react-icons/fa6";
-import { FaCaretDown } from "react-icons/fa";
+import { FaCaretDown, FaHome } from "react-icons/fa";
 import { IoMenu, IoClose } from "react-icons/io5";
 import DarkMode from "../DarkMode";
 import { useSettings } from "../../context/SettingsContext";
@@ -79,9 +79,10 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
     setDropdownOpen(false);
   }, [pathname]);
 
-  // Construire le menu dynamique
+  // Construire le menu dynamique — « Accueil » porte une petite icône pour se
+  // distinguer des autres pages (catégories).
   const menuItems = [
-    { id: 1, name: "Maison", link: "/" },
+    { id: 1, name: "Accueil", link: "/", isHome: true },
     ...categories.map(cat => ({
       id: `cat-${cat.id}`,
       name: cat.name,
@@ -166,6 +167,9 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
             {menuItems.map((data) => (
               <li key={data.id} className="shrink-0">
                 <NavLink to={data.link} className={linkClass}>
+                  {data.isHome && (
+                    <FaHome className="inline mr-1 text-primary text-xs sm:text-sm" aria-hidden="true" />
+                  )}
                   {data.name}
                 </NavLink>
               </li>
@@ -219,13 +223,16 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
                 to={data.link}
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  `flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-primary/15 text-secondary"
                       : "hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`
                 }
               >
+                {data.isHome && (
+                  <FaHome className="text-primary" aria-hidden="true" />
+                )}
                 {data.name}
               </NavLink>
             ))}

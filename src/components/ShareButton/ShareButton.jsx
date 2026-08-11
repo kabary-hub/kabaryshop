@@ -1,8 +1,11 @@
 // src/components/ShareButton/ShareButton.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Share2, Link2, Check, Mail } from "lucide-react";
+import { useSettings } from "../../context/SettingsContext";
 
 const ShareButton = ({ product, className = "", buttonClassName = "" }) => {
+  const { settings } = useSettings();
+  const siteName = settings.siteName || "Kabary Shop";
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const wrapperRef = useRef(null);
@@ -13,7 +16,7 @@ const ShareButton = ({ product, className = "", buttonClassName = "" }) => {
       ? `${window.location.origin}/produit/${product?.id}`
       : "";
 
-  const getShareText = () => `Découvrez ${title} sur Kabary Shop !`;
+  const getShareText = () => `Découvrez ${title} sur ${siteName} !`;
 
   // Fermer au clic extérieur (phase capture : même si un autre bouton partager stoppe la propagation)
   useEffect(() => {

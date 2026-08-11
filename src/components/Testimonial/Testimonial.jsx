@@ -2,6 +2,7 @@ import React from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { useSettings } from "../../context/SettingsContext";
 
 
 
@@ -81,6 +82,9 @@ const testimonialData = [
 ];
 
 const Testimonial = () => {
+  // Paramètres du site (le slider react-slick a déjà une variable « settings »)
+  const { settings: siteSettings } = useSettings();
+  const siteName = siteSettings.siteName || "Kabary Shop";
 
   const SliderComponent = Slider.default ? Slider.default : Slider;
 
@@ -151,7 +155,10 @@ const Testimonial = () => {
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <div>
-                      <p className="text-sm text-gray-700 dark:text-white ">{data.text}</p>
+                      {/* Le nom de la boutique dans les témoignages suit les paramètres du site */}
+                      <p className="text-sm text-gray-700 dark:text-white ">
+                        {data.text.replace(/Kabary Shop/g, siteName)}
+                      </p>
                       <h1 className="text-xl font-bold text-black/80 dark:text-white">
                         {data.name}
                       </h1>

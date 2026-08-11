@@ -129,7 +129,8 @@ const RouteMeta = () => {
     if (category) {
       updatePageMeta({
         title: `${category.title} - ${siteName}`,
-        description: category.desc,
+        // Le nom de la boutique dans les descriptions SEO suit les paramètres
+        description: category.desc.replace(/Kabary Shop/g, siteName),
         path: pathname,
       });
       return;
@@ -181,13 +182,22 @@ const PageVisitTracker = () => {
     if (pathname === lastLoggedPath) return;
     lastLoggedPath = pathname;
 
-    // Acteur : utilisateur admin connecté, sinon visiteur
+    // Acteur : l'admin/staff UNIQUEMENT si une session admin est active sur
+    // CET onglet (connexion effectuée via /admin/login). Sans session active,
+    // la visite est attribuée à un visiteur public — même si un compte admin
+    // traîne dans localStorage (c'est le cas d'un client testé dans le même
+    // navigateur que l'admin, ou après fermeture du navigateur).
     let actor = { name: "Visiteur", role: "public" };
-    try {
-      const u = JSON.parse(localStorage.getItem("current_admin_user") || "null");
-      if (u && u.name) actor = u;
-    } catch {
-      // stockage indisponible
+    const activeAdminSession =
+      typeof sessionStorage !== "undefined" &&
+      sessionStorage.getItem("kabary_admin_session") === "1";
+    if (activeAdminSession) {
+      try {
+        const u = JSON.parse(localStorage.getItem("current_admin_user") || "null");
+        if (u && u.name) actor = u;
+      } catch {
+        // stockage indisponible
+      }
     }
 
     const pageLabel =

@@ -27,8 +27,10 @@ import {
 } from '../utils/notifications';
 import { logActivity } from '../utils/history';
 import { logoutComplete } from '../utils/auth';
+import { useSettings } from '../context/SettingsContext';
 
 const AdminLayout = () => {
+  const { settings } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState(getAdminAlerts);
@@ -145,7 +147,7 @@ const AdminLayout = () => {
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <div>
-            <h2 className="text-xl font-bold">Admin Kabary shop</h2>
+            <h2 className="text-xl font-bold">Admin {settings.siteName}</h2>
             <p className="text-sm text-gray-400">Tableau de bord</p>
           </div>
           <div className="flex items-center gap-2">
@@ -248,7 +250,7 @@ const AdminLayout = () => {
           >
             <Menu size={20} />
           </button>
-          <span className="font-bold">Admin Kabary shop</span>
+          <span className="font-bold">Admin {settings.siteName}</span>
           <div className="ml-auto flex items-center gap-2">
             {/* Cloche de notifications (mobile) */}                <div className="relative">
               <button

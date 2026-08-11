@@ -60,6 +60,10 @@ const FooterLinks = [
 const Footer = () => {
   const { settings } = useSettings();
 
+  // Logo : celui des paramètres admin s'il existe, sinon le logo par défaut du footer.
+  // → le logo changé dans Paramètres se répercute partout (navbar, emails, footer…).
+  const displayLogo = settings.siteLogo || footerLogo;
+
   const whatsappNumber = String(settings.whatsapp || '').replace(/\D/g, '');
   const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#";
 
@@ -69,11 +73,11 @@ const Footer = () => {
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 py-10 pt-5 gap-8 sm:gap-10 font-bold'>
           <div className='py-8 px-4 sm:col-span-2 lg:col-span-2'>
             <h1 className='text-2xl sm:text-3xl font-bold mb-3 flex items-center gap-3'>
-              <img src={footerLogo} alt="" className="max-w-12.5" />
+              <img src={displayLogo} alt="" className="max-w-12.5" />
               {settings.siteName}
             </h1>
-            <p className="rounded-bl-4xl rounded-tr-4xl border-2 border-primary px-5 py-5 italic">
-              Votre destination privilégiée pour une mode authentique et élégante. Chez {settings.siteName}, nous allions qualité supérieure et tendances actuelles pour sublimer votre style au quotidien avec une touche d'excellence.
+            <p className="rounded-bl-4xl rounded-tr-4xl border-2 border-primary px-10 w-135 py-5 italic">
+              Votre destination privilégiée pour une mode authentique et <br /> élégante. Chez {settings.siteName}, nous allions qualité supérieure <br /> et tendances actuelles pour sublimer votre style au quotidien <br /> avec  une touche d'excellence.
             </p>
           </div>
 

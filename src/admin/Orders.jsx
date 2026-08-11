@@ -80,10 +80,16 @@ const Orders = () => {
     return { id: 1, name: 'Admin Principal', role: 'admin', avatar: '' };
   });
 
-  // Sauvegarder l'utilisateur connecté
+  // Sauvegarder l'utilisateur connecté — UNIQUEMENT si la valeur a réellement
+  // changé, sinon le dispatch 'userChanged' + le listener handleUserChange
+  // (setCurrentUser avec une nouvelle référence) créent une boucle infinie
+  // qui fige la page Commandes.
   useEffect(() => {
-    localStorage.setItem('current_admin_user', JSON.stringify(currentUser));
-    window.dispatchEvent(new Event('userChanged'));
+    const serialized = JSON.stringify(currentUser);
+    if (localStorage.getItem('current_admin_user') !== serialized) {
+      localStorage.setItem('current_admin_user', serialized);
+      window.dispatchEvent(new Event('userChanged'));
+    }
   }, [currentUser]);
 
   // ==================== SYNC AVEC USERS.JSX ====================
@@ -96,7 +102,16 @@ const Orders = () => {
     const handleUserChange = () => {
       const updatedUser = localStorage.getItem('current_admin_user');
       if (updatedUser) {
-        setCurrentUser(JSON.parse(updatedUser));
+        // Ne met à jour l'état que si la valeur a réellement changé (évite les
+        // nouvelles références à chaque événement → aucune boucle de rendu).
+        setCurrentUser((prev) => {
+          try {
+            const parsed = JSON.parse(updatedUser);
+            return JSON.stringify(prev) === JSON.stringify(parsed) ? prev : parsed;
+          } catch {
+            return prev;
+          }
+        });
       }
       loadUsers(); // Recharger la liste des utilisateurs
     };

@@ -1,6 +1,6 @@
 // src/admin/Settings.jsx
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle, Plus, ChevronUp, ChevronDown, Image as ImageIcon, Info } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import {
   isAutoNotifyEnabled,
@@ -18,10 +18,31 @@ import { showToast } from '../utils/toast';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
 import { getSupabase, ensureSupabaseAuth } from '../services/db';
 
+// Nombre maximal de publications (diapositives) dans la bannière héro
+const MAX_HERO_SLIDES = 10;
+
+// Transforme les anciens champs uniques (heroImage/heroTitle/heroSubtitle) en
+// une liste de diapositives compatible avec le nouvel éditeur multi-publications.
+const normalizeHeroSlides = (s) => {
+  if (Array.isArray(s.heroSlides) && s.heroSlides.length) return s.heroSlides;
+  if (s.heroImage) {
+    return [{
+      id: 'slide-legacy',
+      image: s.heroImage,
+      title: s.heroTitle || '',
+      description: s.heroSubtitle || '',
+    }];
+  }
+  return [];
+};
+
 const Settings = () => {
   const { settings, updateSettings } = useSettings();
   const [activeTab, setActiveTab] = useState('general');
-  const [formData, setFormData] = useState(settings);
+  const [formData, setFormData] = useState(() => ({
+    ...settings,
+    heroSlides: normalizeHeroSlides(settings),
+  }));
   
   // États pour le changement de mot de passe
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -115,6 +136,33 @@ const Settings = () => {
         [field]: value
       });
     }
+  };
+
+  // ---- Gestion des diapositives de la bannière héro ----
+  const updateHeroSlide = (index, field, value) => {
+    const slides = [...(formData.heroSlides || [])];
+    slides[index] = { ...slides[index], [field]: value };
+    setFormData({ ...formData, heroSlides: slides });
+  };
+
+  const addHeroSlide = () => {
+    const slides = [...(formData.heroSlides || [])];
+    if (slides.length >= MAX_HERO_SLIDES) return;
+    slides.push({ id: `slide-${Date.now()}`, image: '', title: '', description: '' });
+    setFormData({ ...formData, heroSlides: slides });
+  };
+
+  const removeHeroSlide = (index) => {
+    const slides = (formData.heroSlides || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, heroSlides: slides });
+  };
+
+  const moveHeroSlide = (index, direction) => {
+    const slides = [...(formData.heroSlides || [])];
+    const target = index + direction;
+    if (target < 0 || target >= slides.length) return;
+    [slides[index], slides[target]] = [slides[target], slides[index]];
+    setFormData({ ...formData, heroSlides: slides });
   };
 
   const handleSubmit = (e) => {
@@ -440,55 +488,116 @@ const Settings = () => {
                   </div>
                 </div>
 
-                {/* Bannière héro (promotion personnalisable) */}
+                {/* Bannière héro : carrousel de publications personnalisables */}
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                   <h3 className="font-semibold flex items-center gap-2">
                     <Megaphone size={17} className="text-blue-600" />
-                    Bannière héro (promotion du moment)
+                    Bannière héro (carrousel de publications)
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Renseignez ces champs pour remplacer le carrousel d'accueil par votre propre promotion.
-                    Laissez l'image vide pour conserver le carrousel par défaut.
+                    Ajoutez jusqu'à {MAX_HERO_SLIDES} publications : chacune devient une
+                    diapositive du carrousel d'accueil, dans l'ordre affiché ici.
+                    Laissez la liste vide pour conserver le carrousel par défaut du site.
                   </p>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Image de la bannière (URL)</label>
-                    <div className="flex items-center gap-3">
-                      {formData.heroImage && (
-                        <img
-                          src={formData.heroImage}
-                          alt="Aperçu de la bannière"
-                          className="w-16 h-12 rounded-lg object-cover border border-gray-300 dark:border-gray-600"
-                        />
-                      )}
-                      <input
-                        type="text"
-                        value={formData.heroImage || ''}
-                        onChange={(e) => handleChange(null, 'heroImage', e.target.value)}
-                        placeholder="https://exemple.com/banniere.jpg (vide = carrousel par défaut)"
-                        className={inputClass}
-                      />
-                    </div>
+
+                  {/* Liste des publications */}
+                  <div className="space-y-4">
+                    {(formData.heroSlides || []).map((slide, index) => (
+                      <div
+                        key={slide.id || `slide-${index}`}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 space-y-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold flex items-center gap-2">
+                            <ImageIcon size={15} className="text-primary" />
+                            Publication {index + 1}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveHeroSlide(index, -1)}
+                              disabled={index === 0}
+                              title="Monter (afficher plus tôt)"
+                              className="p-1.5 rounded border border-gray-300 dark:border-gray-600 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronUp size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveHeroSlide(index, 1)}
+                              disabled={index === (formData.heroSlides || []).length - 1}
+                              title="Descendre (afficher plus tard)"
+                              className="p-1.5 rounded border border-gray-300 dark:border-gray-600 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronDown size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeHeroSlide(index)}
+                              className="inline-flex items-center gap-1 p-1.5 rounded border border-red-300 dark:border-red-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs"
+                            >
+                              <X size={14} />
+                              Supprimer
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Image (URL)</label>
+                          <div className="flex items-center gap-3">
+                            {slide.image && (
+                              <img
+                                src={slide.image}
+                                alt="Aperçu de la publication"
+                                className="w-14 h-10 rounded-lg object-cover border border-gray-300 dark:border-gray-600 shrink-0"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            )}
+                            <input
+                              type="text"
+                              value={slide.image || ''}
+                              onChange={(e) => updateHeroSlide(index, 'image', e.target.value)}
+                              placeholder="https://exemple.com/publication.jpg"
+                              className={inputClass}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Titre</label>
+                          <input
+                            type="text"
+                            value={slide.title || ''}
+                            onChange={(e) => updateHeroSlide(index, 'title', e.target.value)}
+                            placeholder="Ex : -50 % sur toute la collection"
+                            className={inputClass}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Texte descriptif</label>
+                          <textarea
+                            rows="2"
+                            value={slide.description || ''}
+                            onChange={(e) => updateHeroSlide(index, 'description', e.target.value)}
+                            placeholder="Ex : Profitez de nos offres exclusives avant la fin du mois..."
+                            className="w-full max-w-2xl px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Titre de la promotion</label>
-                    <input
-                      type="text"
-                      value={formData.heroTitle || ''}
-                      onChange={(e) => handleChange(null, 'heroTitle', e.target.value)}
-                      placeholder="Ex : -50 % sur toute la collection"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Texte descriptif</label>
-                    <textarea
-                      rows="3"
-                      value={formData.heroSubtitle || ''}
-                      onChange={(e) => handleChange(null, 'heroSubtitle', e.target.value)}
-                      placeholder="Ex : Profitez de nos offres exclusives avant la fin du mois..."
-                      className="w-full max-w-2xl px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
-                    />
-                  </div>
+
+                  {/* Ajouter une publication */}
+                  <button
+                    type="button"
+                    onClick={addHeroSlide}
+                    disabled={(formData.heroSlides || []).length >= MAX_HERO_SLIDES}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary hover:bg-primary/10 transition text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={16} />
+                    Ajouter une publication ({(formData.heroSlides || []).length}/{MAX_HERO_SLIDES})
+                  </button>
                 </div>
 
                 {/* Coordonnées */}
@@ -790,6 +899,24 @@ const Settings = () => {
 
                 {/* Notifications par email */}
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                  {/* Encart d'explication : pourquoi les clients ne reçoivent pas (encore) les emails */}
+                  <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
+                    <p className="text-sm font-medium flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+                      <Info size={16} className="shrink-0 text-emerald-600" />
+                      Pourquoi vos clients ne reçoivent pas les emails ?
+                    </p>
+                    <p className="text-xs text-emerald-800/90 dark:text-emerald-200/90 mt-2 leading-relaxed">
+                      Les emails (confirmation d'abonnement, confirmation de commande, nouveaux
+                      arrivages) sont bien envoyés à vos clients par Resend. Mais avec l'expéditeur
+                      de test <code className="font-mono">onboarding@resend.dev</code>, Resend ne livre
+                      <strong> que vers votre propre adresse</strong> (celle du compte Resend). Pour que
+                      les clients reçoivent les emails, vérifiez un <strong>domaine</strong> dans Resend
+                      (resend.com → Domains) puis mettez
+                      <code className="font-mono">EMAIL_FROM=contact@votre-domaine.com</code> dans les
+                      variables d'environnement Vercel (voir GUIDE_RESEND_VERCEL.md).
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium flex items-center gap-2">

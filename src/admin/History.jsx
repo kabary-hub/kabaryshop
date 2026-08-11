@@ -32,6 +32,11 @@ import {
   HISTORY_TYPES,
 } from "../utils/history";
 import UserAvatar from "../components/UserAvatar/UserAvatar";
+import {
+  AUTH_EVENT,
+  fetchCloudActivity,
+  clearCloudActivity,
+} from "../services/db";
 
 const PERIODS = [
   { key: "all", label: "Tout" },
@@ -80,33 +85,73 @@ const actionIcon = (action) => {
 
 const History = () => {
   const [entries, setEntries] = useState(getHistory);
+  // Entrées distantes (site_activity) : visites/actions des CLIENTS depuis
+  // d'autres appareils, remontées via le journal append-only Supabase.
+  const [cloudEntries, setCloudEntries] = useState([]);
   const [activeTab, setActiveTab] = useState("activity"); // activity | users | pages
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
   const [actorFilter, setActorFilter] = useState("all");
   const [confirmClear, setConfirmClear] = useState(false);
+  // Masquer les activités des clients (visites, commandes, abonnements…) :
+  // ne garder que les actions des admins et du staff.
+  const [staffOnly, setStaffOnly] = useState(false);
   // Ligne du journal développée (clic sur une ligne du tableau)
   const [expandedEntryId, setExpandedEntryId] = useState(null);
 
-  // Rafraîchir en direct quand une activité est enregistrée
+  // Rafraîchir en direct quand une activité est enregistrée (locale) ou
+  // quand le journal distant des clients est mis à jour / la session change.
   useEffect(() => {
-    const refresh = () => setEntries(getHistory());
+    let cancelled = false;
+    const loadCloud = async () => {
+      const cloud = await fetchCloudActivity();
+      if (!cancelled) setCloudEntries(cloud);
+    };
+    const refresh = () => {
+      setEntries(getHistory());
+      loadCloud();
+    };
+    refresh();
     window.addEventListener("historyUpdated", refresh);
     window.addEventListener("storage", refresh);
+    window.addEventListener(AUTH_EVENT, loadCloud);
     return () => {
+      cancelled = true;
       window.removeEventListener("historyUpdated", refresh);
       window.removeEventListener("storage", refresh);
+      window.removeEventListener(AUTH_EVENT, loadCloud);
     };
   }, []);
 
-  const stats = useMemo(() => getHistoryStats(entries), [entries]);
-  const actors = useMemo(() => getHistoryActors(entries), [entries]);
+  // Journal fusionné : local (site_history) + distant (site_activity).
+  // Déduplication par id (une activité d'un client testé sur le MÊME appareil
+  // que l'admin existe dans les deux sources), puis tri du plus récent.
+  const allEntries = useMemo(() => {
+    const map = new Map();
+    [...entries, ...cloudEntries].forEach((e) => {
+      if (!e || !e.id) return;
+      if (!map.has(e.id)) map.set(e.id, e);
+    });
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
+    );
+  }, [entries, cloudEntries]);
+
+  const stats = useMemo(() => getHistoryStats(allEntries), [allEntries]);
+  const actors = useMemo(() => getHistoryActors(allEntries), [allEntries]);
+
+  // Une activité est-elle liée à un client / visiteur public ?
+  const isClientActivity = (e) => {
+    const role = e.actor?.role || "";
+    return role === "public" || role === "Client" || e.actor?.name === "Visiteur";
+  };
 
   // Filtres appliqués
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return entries.filter((e) => {
+    return allEntries.filter((e) => {
+      if (staffOnly && isClientActivity(e)) return false;
       if (typeFilter !== "all" && e.type !== typeFilter) return false;
       if (actorFilter !== "all" && (e.actor?.name || "Inconnu") !== actorFilter)
         return false;
@@ -125,7 +170,7 @@ const History = () => {
       }
       return true;
     });
-  }, [entries, searchTerm, typeFilter, periodFilter, actorFilter]);
+  }, [allEntries, searchTerm, typeFilter, periodFilter, actorFilter, staffOnly]);
 
   // ---- Utilisateurs & rôles (lecture depuis app_users + journal) ----
   const usersWithHistory = useMemo(() => {
@@ -137,13 +182,13 @@ const History = () => {
     }
     if (!Array.isArray(users)) users = [];
     return users.map((u) => {
-      const userEntries = entries.filter(
+      const userEntries = allEntries.filter(
         (e) =>
           (e.actor?.name || "").toLowerCase() === String(u.name || "").toLowerCase() ||
           (String(e.subject || "").toLowerCase() === String(u.name || "").toLowerCase() &&
             (e.type === "user" || e.type === "auth")),
       );
-      const roleChanges = entries.filter(
+      const roleChanges = allEntries.filter(
         (e) =>
           e.type === "user" &&
           String(e.subject || "").toLowerCase() === String(u.name || "").toLowerCase() &&
@@ -151,12 +196,12 @@ const History = () => {
       );
       return { ...u, history: userEntries.slice(0, 8), roleChanges: roleChanges.slice(0, 10) };
     });
-  }, [entries]);
+  }, [allEntries]);
 
   // ---- Pages visitées (agrégat des visites) ----
   const pageStats = useMemo(() => {
     const counts = {};
-    entries
+    allEntries
       .filter((e) => e.type === "page")
       .forEach((e) => {
         const key = e.subject || "(accueil)";
@@ -165,11 +210,11 @@ const History = () => {
         if (new Date(e.date) > new Date(counts[key].last)) counts[key].last = e.date;
       });
     return Object.values(counts).sort((a, b) => b.count - a.count);
-  }, [entries]);
+  }, [allEntries]);
 
   const pageVisits = useMemo(
-    () => entries.filter((e) => e.type === "page").slice(0, 100),
-    [entries],
+    () => allEntries.filter((e) => e.type === "page").slice(0, 100),
+    [allEntries],
   );
 
   const handleClear = () => {
@@ -179,6 +224,7 @@ const History = () => {
       return;
     }
     clearHistory();
+    clearCloudActivity(); // Efface aussi le journal distant des clients
     setConfirmClear(false);
   };
 
@@ -232,6 +278,8 @@ const History = () => {
     livreur: "Livreur",
     preparateur: "Préparateur",
     Utilisateur: "Utilisateur",
+    public: "Visiteur",
+    Client: "Client",
   };
   const roleBadge = (role) => {
     const map = {
@@ -253,7 +301,9 @@ const History = () => {
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Journal complet du site : pages, utilisateurs, rôles, commandes, produits, avis,
-            catégories, abonnés, paramètres et connexions.
+            catégories, abonnés, paramètres et connexions. Les activités des clients
+            (visites, commandes, abonnements) y sont incluses : utilisez le filtre
+            « Admin & staff uniquement » pour ne voir que vos équipes.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -369,11 +419,24 @@ const History = () => {
                   </option>
                 ))}
               </select>
+              <button
+                onClick={() => setStaffOnly((v) => !v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition shrink-0 ${
+                  staffOnly
+                    ? "bg-purple-600 text-white border-purple-600"
+                    : "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+                title="Masquer les visites et actions des clients (visiteurs, commandes, abonnements) pour ne garder que les activités des admins et du staff."
+              >
+                <ShieldCheck size={15} />
+                {staffOnly ? "Admin & staff uniquement" : "Inclure les clients"}
+              </button>
             </div>
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <Filter size={12} />
               {filtered.length} événement{filtered.length > 1 ? "s" : ""} affiché
-              {filtered.length !== entries.length ? ` (sur ${entries.length} au total)` : ""}
+              {filtered.length !== allEntries.length ? ` (sur ${allEntries.length} au total)` : ""}
+              {staffOnly && " · activités des clients masquées"}
             </p>
           </div>
 

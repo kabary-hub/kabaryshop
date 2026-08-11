@@ -4,6 +4,7 @@ import { Grid, Plus, Edit, Trash2, X, Check } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
+import { useSettings } from '../context/SettingsContext';
 import {
   getAllProducts,
 } from '../services/productService';
@@ -21,6 +22,7 @@ const isProtected = (category) =>
   PROTECTED_CATEGORY_SLUGS.includes((category.slug || '').toLowerCase());
 
 const Categories = () => {
+  const { settings } = useSettings();
   const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -229,7 +231,7 @@ const Categories = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Grid className="text-primary" />
-            Catégories Kabary Shop
+            Catégories {settings.siteName}
           </h1>
           <p className="text-gray-500 mt-1">Gestion des catégories de tout les produits</p>
         </div>

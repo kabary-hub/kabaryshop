@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaStar } from "react-icons/fa";
 import { getAllProducts } from "../Products/products";
+import { useSettings } from "../../context/SettingsContext";
 
 // Calcule les meilleures ventes réelles à partir des commandes enregistrées
 const getTopSellingProducts = (orders, allProducts) => {
@@ -43,6 +44,7 @@ const getTopSellingProducts = (orders, allProducts) => {
 };
 
 const TopProducts = ({ handleOrder }) => {
+  const { settings } = useSettings();
   // Meilleures ventes calculées de façon synchrone (initialisation paresseuse)
   const [topProducts, setTopProducts] = useState(() => {
     try {
@@ -100,7 +102,7 @@ const TopProducts = ({ handleOrder }) => {
             Explorez une sélection rigoureuse des pièces les plus convoitées du
             moment, du chic décontracté aux tenues de soirée, de la mode enfant
             aux costumes élégants, bref, venez découvrir ce qui définit le style
-            de cette saison chez Kabary Shop.
+            de cette saison chez {settings.siteName}.
           </p>
         </div>
 

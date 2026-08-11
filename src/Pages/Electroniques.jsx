@@ -3,8 +3,10 @@ import Products from "../components/Products/products";
 import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
 import Banner from "../components/Banner/Banner";
 import ImgElectronique from "../assets/background-pages/electronique.jpeg";
+import { useSettings } from "../context/SettingsContext";
 
 const Electroniques = ({ handleOrder, searchTerm = "" }) => {
+  const { settings } = useSettings();
   // Produits chargés de façon synchrone (initialisation paresseuse)
   const [electroniquesProducts, setElectroniquesProducts] = useState(() =>
     getAllProducts().filter(item => (item.category || item.categorySlug || "").toLowerCase().trim() === "electroniques"),
@@ -34,7 +36,7 @@ const Electroniques = ({ handleOrder, searchTerm = "" }) => {
     <div className="pt-2">
       <Banner
         title="High-Tech & Électronique"
-        subtitle="Le futur entre vos mains : performance et innovation se trouve chez Kabary Shop"
+        subtitle={`Le futur entre vos mains : performance et innovation se trouve chez ${settings.siteName}`}
         bgImage={ImgElectronique}
       />
       <div className="container mx-auto">

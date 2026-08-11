@@ -90,24 +90,46 @@ title: "Nouvelle Collection Électroménager : Livraison gratuite incluse",
 
 // Animation slider
 
+// Remplace le nom de la boutique codé en dur dans les textes par défaut par
+// le nom défini dans les Paramètres (settings.siteName).
+const withBrand = (str, siteName) =>
+  String(str || "").replace(/Kabary Shop/g, siteName || "Kabary Shop");
+
 const Hero = ({ handleOrder }) => {
   const { settings } = useSettings();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
-  // Si l'admin a personnalisé la bannière héro (image + textes) dans les
-  // paramètres, on n'affiche QUE cette promotion (plus de carrousel).
-  const hasCustomHero = Boolean(settings.heroImage);
-  const displayList = hasCustomHero
-    ? [{
-        id: "custom",
-        img: settings.heroImage,
-        title: settings.heroTitle || "Offre spéciale Kabary Shop",
-        description:
-          settings.heroSubtitle ||
-          "Découvrez nos promotions du moment : des réductions exceptionnelles sur une large sélection d'articles.",
-      }]
-    : ImageList;
+  // Si l'admin a personnalisé la bannière héro dans les paramètres, on affiche
+  // SES publications à la place du carrousel par défaut :
+  //   1) la liste de diapositives (Paramètres → Bannière héro), si elle contient
+  //      au moins une publication (jusqu'à 10) ;
+  //   2) sinon, l'ancienne promotion unique (heroImage / heroTitle / heroSubtitle).
+  const customSlides = (Array.isArray(settings.heroSlides) ? settings.heroSlides : [])
+    .filter((s) => s && (s.image || s.title || s.description));
+  const hasCustomHero = customSlides.length > 0 || Boolean(settings.heroImage);
+
+  const displayList = customSlides.length
+    ? customSlides.map((s, i) => ({
+        id: s.id || `custom-${i}`,
+        img: s.image || "",
+        title: s.title || "Offre spéciale",
+        description: s.description || "",
+      }))
+    : hasCustomHero
+      ? [{
+          id: "custom",
+          img: settings.heroImage,
+          title: settings.heroTitle || `Offre spéciale ${settings.siteName || "Kabary Shop"}`,
+          description:
+            settings.heroSubtitle ||
+            "Découvrez nos promotions du moment : des réductions exceptionnelles sur une large sélection d'articles.",
+        }]
+      : ImageList.map((item) => ({
+          ...item,
+          title: withBrand(item.title, settings.siteName),
+          description: withBrand(item.description, settings.siteName),
+        }));
   const extendeList = hasCustomHero ? displayList : [...displayList, displayList[0]];
 
   useEffect(() => {

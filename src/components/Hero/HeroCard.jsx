@@ -38,14 +38,21 @@ const HeroCard = ({ hero, title, description, handleOrder, priority = false }) =
       {/* image contain section  */}
       <div className="order-1 sm:order-2">
         <div className="relative z-10" data-aos="zoom-out" data-aos-once="true">
-          <img
-            src={hero}
-            alt=""
-            loading={priority ? "eager" : "lazy"}
-            decoding="async"
-            fetchPriority={priority ? "high" : "auto"}
-            className="w-44 h-44 sm:w-112.5 sm:h-112.5 sm:scale-125 lg:scale-120 object-contain mx-auto"
-          />
+          {hero ? (
+            <img
+              src={hero}
+              alt=""
+              loading={priority ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={priority ? "high" : "auto"}
+              onError={(e) => { e.target.style.display = "none"; }}
+              className="w-44 h-44 sm:w-112.5 sm:h-112.5 sm:scale-125 lg:scale-120 object-contain mx-auto"
+            />
+          ) : (
+            /* Aucune image fournie (publication personnalisée sans image) :
+               pastille décorative pour garder une mise en page équilibrée */
+            <div className="w-44 h-44 sm:w-112.5 sm:h-112.5 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 mx-auto" />
+          )}
         </div>
       </div>
     </div>

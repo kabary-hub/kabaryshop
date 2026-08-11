@@ -263,7 +263,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="dark:text-white text-primary dark:bg-gradient-to-r from-primary to-secondary bg-black/90 text-center font-extrabold rounded-b-full">
-                    Kabary Shop
+                    {settings.siteName || 'Kabary Shop'}
                   </p>
                   <h1 className="text-xl font-semibold">
                     {orderSuccess

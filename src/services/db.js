@@ -43,6 +43,12 @@ export const SYNC_KEYS = [
 // Table Supabase utilisée pour le miroir clé/valeur
 export const SYNC_TABLE = "sync_store";
 
+// Table Supabase du journal d'activité distant (append-only — migration 0005).
+// Chaque visiteur peut y AJOUTER sa propre activité (visites, abonnements,
+// commandes…) sans pouvoir modifier celles des autres ; les admin/staff
+// connectés peuvent tout lire et tout effacer.
+export const SYNC_ACTIVITY_TABLE = "site_activity";
+
 // Clés réservées aux comptes connectés (admin/staff) : lecture ET écriture
 // nécessitent une session Supabase Auth. Les visiteurs ne les voient jamais.
 export const SENSITIVE_KEYS = ["app_users", "order_logs", "site_history"];
@@ -173,6 +179,58 @@ export const signOutSupabase = async () => {
   }
   currentUser = null;
   emitAuthEvent();
+};
+
+// ========================================================================
+// Journal d'activité distant (visites & actions des clients)
+// ========================================================================
+// Chaque activité d'un visiteur/client est AJOUTÉE (append-only) à la table
+// `site_activity` : les visiteurs ne peuvent pas écraser les autres entrées,
+// et les admin/staff connectés peuvent tout lire et tout effacer.
+// Sans Supabase configuré, ces fonctions ne font rien (mode 100 % local).
+
+// Ajoute une activité au journal distant (appelée depuis logActivity pour les
+// acteurs « public » / « Client »).
+export const appendActivity = async (entry) => {
+  const sb = getSupabase();
+  if (!sb || !entry) return;
+  try {
+    await sb.rpc("activity_append", { p_entry: entry });
+  } catch {
+    // journal distant indisponible : l'activité reste dans le localStorage
+  }
+};
+
+// Récupère les activités distantes (nécessite une session admin/staff — RLS).
+// Retourne [] en cas d'échec ou si Supabase n'est pas configuré.
+export const fetchCloudActivity = async () => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data } = await sb
+      .from(SYNC_ACTIVITY_TABLE)
+      .select("entry, created_at")
+      .order("created_at", { ascending: true })
+      .limit(5000); // borne les téléchargements (table plafonnée à 10 000 lignes)
+    return (data || []).map((row) => ({
+      ...(row.entry || {}),
+      // Garantit une date exploitable (l'entrée locale utilise « date »)
+      date: row.entry?.date || row.created_at,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+// Efface tout le journal distant (admin/staff uniquement — RLS).
+export const clearCloudActivity = async () => {
+  const sb = getSupabase();
+  if (!sb) return;
+  try {
+    await sb.from(SYNC_ACTIVITY_TABLE).delete().neq("id", 0);
+  } catch {
+    // ignore
+  }
 };
 
 // Récupère la liste des utilisateurs (app_users) depuis le nuage avec la

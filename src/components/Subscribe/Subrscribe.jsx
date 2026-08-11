@@ -10,6 +10,7 @@ import {
   buildNewsletterConfirmationEmail,
 } from "../../utils/emailService";
 import { logActivity } from "../../utils/history";
+import { useSettings } from "../../context/SettingsContext";
 
 // Grande image d'un site e-commerce propre : attire l'œil et donne envie de
 // revenir se connecter régulièrement. Fallback : image locale du site.
@@ -17,6 +18,7 @@ const ECOMMERCE_SHOWCASE_IMAGE =
   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80";
 
 const Subrscribe = () => {
+  const { settings } = useSettings();
   const formNewsletter = useRef();
   const [status, setStatus] = useState("idle"); // idle | sending | success | error
   const [message, setMessage] = useState("");
@@ -80,7 +82,7 @@ const Subrscribe = () => {
         <div className="relative h-64 lg:h-auto">
           <img
             src={ECOMMERCE_SHOWCASE_IMAGE}
-            alt="Boutique en ligne moderne Kabary Shop"
+            alt={`Boutique en ligne moderne ${settings.siteName}`}
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
             onError={(e) => {
@@ -145,7 +147,7 @@ const Subrscribe = () => {
             </form>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/60">
               <span className="flex items-center gap-1.5">✓ Livraison 24h/48h</span>
-              <span className="flex items-center gap-1.5">✓ Paiement Mobile Money</span>
+              <span className="flex items-center gap-1.5">✓ Paiement à la livraison ou par Mobile</span>
               <span className="flex items-center gap-1.5">✓ Qualité garantie</span>
             </div>
           </div>

@@ -129,6 +129,36 @@ thème clair/sombre, panier en cours, session de connexion, indicateurs
 
 ---
 
+# 👁️ Voir les visites des CLIENTS dans Historiques (migration 0005)
+
+Le journal « Historiques » n'affichait que les activités des admins/staff :
+les visites des clients (sur leur téléphone, un autre navigateur…) ne
+remontaient pas, car `site_history` est réservé aux comptes connectés.
+
+La migration `supabase/migrations/0005_site_activity.sql` crée un **journal
+append-only** (`site_activity`) : chaque visiteur peut AJOUTER sa propre
+activité (visites de pages, abonnements, commandes…) sans jamais pouvoir
+modifier celles des autres. Les admin/staff connectés peuvent tout lire et
+tout effacer.
+
+**À exécuter UNE FOIS** : Supabase → SQL Editor → collez tout le contenu de
+`supabase/migrations/0005_site_activity.sql` → **Run**.
+
+Ensuite :
+- Un client visite le site → sa trace est ajoutée au journal distant ;
+- L'admin ouvre **Admin → Historiques** → la visite apparaît (fusion
+  automatique du journal local + journal distant, rafraîchi en direct) ;
+- Le bouton **Effacer le journal** supprime aussi les traces distantes ;
+- Sans cette migration (ou sans Supabase configuré), le site continue de
+  fonctionner : seules les activités locales sont visibles.
+
+> 💡 Attribution : les visites du site public ne sont attribuées à un
+> admin/staff que si une connexion a été effectuée dans CET onglet. Un
+> client testé dans le même navigateur apparaît donc comme « Visiteur ».
+> Les actions (commandes, abonnements…) sont attribuées au client concerné.
+
+---
+
 # 🔐 Sécurisation des données (Supabase Auth) — À FAIRE UNE FOIS
 
 Sans cette étape, **n'importe qui** possédant l'URL du projet peut lire les

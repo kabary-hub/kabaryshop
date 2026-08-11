@@ -247,6 +247,10 @@ const AdminLogin = () => {
     localStorage.setItem('isAuthenticated', 'true');
     sessionStorage.setItem('adminLoggedIn', 'true');
     sessionStorage.setItem('admin_2fa_verified', '1');
+    // Session admin ACTIVE sur cet onglet : les visites du site public sont
+    // attribuées à l'admin. Sans ce drapeau (client dans le même navigateur,
+    // nouvel onglet…), les visites comptent comme « Visiteur » public.
+    sessionStorage.setItem('kabary_admin_session', '1');
     // Si l'admin connecté est un utilisateur créé, afficher son identité
     // dans tout le panneau (Utilisateurs, Commandes, Historiques…)
     if (profile && profile.name) {
@@ -393,6 +397,9 @@ const AdminLogin = () => {
       // (session cloud attendue : nécessaire pour synchroniser les données)
       await ensureSupabaseAuth(trimmedEmail, password);
       setStaffSession(foundUser.id);
+      // Session active sur cet onglet (les visites du site public seront
+      // attribuées à cet utilisateur staff plutôt qu'à un visiteur).
+      sessionStorage.setItem('kabary_admin_session', '1');
       logActivity({
         type: 'auth',
         action: 'connexion',
@@ -477,6 +484,7 @@ const AdminLogin = () => {
       }
       if (cloudUser.role === 'livreur' || cloudUser.role === 'preparateur') {
         setStaffSession(cloudUser.id);
+        sessionStorage.setItem('kabary_admin_session', '1');
       logActivity({
         type: 'auth',
         action: 'connexion',

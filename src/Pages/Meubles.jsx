@@ -3,8 +3,10 @@ import Products from "../components/Products/products";
 import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
 import Banner from "../components/Banner/Banner";
 import ImgMeuble from "../assets/background-pages/meuble.jpeg";
+import { useSettings } from "../context/SettingsContext";
 
 const Meubles = ({ handleOrder, searchTerm = "" }) => {
+  const { settings } = useSettings();
   // Produits chargés de façon synchrone (initialisation paresseuse)
   const [meublesProducts, setMeublesProducts] = useState(() =>
     getAllProducts().filter(item => (item.category || item.categorySlug || "").toLowerCase().trim() === "meubles"),
@@ -34,7 +36,7 @@ const Meubles = ({ handleOrder, searchTerm = "" }) => {
     <div className="pt-2">
       <Banner
         title="Meubles en vente, Design & Mobilier"
-        subtitle="Sublimez votre intérieur avec des pièces uniques à leurs genre chez Kabary Shop"
+        subtitle={`Sublimez votre intérieur avec des pièces uniques à leurs genre chez ${settings.siteName}`}
         bgImage={ImgMeuble}
       />
       <div className="container mx-auto">

@@ -69,6 +69,23 @@ export const logActivity = ({
     localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_ENTRIES)));
     window.dispatchEvent(new Event("historyUpdated"));
     window.dispatchEvent(new Event("storage"));
+    // Journal distant (append-only) : les activités des visiteurs/clients
+    // (visites de pages, abonnements, commandes…) sont ajoutées pour que
+    // l'admin les retrouve dans Historiques, même si elles proviennent d'un
+    // autre appareil. Les actions admin/staff, elles, continuent de se
+    // synchroniser via la clé « site_history » (compte connecté requis).
+    const role = String(entry.actor?.role || "");
+    const isVisitorActivity =
+      role === "public" || role === "Client" || entry.actor?.name === "Visiteur";
+    if (isVisitorActivity) {
+      // Import dynamique : évite de charger supabase-js dans le bundle initial
+      // (la synchronisation reste lazy, cf. SyncProvider).
+      import("../services/db")
+        .then(({ appendActivity }) => appendActivity(entry))
+        .catch(() => {
+          // journal distant indisponible : l'activité reste dans le localStorage
+        });
+    }
     return entry;
   } catch {
     // stockage indisponible : on ignore (le journal ne doit jamais faire planter le site)

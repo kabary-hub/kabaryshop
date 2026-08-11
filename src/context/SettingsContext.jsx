@@ -19,7 +19,10 @@ const DEFAULT_SETTINGS = {
   siteTagline: 'Mode authentique & élégante',
   // Logo du site (URL d'image, modifiable depuis les paramètres admin)
   siteLogo: '',
-  // Section héro (image + textes modifiables pour changer la promo à tout moment)
+  // Section héro — plusieurs publications personnalisables (carrousel) :
+  // chaque diapositive { id, image, title, description } devient une slide.
+  heroSlides: [],
+  // Anciens champs uniques, conservés pour rétrocompatibilité (1 seule promo)
   heroImage: '',
   heroTitle: '',
   heroSubtitle: '',

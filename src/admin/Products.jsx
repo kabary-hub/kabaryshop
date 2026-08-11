@@ -28,7 +28,9 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [sortOrder, setSortOrder] = useState('recent');
+  // Tri des produits : recent (défaut) | oldest | name | price | category
+  const [sortBy, setSortBy] = useState('recent');
+  const [sortDir, setSortDir] = useState('asc'); // asc | desc (pour nom / prix / catégorie)
   const [categories, setCategories] = useState([]);
   // Détails du produit (modale ouverte au clic sur une ligne)
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -179,19 +181,47 @@ const Products = () => {
       return { ...product, imagesCount };
     });
     
-    productsWithDates.sort((a, b) => {
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      if (sortOrder === 'recent') {
-        return dateB - dateA;
-      } else {
-        return dateA - dateB;
-      }
-    });
+    const sorted = [...productsWithDates];
+    const dir = sortDir === 'desc' ? -1 : 1;
+    switch (sortBy) {
+      case 'oldest':
+        sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'name':
+        sorted.sort((a, b) =>
+          String(a.title || '').localeCompare(String(b.title || '')) * dir,
+        );
+        break;
+      case 'price':
+        sorted.sort(
+          (a, b) =>
+            ((Number(a.priceInGNF) || 0) - (Number(b.priceInGNF) || 0)) * dir,
+        );
+        break;
+      case 'category':
+        sorted.sort((a, b) =>
+          String(a.category || '').localeCompare(String(b.category || '')) * dir,
+        );
+        break;
+      case 'recent':
+      default:
+        sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+    }
     
-    setProducts(productsWithDates);
+    setProducts(sorted);
     setLoading(false);
-  }, [sortOrder]);
+  }, [sortBy, sortDir]);
+
+  // Clic sur un bouton de tri : bascule asc/desc si déjà actif
+  const handleSortClick = (key) => {
+    if (sortBy === key && (key === 'name' || key === 'price' || key === 'category')) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      setSortDir('asc');
+    }
+  };
 
   useEffect(() => {
     loadProducts();
@@ -207,7 +237,7 @@ const Products = () => {
   // Remonter à la première page quand la recherche ou le tri change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, sortOrder]);
+  }, [searchTerm, sortBy, sortDir]);
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
   const currentPageProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -360,7 +390,10 @@ const Products = () => {
         <div>
           <h1 className="text-2xl font-bold">Gestion des produits</h1>
           <div className="text-red-500 rounded-full bg-secondary mt-1 text-center font-bold">
-            <p>Total: {products.length} produits</p>
+            <p>
+              {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} trié
+              {filteredProducts.length > 1 ? 's' : ''}
+            </p>
           </div>
         </div>
         <button 
@@ -399,16 +432,36 @@ const Products = () => {
             />
           </div>
           
-          <button
-            onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
-            className="flex items-center justify-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition shrink-0"
-          >
-            <ArrowUpDown size={18} />
-            <span>
-              {sortOrder === 'recent' ? 'Plus récent d\'abord' : 'Plus ancien d\'abord'}
-            </span>
-            <Calendar size={16} className="text-gray-400" />
-          </button>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            {[
+              { key: 'recent', label: 'Plus récents' },
+              { key: 'oldest', label: 'Plus anciens' },
+              { key: 'name', label: 'Nom', togglable: true },
+              { key: 'price', label: 'Prix', togglable: true },
+              { key: 'category', label: 'Catégorie', togglable: true },
+            ].map((opt) => {
+              const active = sortBy === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => handleSortClick(opt.key)}
+                  className={`flex items-center justify-center gap-1.5 px-4 py-2 border rounded-lg transition ${
+                    active
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                  title={active && opt.togglable ? 'Cliquer pour inverser le tri' : `Trier par ${opt.label.toLowerCase()}`}
+                >
+                  <ArrowUpDown size={15} />
+                  {opt.label}
+                  {active && opt.togglable && (
+                    <span className="text-xs">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                  {active && opt.key === 'recent' && <Calendar size={13} />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

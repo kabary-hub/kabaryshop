@@ -10,6 +10,7 @@ import Pagination from '../components/Pagination/Pagination';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import UserAvatar from '../components/UserAvatar/UserAvatar';
 import { ensureSupabaseAuth } from '../services/db';
+import { useSettings } from '../context/SettingsContext';
 
 // Nombre d'utilisateurs affichés par page
 const PAGE_SIZE = 8;
@@ -23,6 +24,7 @@ const guessCivility = (name) => {
 };
 
 const Users = () => {
+  const { settings } = useSettings();
   // ==================== ÉTATS ====================
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
@@ -424,6 +426,9 @@ const Users = () => {
     };
     setCurrentAdminUser(userToSave);
     localStorage.setItem('current_admin_user', JSON.stringify(userToSave));
+    // Session admin active sur cet onglet (les visites du site public seront
+    // attribuées à cet utilisateur plutôt qu'à un visiteur).
+    sessionStorage.setItem('kabary_admin_session', '1');
     window.dispatchEvent(new Event('userChanged'));
     // Journal : changement d'utilisateur actif
     logActivity({
@@ -464,7 +469,7 @@ const Users = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <img src="/testimon4.jpeg" alt="" className='w-15 h-15 rounded-full'/>
-             DG Kabary Shop
+             DG {settings.siteName}
           </h1>
           <p className="text-gray-500 mt-1">Gestion de tous les utilisateurs de la plateforme</p>
         </div>

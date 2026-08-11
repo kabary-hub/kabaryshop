@@ -62,9 +62,22 @@ const Subscribers = () => {
     }
   };
 
-  const filtered = subscribers.filter((s) =>
+  // Tri : abonnés les plus récents en premier
+  const sorted = [...subscribers].sort(
+    (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
+  );
+
+  const filtered = sorted.filter((s) =>
     s.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // Nombre d'abonnés ajoutés cette semaine (depuis lundi à minuit)
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const thisWeekCount = subscribers.filter(
+    (s) => new Date(s.date || 0) >= startOfWeek,
+  ).length;
 
   // Pagination : remonter à la page 1 quand la recherche change
   useEffect(() => {
@@ -97,8 +110,8 @@ const Subscribers = () => {
             Abonnés newsletter
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            {subscribers.length} abonné{subscribers.length > 1 ? 's' : ''} informé
-            {subscribers.length > 1 ? 's' : ''} des nouveaux arrivages.
+            <strong className="text-blue-600">{thisWeekCount}</strong> cette semaine ·{' '}
+            <strong>{subscribers.length}</strong> au total.
           </p>
         </div>
         <div className="flex gap-2">

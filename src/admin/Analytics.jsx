@@ -3,8 +3,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Users, ShoppingBag, DollarSign, Calendar, Download, Printer, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { showToast } from '../utils/toast';
+import { useSettings } from '../context/SettingsContext';
 
 const Analytics = () => {
+  const { settings } = useSettings();
+  const siteName = settings.siteName || 'Kabary Shop';
   const navigate = useNavigate();
   // Période par défaut : cette semaine (l'admin peut choisir aujourd'hui s'il le souhaite)
   const [period, setPeriod] = useState('week');
@@ -377,7 +380,7 @@ const Analytics = () => {
   };
 
   const exportCSV = (data) => {
-    let csv = 'Rapport Analytique Kabary Shop\n';
+    let csv = `Rapport Analytique ${siteName}\n`;
     csv += `Période: ${data.period}\n`;
     csv += `Comparé à: ${data.comparedTo}\n`;
     csv += `Généré le: ${data.generatedAt}\n\n`;
@@ -423,7 +426,7 @@ const Analytics = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <TrendingUp className="text-secondary" />
-            Analytiques Kabary Shop
+            Analytiques {siteName}
           </h1>
           <p className="text-gray-500 mt-1">Statistiques et performances de la boutique</p>
         </div>
