@@ -1,0 +1,49 @@
+[
+  null,
+  "commande corrompue",
+  42,
+  {
+    "customer": null,
+    "total": 5000
+  },
+  {
+    "customer": "Fatima Diallo",
+    "items": [],
+    "status": "weird",
+    "date": "pas une date"
+  },
+  {
+    "id": "abc",
+    "reference": "CMD-240101-0001",
+    "items": [
+      { "name": "", "quantity": "x", "price": "15000" },
+      null
+    ],
+    "status": "pending"
+  },
+  {
+    "id": 7,
+    "reference": "CMD-240101-0002",
+    "customer": { "name": "Alpha Bah", "phone": 224620980117 },
+    "items": [
+      { "id": "p1", "name": "Chemise", "quantity": 2, "price": 75000 }
+    ],
+    "total": 150000,
+    "status": "shipped",
+    "date": "2024-05-01T10:00:00.000Z",
+    "paymentMethod": "Mobile Money",
+    "shipping": { "by": "Boubacar", "date": "2024-05-02T08:00:00.000Z" }
+  },
+  {
+    "id": 8,
+    "reference": "CMD-240501-0003",
+    "customer": { "name": "Mariama", "email": "m@x.com", "phone": "0620", "address": "Matam" },
+    "items": [
+      { "id": 2, "name": "Robes", "quantity": 1, "price": 300000 }
+    ],
+    "total": 300000,
+    "status": "completed",
+    "date": "2024-06-01T12:00:00.000Z",
+    "paymentMethod": "Mobile Money"
+  }
+]

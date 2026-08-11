@@ -40,6 +40,7 @@ import {
   hasSupabaseSession,
   AUTH_EVENT,
 } from "./db";
+import { sanitizeShopOrders } from "../utils/orderSanitizer";
 
 // Événements locaux → clés localStorage à pousser vers le nuage
 const LOCAL_EVENT_TO_PUSH = {
@@ -151,8 +152,19 @@ const SyncProvider = () => {
       // active, puis la clé redeviendra propre.
       if (dirtyKeys.has(key)) return;
       if (sameValue(localStorage.getItem(key), value)) return;
+      // Filtre anti-corruption : si le nuage contient des commandes
+      // malformées (ancienne version, écriture interrompue…), elles sont
+      // nettoyées avant d'être appliquées localement — la page Commandes ne
+      // reçoit jamais de données qui la feraient crasher.
+      let sanitizedValue = value;
+      if (key === "shop_orders") {
+        // Valeur distante non-tableau (corrompue) : on ne l'applique PAS, pour
+        // ne pas effacer la liste locale de commandes.
+        if (!Array.isArray(value)) return;
+        sanitizedValue = sanitizeShopOrders(value).orders;
+      }
       try {
-        const raw = JSON.stringify(value);
+        const raw = JSON.stringify(sanitizedValue);
         localStorage.setItem(key, raw);
         // La valeur est maintenant identique au nuage : inutile de la
         // re-pousser quand les événements locaux se déclencheront (cela
