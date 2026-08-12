@@ -28,7 +28,7 @@ import {
   Archive,
 } from "lucide-react";
 import { normalizePhone, formatPhone } from "../utils/phone";
-import { getSiteName } from "../utils/emailService";
+import { getSiteName, getSiteLogo, getSiteContacts } from "../utils/emailService";
 
 // État lisible d'un statut de commande (cohérent avec Orders.jsx)
 const STATUS_META = {
@@ -134,6 +134,23 @@ const CustomerHistory = ({ customer, orders = [], archivedOrders = [], onClose }
   const contact = latest.customer || customer || {};
 
   const printFiche = () => {
+    // Logo du site : converti en URL ABSOLUE pour être affiché dans le
+    // document imprimé (un chemin relatif ne se charge pas à l'impression).
+    const siteLogo = getSiteLogo();
+    const logoUrl =
+      siteLogo && !/^(https?:)?\/\//i.test(siteLogo)
+        ? `${(typeof window !== "undefined" && window.location?.origin) || "https://kabaryshop.vercel.app"}${siteLogo.startsWith("/") ? siteLogo : `/${siteLogo}`}`
+        : siteLogo;
+    const siteName = getSiteName();
+    const contacts = getSiteContacts();
+
+    // Lignes de contact du site (seulement si renseignées)
+    const siteContactLines = [
+      contacts.phone && `📞 ${escapeHtml(contacts.phone)}`,
+      contacts.email && `✉️ ${escapeHtml(contacts.email)}`,
+      contacts.address && `📍 ${escapeHtml(contacts.address)}`,
+    ].filter(Boolean);
+
     // Génère un document propre dans une fenêtre dédiée → impression
     const itemsRows = customerOrders
       .map(
@@ -155,30 +172,47 @@ const CustomerHistory = ({ customer, orders = [], archivedOrders = [], onClose }
   <meta charset="UTF-8" />
   <title>Fiche client — ${escapeHtml(contact.name || "Client")}</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #1e293b; margin: 30px; }
-    h1 { font-size: 20px; margin-bottom: 4px; }
+    body { font-family: Arial, sans-serif; color: #1e293b; margin: 0; }
+    .page { padding: 28px 32px; }
+    .header { background: linear-gradient(135deg,#1e293b,#0f172a); color: #fff; padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+    .header img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #fff; padding: 3px; }
+    .header h1 { margin: 0; font-size: 20px; }
+    .header .contacts { margin: 5px 0 0; font-size: 11px; color: #cbd5e1; line-height: 1.6; }
     h2 { font-size: 15px; margin: 18px 0 8px; }
     .infos { font-size: 13px; color: #475569; line-height: 1.7; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { background: #1e293b; color: #fff; text-align: left; padding: 6px 10px; }
+    th { background: #334155; color: #fff; text-align: left; padding: 6px 10px; }
+    td { border: 1px solid #ddd; }
     .total { margin-top: 14px; font-size: 14px; font-weight: bold; }
     .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 10px; background: #f1f5f9; color: #64748b; margin-left: 4px; }
+    .signature { margin-top: 26px; font-size: 12px; color: #64748b; }
   </style>
 </head>
 <body>
-  <h1>Fiche client</h1>
-  <div class="infos">
-    <strong>${escapeHtml(contact.name || "—")}</strong><br/>
-    📞 ${escapeHtml(formatPhone(contact.phone) || "—")}${
+  <!-- En-tête du site : logo + nom + contacts -->
+  <div class="header">
+    ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" />` : ""}
+    <div>
+      <h1>${escapeHtml(siteName)}</h1>
+      ${siteContactLines.length ? `<p class="contacts">${siteContactLines.join("<br/>")}</p>` : ""}
+    </div>
+  </div>
+  <div class="page">
+    <h2>Fiche client</h2>
+    <div class="infos">
+      <strong>${escapeHtml(contact.name || "—")}</strong><br/>
+      📞 ${escapeHtml(formatPhone(contact.phone) || "—")}${
       contact.email ? `<br/>✉️ ${escapeHtml(contact.email)}` : ""
     }${contact.address ? `<br/>📍 ${escapeHtml(contact.address)}` : ""}
+    </div>
+    <h2>Historique des achats (${customerOrders.length} commande(s))</h2>
+    <table>
+      <tr><th>Référence</th><th>Date</th><th>Statut</th><th style="text-align:right;">Montant</th></tr>
+      ${itemsRows}
+    </table>
+    <p class="total">Total dépensé : ${totalSpent.toLocaleString("fr-FR")} GNF</p>
+    <p class="signature">Document généré automatiquement par ${escapeHtml(siteName)} — Merci de votre confiance.</p>
   </div>
-  <h2>Historique des achats (${customerOrders.length} commande(s))</h2>
-  <table>
-    <tr><th>Référence</th><th>Date</th><th>Statut</th><th style="text-align:right;">Montant</th></tr>
-    ${itemsRows}
-  </table>
-  <p class="total">Total dépensé : ${totalSpent.toLocaleString("fr-FR")} GNF</p>
   <script>window.print();</script>
 </body>
 </html>`);
