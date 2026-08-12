@@ -45,6 +45,7 @@ import { sanitizeShopOrders } from "../utils/orderSanitizer";
 // Événements locaux → clés localStorage à pousser vers le nuage
 const LOCAL_EVENT_TO_PUSH = {
   ordersUpdated: ["shop_orders"],
+  archiveUpdated: ["site_order_archive"],
   productsUpdated: ["custom_products", "deleted_products"],
   userChanged: ["app_users"],
   settingsUpdated: ["kabary_settings"],
@@ -57,6 +58,7 @@ const LOCAL_EVENT_TO_PUSH = {
 // Clé localStorage → événements à redéclencher après une MAJ distante
 const KEY_TO_LOCAL_EVENTS = {
   shop_orders: ["ordersUpdated", "storage"],
+  site_order_archive: ["archiveUpdated", "storage"],
   app_users: ["userChanged", "storage"],
   custom_products: ["productsUpdated", "storage"],
   deleted_products: ["productsUpdated", "storage"],

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb, Archive } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import { sendShippingAssignmentEmail } from '../utils/subscribers';
 import Pagination from '../components/Pagination/Pagination';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import UserAvatar from '../components/UserAvatar/UserAvatar';
+import CustomerHistory from './CustomerHistory';
+import { normalizePhone } from '../utils/phone';
+import { applyOrderRetention, getArchivedOrders, MAX_COMPLETED_ORDERS } from '../utils/orderArchive';
 
 // Nombre de commandes affichées par page
 const PAGE_SIZE = 8;
@@ -30,6 +33,8 @@ const Orders = () => {
   const [page, setPage] = useState(1);
   // Commande en attente de confirmation de rejet
   const [orderToReject, setOrderToReject] = useState(null);
+  // Fiche client : historique de toutes les commandes d'un même numéro
+  const [historyCustomer, setHistoryCustomer] = useState(null);
 
   // Importer / remplacer la photo de l'utilisateur connecté
   const handlePhotoUpload = (e) => {
@@ -201,7 +206,28 @@ const Orders = () => {
   const loadOrders = () => {
     const savedOrders = localStorage.getItem('shop_orders');
     if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
+      let parsed = [];
+      try {
+        parsed = JSON.parse(savedOrders);
+      } catch {
+        parsed = [];
+      }
+      // Rétention : dès que les commandes complétées dépassent 1000, les plus
+      // anciennes sont archivées automatiquement (site_order_archive) au lieu
+      // d'être supprimées — rien n'est perdu.
+      const { orders: kept, archivedCount } = applyOrderRetention(parsed);
+      if (archivedCount > 0) {
+        saveOrders(kept);
+        showToast(`${archivedCount} commande(s) terminée(s) archivée(s) automatiquement (plafond de 1000 atteint)`, 'info');
+        logActivity({
+          type: 'order',
+          action: 'archivage automatique',
+          subject: `${archivedCount} commande(s)`,
+          details: `Commandes complétées archivées automatiquement (plafond de ${MAX_COMPLETED_ORDERS} atteint).`,
+        });
+      } else {
+        setOrders(parsed);
+      }
     }
     setLoading(false);
   };
@@ -274,10 +300,15 @@ const Orders = () => {
 
   const searchFilteredOrders = orders.filter(order => {
     const term = searchTerm.toLowerCase();
+    // Le numéro de téléphone est normalisé pour retrouver un client même si le
+    // format saisi diffère (+224, espaces, 0 initial…).
+    const phoneDigits = normalizePhone(order?.customer?.phone);
+    const termDigits = normalizePhone(term);
     return (
       order?.customer?.name?.toLowerCase().includes(term) ||
       String(order?.id ?? '').includes(term) ||
-      (order?.reference || '').toLowerCase().includes(term)
+      (order?.reference || '').toLowerCase().includes(term) ||
+      (termDigits && phoneDigits && phoneDigits.includes(termDigits))
     );
   });
 
@@ -333,9 +364,24 @@ const Orders = () => {
   };
 
   const updateStatus = (orderId, newStatus) => {
-    const updatedOrders = orders.map(order =>
+    let updatedOrders = orders.map(order =>
       order.id === orderId ? { ...order, status: newStatus } : order
     );
+    // Rétention : une commande passée « complétée » peut déclencher l'archivage
+    // automatique des plus anciennes si le plafond de 1000 est dépassé.
+    if (newStatus === 'completed') {
+      const { orders: kept, archivedCount } = applyOrderRetention(updatedOrders);
+      if (archivedCount > 0) {
+        updatedOrders = kept;
+        showToast(`${archivedCount} commande(s) terminée(s) archivée(s) automatiquement (plafond de 1000 atteint)`, 'info');
+        logActivity({
+          type: 'order',
+          action: 'archivage automatique',
+          subject: `${archivedCount} commande(s)`,
+          details: `Commandes complétées archivées automatiquement (plafond de ${MAX_COMPLETED_ORDERS} atteint).`,
+        });
+      }
+    }
     saveOrders(updatedOrders);
     addActionLog(orderId, newStatus, `Statut changé en ${newStatus}`);
     setShowActionMenu(null);
@@ -400,6 +446,9 @@ const Orders = () => {
     cancelled: orders.filter(o => o.status === 'cancelled').length,
   };
 
+  // Nombre de commandes archivées (lues une seule fois par rendu)
+  const archivedCount = getArchivedOrders().length;
+
   if (loading) {
     return (
       <div className="p-6 flex justify-center items-center h-64">
@@ -431,7 +480,7 @@ const Orders = () => {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Total commandes</p>
@@ -449,6 +498,20 @@ const Orders = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400">Expédiées</p>
         </div>
       </div>
+      {/* Archive : les commandes complétées au-delà de 1000 y sont déplacées
+          automatiquement (jamais supprimées) — voir src/utils/orderArchive.js */}
+      <p className="mb-6 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+        <Archive size={13} />
+        {archivedCount > 0 ? (
+          <span>
+            {archivedCount} commande(s) terminée(s) archivée(s) — la liste active reste sous le plafond de {MAX_COMPLETED_ORDERS}, rien n'est supprimé (incluses dans la fiche client).
+          </span>
+        ) : (
+          <span>
+            Archivage automatique actif : les commandes complétées au-delà de {MAX_COMPLETED_ORDERS} sont archivées (jamais supprimées, incluses dans la fiche client).
+          </span>
+        )}
+      </p>
 
       {/* Barre de recherche et filtres */}
       <div className="mb-6 space-y-3">
@@ -457,12 +520,45 @@ const Orders = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Rechercher par client, ID ou référence commande..."
+              placeholder="Rechercher par client, téléphone, ID ou référence..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 bg-gray-100 dark:focus:ring-primary rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-gray-800"
             />
           </div>
+
+          {/* Fiche client directe : taper un numéro puis cliquer pour voir tout l'historique */}
+          <button
+            onClick={() => {
+              const phoneDigits = normalizePhone(searchTerm);
+              if (!phoneDigits) {
+                showToast('Saisissez un numéro de téléphone pour ouvrir la fiche client', 'warning');
+                return;
+              }
+              const found = orders.find(
+                (o) => normalizePhone(o?.customer?.phone) === phoneDigits,
+              );
+              if (found) {
+                setHistoryCustomer(found.customer);
+              } else {
+                // Numéro inconnu dans la liste active : la fiche peut quand même
+                // exister via l'archive (commandes complétées archivées).
+                const archived = getArchivedOrders();
+                const foundArchived = archived.find(
+                  (o) => normalizePhone(o?.customer?.phone) === phoneDigits,
+                );
+                if (foundArchived) {
+                  setHistoryCustomer(foundArchived.customer);
+                } else {
+                  showToast('Aucune commande trouvée pour ce numéro', 'warning');
+                }
+              }
+            }}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition flex items-center gap-2 shrink-0"
+          >
+            <Users size={16} />
+            Fiche client
+          </button>
           
           {/* Filtre par période */}
           <div className="flex flex-wrap gap-2">
@@ -717,6 +813,17 @@ const Orders = () => {
         pageSize={PAGE_SIZE}
         onChange={setPage}
       />
+
+      {/* Fiche client : historique complet par numéro de téléphone
+          (commandes actives + commandes archivées) */}
+      {historyCustomer && (
+        <CustomerHistory
+          customer={historyCustomer}
+          orders={orders}
+          archivedOrders={getArchivedOrders()}
+          onClose={() => setHistoryCustomer(null)}
+        />
+      )}
 
       {/* Modal de confirmation de rejet */}
       <ConfirmModal
@@ -988,6 +1095,18 @@ const Orders = () => {
 
               {/* Boutons d'action */}
               <div className="flex gap-3 pb-10 justify-end">
+                {selectedOrder.customer?.phone && (
+                  <button
+                    onClick={() => {
+                      setHistoryCustomer(selectedOrder.customer);
+                      setShowDetailsModal(false);
+                    }}
+                    className="px-4 py-2 bg-primary/10 text-primary border border-primary/30 rounded-lg hover:bg-primary/20 transition flex items-center gap-2"
+                  >
+                    <Users size={16} />
+                    Historique du client
+                  </button>
+                )}
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"

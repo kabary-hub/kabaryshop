@@ -27,6 +27,7 @@ let currentUser = null;
 // créés via Supabase Auth, eux, sont partagés).
 export const SYNC_KEYS = [
   "shop_orders", // commandes
+  "site_order_archive", // archive des commandes complétées (rétention à 1000)
   "app_users", // utilisateurs (rôles, statuts, mots de passe des comptes staff/admin créés)
   "custom_products", // produits personnalisés
   "deleted_products", // IDs des produits supprimés (tombstones)

@@ -48,6 +48,36 @@ export const getSiteLogo = () => {
   }
 };
 
+// Coordonnées du site (téléphone, email, adresse) affichées dans le bandeau
+// des emails. Lues depuis les paramètres stockés (Paramètres → Coordonnées).
+export const getSiteContacts = () => {
+  try {
+    const s = JSON.parse(localStorage.getItem("kabary_settings") || "{}");
+    return {
+      phone: s.sitePhone || "",
+      email: s.siteEmail || "",
+      address: s.siteAddress || "",
+    };
+  } catch {
+    return { phone: "", email: "", address: "" };
+  }
+};
+
+// Transforme une URL éventuellement relative (« /logo2.png ») en URL absolue
+// : indispensable dans les emails, car les messageries (Gmail, Outlook…) ne
+// peuvent pas résoudre un chemin relatif.
+const toAbsoluteUrl = (url) => {
+  if (!url) return "";
+  if (/^(https?:)?\/\//i.test(url)) return url; // déjà absolue
+  if (url.startsWith("/")) {
+    const origin =
+      (typeof window !== "undefined" && window.location?.origin) ||
+      "https://kabaryshop.vercel.app";
+    return `${origin}${url}`;
+  }
+  return url;
+};
+
 // Email de l'administrateur (réception des alertes).
 // Admin figé dans le code : boubacarelbalde94@gmail.com
 // (modifiable depuis Admin > Paramètres > Coordonnées).
@@ -116,10 +146,21 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-// Mise en page commune : bandeau (logo + nom), contenu, pied de page.
+// Mise en page commune : bandeau (logo + nom + contacts), contenu, pied de page.
 const emailLayout = ({ siteName, preheader, contentHtml }) => {
   // Logo du site s'il est configuré (Paramètres → Identité du site → Logo).
-  const siteLogo = getSiteLogo();
+  const siteLogo = toAbsoluteUrl(getSiteLogo());
+  // Contacts du site (téléphone, email, adresse) — Paramètres → Coordonnées.
+  const contacts = getSiteContacts();
+  // Lignes de contact affichées sous le nom du site (seulement si renseignées).
+  const contactLines = [
+    contacts.phone && `📞 ${escapeHtml(contacts.phone)}`,
+    contacts.email && `✉️ ${escapeHtml(contacts.email)}`,
+    contacts.address && `📍 ${escapeHtml(contacts.address)}`,
+  ].filter(Boolean);
+  const contactsHtml = contactLines.length
+    ? `<p style="margin:6px 0 0;color:#cbd5e1;font-size:11px;line-height:1.7;letter-spacing:0.2px;">${contactLines.join("<br/>")}</p>`
+    : "";
   return `
 <!DOCTYPE html>
 <html lang="fr">
@@ -133,7 +174,7 @@ const emailLayout = ({ siteName, preheader, contentHtml }) => {
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
-          <!-- Bandeau -->
+          <!-- Bandeau : logo + nom + contacts -->
           <tr>
             <td style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:22px 24px;text-align:center;">
               ${siteLogo
@@ -141,7 +182,7 @@ const emailLayout = ({ siteName, preheader, contentHtml }) => {
                 : ""}
               <div style="display:inline-block;vertical-align:middle;text-align:left;">
                 <h1 style="margin:0;color:#ffffff;font-size:20px;letter-spacing:0.5px;">${escapeHtml(siteName)}</h1>
-                <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">Boutique en ligne — Livraison 24h/48h</p>
+                ${contactsHtml}
               </div>
             </td>
           </tr>
