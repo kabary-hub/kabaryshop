@@ -27,7 +27,7 @@ import {
   XCircle,
   Archive,
 } from "lucide-react";
-import { normalizePhone, formatPhone } from "../utils/phone";
+import { normalizePhone, formatPhone, toWhatsAppNumber } from "../utils/phone";
 import { getSiteName, getSiteLogo, getSiteContacts } from "../utils/emailService";
 
 // État lisible d'un statut de commande (cohérent avec Orders.jsx)
@@ -105,7 +105,9 @@ const buildWhatsAppMessage = (customer, orders, total, siteName) => {
 };
 
 const sendWhatsApp = (customer, orders, total, siteName) => {
-  const phone = normalizePhone(customer.phone);
+  // Format INTERNATIONAL obligatoire pour wa.me (indicatif pays inclus) :
+  // « 620980117 » serait lu comme un numéro indonésien (62).
+  const phone = toWhatsAppNumber(customer.phone);
   if (!phone) return;
   const text = encodeURIComponent(buildWhatsAppMessage(customer, orders, total, siteName));
   window.open(`https://wa.me/${phone}?text=${text}`, "_blank");

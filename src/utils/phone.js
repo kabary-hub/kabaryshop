@@ -45,3 +45,32 @@ export const formatPhone = (value) => {
   }
   return digits;
 };
+
+// Numéro au format INTERNATIONAL pour WhatsApp (wa.me).
+// ⚠️ Ne PAS utiliser normalizePhone ici : il retire le « +224 », or wa.me
+// exige l'indicatif complet du pays, sinon WhatsApp peut lire un AUTRE pays
+// (ex. « 620980117 » serait lu comme un numéro indonésien, indicatif 62).
+//
+// Règles :
+//   • « +224 620 98 01 17 »  → « 224620980117 » (déjà international)
+//   • « 0620980117 »         → « 224620980117 » (0 initial retiré)
+//   • « 620980117 »          → « 224620980117 » (numéro national guinéen)
+//   • « +33612345678 »       → « 33612345678 »  (autre pays : conservé tel quel)
+export const toWhatsAppNumber = (value) => {
+  if (value == null) return "";
+  const raw = String(value).replace(/\D/g, "");
+  if (!raw) return "";
+  // Déjà au format international guinéen : « 224620980117 » (12 chiffres)
+  if (raw.length > 9 && raw.startsWith("224")) return raw;
+  // Zéro initial : « 0620980117 » (10 chiffres) → « 224620980117 »
+  // (à traiter AVANT le cas « autre indicatif pays »)
+  if (raw.length === 10 && raw.startsWith("0")) {
+    return `224${raw.slice(1)}`;
+  }
+  // Numéro national guinéen (9 chiffres) → préfixe +224
+  if (raw.length === 9) {
+    return `224${raw}`;
+  }
+  // Autre indicatif pays déjà présent (« 33612345678 »…) : conservé tel quel
+  return raw;
+};
