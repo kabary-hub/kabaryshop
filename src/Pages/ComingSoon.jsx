@@ -11,7 +11,7 @@ const ComingSoon = () => {
   const { settings } = useSettings();
   const siteName = settings.siteName || "Kabary Shop";
   const facebookUrl =
-    settings.social?.facebook || "https://www.facebook.com/boubacarelbalde";
+    settings.social?.facebook || "https://www.facebook.com/kabaryshop";
 
   // Compte à rebours (rafraîchi chaque minute) vers l'ouverture planifiée.
   // Timer inactif quand aucune date n'est planifiée.

@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS = {
   currency: 'GNF', // Devise par défaut
   language: 'fr',
   social: {
-    facebook: 'https://www.facebook.com/boubacarelbalde',
+    facebook: 'https://www.facebook.com/kabaryshop',
     instagram: '',
     linkedin: 'https://www.linkedin.com/in/boubacar-siddighi-balde',
     whatsapp: 'https://wa.me/224620980117',
