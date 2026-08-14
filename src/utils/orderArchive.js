@@ -17,6 +17,11 @@
 // Plafond de commandes complétées conservées dans la liste active.
 export const MAX_COMPLETED_ORDERS = 1000;
 
+// Délai de rétention des commandes ANNULÉES : elles ne peuvent pas être
+// supprimées manuellement et s'effacent automatiquement après ce nombre
+// de jours (à compter de la date d'annulation « cancelledAt »).
+export const CANCELLED_RETENTION_DAYS = 10;
+
 // Clé localStorage de l'archive (synchronisée aussi sur Supabase).
 export const ARCHIVE_KEY = "site_order_archive";
 
@@ -74,4 +79,34 @@ export const applyOrderRetention = (orders) => {
 
   const kept = orders.filter((o) => !archivedIds.has(String(o?.id)));
   return { orders: kept, archivedCount: archived.length };
+};
+
+// ---- Auto-effacement des commandes ANNULÉES ----
+
+// Supprime de la liste active les commandes annulées dont la date
+// d'annulation (cancelledAt, sinon la date de la commande) est plus ancienne
+// que CANCELLED_RETENTION_DAYS. Retourne :
+//   { orders, removedCount }
+//   • orders       : liste active sans les annulées expirées ;
+//   • removedCount : nombre de commandes annulées effacées (0 sinon).
+// Les commandes d'un autre statut ne sont jamais touchées.
+export const applyCancelledOrderCleanup = (orders) => {
+  if (!Array.isArray(orders)) return { orders, removedCount: 0 };
+
+  const cutoff = Date.now() - CANCELLED_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+  const expired = orders.filter((o) => {
+    if (o?.status !== "cancelled") return false;
+    // Date de référence : l'annulation si connue, sinon la date de la commande
+    const ref = new Date(o?.cancelledAt || o?.date).getTime();
+    return Number.isFinite(ref) && ref < cutoff;
+  });
+
+  if (expired.length === 0) return { orders, removedCount: 0 };
+
+  const expiredIds = new Set(expired.map((o) => String(o?.id)));
+  return {
+    orders: orders.filter((o) => !expiredIds.has(String(o?.id))),
+    removedCount: expired.length,
+  };
 };

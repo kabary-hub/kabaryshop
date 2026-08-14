@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb, Archive } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb, Archive, Hourglass } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import { sendShippingAssignmentEmail } from '../utils/subscribers';
@@ -9,7 +9,7 @@ import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import UserAvatar from '../components/UserAvatar/UserAvatar';
 import CustomerHistory from './CustomerHistory';
 import { normalizePhone } from '../utils/phone';
-import { applyOrderRetention, getArchivedOrders, MAX_COMPLETED_ORDERS } from '../utils/orderArchive';
+import { applyOrderRetention, applyCancelledOrderCleanup, getArchivedOrders, MAX_COMPLETED_ORDERS, CANCELLED_RETENTION_DAYS } from '../utils/orderArchive';
 
 // Nombre de commandes affichées par page
 const PAGE_SIZE = 8;
@@ -216,8 +216,20 @@ const Orders = () => {
       // anciennes sont archivées automatiquement (site_order_archive) au lieu
       // d'être supprimées — rien n'est perdu.
       const { orders: kept, archivedCount } = applyOrderRetention(parsed);
-      if (archivedCount > 0) {
-        saveOrders(kept);
+      // Auto-effacement : les commandes ANNULÉES (non supprimables à la main)
+      // disparaissent d'elles-mêmes après CANCELLED_RETENTION_DAYS jours.
+      const { orders: cleaned, removedCount } = applyCancelledOrderCleanup(kept);
+      if (removedCount > 0) {
+        saveOrders(cleaned);
+        showToast(`${removedCount} commande(s) annulée(s) effacée(s) automatiquement (plus de ${CANCELLED_RETENTION_DAYS} jours)`, 'info');
+        logActivity({
+          type: 'order',
+          action: 'auto-effacement',
+          subject: `${removedCount} commande(s) annulée(s)`,
+          details: `Commandes annulées effacées automatiquement après ${CANCELLED_RETENTION_DAYS} jours.`,
+        });
+      } else if (archivedCount > 0) {
+        saveOrders(cleaned);
         showToast(`${archivedCount} commande(s) terminée(s) archivée(s) automatiquement (plafond de 1000 atteint)`, 'info');
         logActivity({
           type: 'order',
@@ -389,9 +401,14 @@ const Orders = () => {
 
   const rejectOrder = (orderId) => {
     const order = orders.find(o => o.id === orderId);
-    // Une commande terminée ne peut plus être rejetée
+    // Une commande terminée ou déjà annulée ne peut plus être rejetée
     if (order && order.status === 'completed') {
       showToast('Cette commande est terminée : elle ne peut plus être rejetée', 'warning');
+      setShowActionMenu(null);
+      return;
+    }
+    if (order && order.status === 'cancelled') {
+      showToast('Cette commande annulée ne peut pas être supprimée : elle s\'effacera automatiquement après 10 jours', 'warning');
       setShowActionMenu(null);
       return;
     }
@@ -402,10 +419,16 @@ const Orders = () => {
   const confirmRejectOrder = () => {
     if (!orderToReject) return;
     const orderId = orderToReject.id;
-    const updatedOrders = orders.filter(order => order.id !== orderId);
+    // Rejeter ne supprime plus la commande : elle passe au statut « Annulée »
+    // (avec sa date d'annulation) et s'effacera automatiquement après 10 jours.
+    const updatedOrders = orders.map(order =>
+      order.id === orderId
+        ? { ...order, status: 'cancelled', cancelledAt: new Date().toISOString() }
+        : order
+    );
     saveOrders(updatedOrders);
-    addActionLog(orderId, 'rejected', 'Commande rejetée');
-    showToast(`La commande #${displayOrderId(orderToReject)} a été rejetée`, 'success');
+    addActionLog(orderId, 'cancelled', 'Commande annulée (auto-effacement après 10 jours)');
+    showToast(`La commande #${displayOrderId(orderToReject)} a été annulée — elle s'effacera automatiquement dans 10 jours`, 'success');
     setOrderToReject(null);
     setShowActionMenu(null);
   };
@@ -435,6 +458,17 @@ const Orders = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Jours restants avant l'auto-effacement d'une commande annulée
+  // (CANCELLED_RETENTION_DAYS à compter de cancelledAt, sinon la date).
+  const getCancelledCountdown = (order) => {
+    if (order?.status !== 'cancelled') return null;
+    const ref = new Date(order.cancelledAt || order.date).getTime();
+    if (!Number.isFinite(ref)) return null;
+    const remainingMs =
+      CANCELLED_RETENTION_DAYS * 24 * 60 * 60 * 1000 - (Date.now() - ref);
+    return Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
   };
 
   // ==================== STATISTIQUES ====================
@@ -502,15 +536,20 @@ const Orders = () => {
           automatiquement (jamais supprimées) — voir src/utils/orderArchive.js */}
       <p className="mb-6 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
         <Archive size={13} />
-        {archivedCount > 0 ? (
-          <span>
-            {archivedCount} commande(s) terminée(s) archivée(s) — la liste active reste sous le plafond de {MAX_COMPLETED_ORDERS}, rien n'est supprimé (incluses dans la fiche client).
+        <span>
+          {archivedCount > 0 ? (
+            <>
+              {archivedCount} commande(s) terminée(s) archivée(s) — la liste active reste sous le plafond de {MAX_COMPLETED_ORDERS}, rien n'est supprimé (incluses dans la fiche client).
+            </>
+          ) : (
+            <>
+              Archivage automatique actif : les commandes complétées au-delà de {MAX_COMPLETED_ORDERS} sont archivées (jamais supprimées, incluses dans la fiche client).
+            </>
+          )}
+          <span className="block mt-0.5">
+            Les commandes annulées ne peuvent pas être supprimées : elles s'effacent automatiquement après {CANCELLED_RETENTION_DAYS} jours.
           </span>
-        ) : (
-          <span>
-            Archivage automatique actif : les commandes complétées au-delà de {MAX_COMPLETED_ORDERS} sont archivées (jamais supprimées, incluses dans la fiche client).
-          </span>
-        )}
+        </span>
       </p>
 
       {/* Barre de recherche et filtres */}
@@ -736,6 +775,23 @@ const Orders = () => {
                         {statusBadge.icon}
                         {statusBadge.text}
                       </span>
+                      {/* Compte à rebours : les commandes annulées s'effacent
+                          automatiquement après CANCELLED_RETENTION_DAYS jours */}
+                      {order.status === 'cancelled' && (() => {
+                        const days = getCancelledCountdown(order);
+                        if (days === null) return null;
+                        return (
+                          <span
+                            className="block mt-1 text-[11px] text-red-500 font-medium flex items-center gap-1"
+                            title="La commande annulée s'effacera automatiquement à cette date"
+                          >
+                            <Hourglass size={11} />
+                            {days <= 0
+                              ? 'Auto-effacement aujourd’hui'
+                              : `Suppression auto dans ${days} j`}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {order.shipping ? (
@@ -783,8 +839,9 @@ const Orders = () => {
                                 Marquer complétée
                               </button>
                             )}
-                            {/* Une commande terminée ne peut plus être rejetée */}
-                            {order.status !== 'completed' && (
+                            {/* Une commande terminée ou déjà annulée ne peut plus être
+                                rejetée : les annulées s'effacent seules après 10 jours */}
+                            {(order.status === 'pending' || order.status === 'shipped') && (
                               <button
                                 onClick={() => rejectOrder(order.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
@@ -829,7 +886,7 @@ const Orders = () => {
       <ConfirmModal
         open={Boolean(orderToReject)}
         title="Rejeter la commande ?"
-        message={`Êtes-vous sûr de vouloir rejeter la commande #${displayOrderId(orderToReject)} de ${orderToReject?.customer?.name || ''} ? Elle sera retirée de la liste.`}
+        message={`Êtes-vous sûr de vouloir rejeter la commande #${displayOrderId(orderToReject)} de ${orderToReject?.customer?.name || ''} ? Elle sera marquée « Annulée », ne pourra plus être supprimée manuellement et s'effacera automatiquement après 10 jours.`}
         confirmLabel="Rejeter"
         cancelLabel="Annuler"
         danger
