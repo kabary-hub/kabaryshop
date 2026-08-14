@@ -46,9 +46,14 @@ const StaffLayout = () => {
     window.location.href = "/admin/login";
   };
 
+  // Onglets principaux de la navbar staff
   const menuItems = [
     { path: "/staff/orders", name: "Commandes", icon: ShoppingCart },
     { path: "/staff/products", name: "Produits", icon: Package },
+  ];
+
+  // Paramètres + Déconnexion : épinglés en fin de barre, séparés des onglets
+  const bottomItems = [
     { path: "/staff/settings", name: "Paramètres", icon: Settings },
   ];
 
@@ -93,9 +98,30 @@ const StaffLayout = () => {
                 {item.name}
               </NavLink>
             ))}
+
+            {/* Séparateur : Paramètres + Déconnexion à part, en fin de barre */}
+            <span className="mx-2 h-6 w-px bg-gray-700 hidden sm:block" aria-hidden="true" />
+            <span className="w-full sm:hidden" aria-hidden="true" />
+
+            {bottomItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    isActive
+                      ? "bg-primary text-white"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`
+                }
+              >
+                <item.icon size={16} />
+                {item.name}
+              </NavLink>
+            ))}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-red-600 hover:text-white transition ml-2"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-red-600 hover:text-white transition ml-1"
             >
               <LogOut size={16} />
               Déconnexion

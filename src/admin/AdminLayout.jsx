@@ -112,16 +112,21 @@ const AdminLayout = () => {
     return parts.join(' et ') || 'Des commandes malformées ont été nettoyées.';
   };
 
+  // Onglets principaux de la sidebar (dans l'ordre demandé)
   const menuItems = [
     { path: '/admin', name: 'Tableau de bord', icon: LayoutDashboard },
     { path: '/admin/products', name: 'Produits', icon: Package },
-    { path: '/admin/reviews', name: 'Avis clients', icon: MessageSquare },
-    { path: '/admin/subscribers', name: 'Abonnés', icon: Mail },
     { path: '/admin/orders', name: 'Commandes', icon: ShoppingCart },
     { path: '/admin/users', name: 'Utilisateurs', icon: Users },
     { path: '/admin/categories', name: 'Catégories', icon: Grid },
     { path: '/admin/analytics', name: 'Analytiques', icon: TrendingUp },
+    { path: '/admin/reviews', name: 'Avis clients', icon: MessageSquare },
+    { path: '/admin/subscribers', name: 'Abonnés', icon: Mail },
     { path: '/admin/history', name: 'Historiques', icon: HistoryIcon },
+  ];
+
+  // Paramètres + Déconnexion : épinglés en bas de la sidebar, séparés des onglets
+  const bottomItems = [
     { path: '/admin/settings', name: 'Paramètres', icon: Settings },
   ];
 
@@ -158,7 +163,7 @@ const AdminLayout = () => {
 
       {/* Sidebar (drawer sur mobile) */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-gray-900 text-white transition-transform duration-300 ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-gray-900 text-white transition-transform duration-300 flex flex-col ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       >
@@ -228,14 +233,15 @@ const AdminLayout = () => {
             </button>
           </div>
         </div>
-        <nav className="p-4 overflow-y-auto h-[calc(100vh-73px)]">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+          {/* Onglets principaux */}
           {menuItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-lg mb-1 transition ${
+                `flex items-center gap-3 px-3 py-1.5 rounded-lg mb-0.5 transition ${
                   isActive 
                     ? 'bg-blue-600 text-white' 
                     : 'text-gray-300 hover:bg-gray-800'
@@ -246,13 +252,35 @@ const AdminLayout = () => {
               {item.name}
             </NavLink>
           ))}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition mt-4"
-          >
-            <LogOut size={18} />
-            Déconnexion
-          </button>
+
+          {/* Paramètres + Déconnexion : juste en dessous des onglets, séparés par un filet,
+              remontés pour être visibles sans scroll */}
+          <div className="mt-2 pt-2 border-t border-gray-700">
+            {bottomItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-1.5 rounded-lg mb-0.5 transition ${
+                    isActive 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-gray-300 hover:bg-gray-800'
+                  }`
+                }
+              >
+                <item.icon size={18} />
+                {item.name}
+              </NavLink>
+            ))}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition"
+            >
+              <LogOut size={18} />
+              Déconnexion
+            </button>
+          </div>
         </nav>
       </aside>
 

@@ -82,6 +82,14 @@ const SiteNavbar = (props) => {
   return <Navbar {...props} />;
 };
 
+// Footer public du site : masqué dans les espaces admin et staff
+// (ces zones ont leur propre mise en page de back-office).
+const SiteFooter = () => {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/admin") || pathname.startsWith("/staff")) return null;
+  return <Footer />;
+};
+
 // ===== SEO : titre + description + canonical uniques par page =====
 // Permet au site d'apparaître dans les résultats de recherche (Google…)
 // avec des titres pertinents par catégorie au lieu d'un titre générique.
@@ -451,7 +459,7 @@ const App = () => {
             </Routes>
             </Suspense>
             
-            <Footer />
+            <SiteFooter />
             
             <Popup 
               orderPopup={orderPopup} 
