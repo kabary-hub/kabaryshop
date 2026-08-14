@@ -35,7 +35,7 @@ import {
 } from '../utils/migrations';
 
 const AdminLayout = () => {
-  const { settings, updateSettings } = useSettings();
+  const { settings } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState(getAdminAlerts);

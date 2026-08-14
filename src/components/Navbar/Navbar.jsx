@@ -160,7 +160,7 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
         </div>
       </div>
 
-      {/* Bandeau des catégories */}
+      {/* Ligne du menu : catégories */}
       <div className="flex justify-center px-3 sm:px-4 py-1">
         <div className="w-full max-w-[min(96rem,calc(100%-4rem))] 2xl:max-w-[min(120rem,calc(100%-4rem))]">
           <ul className="flex items-center gap-x-4 gap-y-1 overflow-x-auto no-scrollbar sm:overflow-visible sm:flex-wrap sm:justify-center">
