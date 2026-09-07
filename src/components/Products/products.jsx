@@ -13,33 +13,35 @@ import { PRODUCT_DEFAULT_PRICES } from "../../utils/productDefaultPrices";
 import { getDeletedProductIds } from "../../services/productService";
 
 // 1. Importation de tous les dossiers
+// Compatibilité Vite : on n'utilise plus outputFormat pour que le dev/build
+// fonctionne aussi sur les versions qui refusent cette option.
 const womenImages = import.meta.glob(
   "../../assets/products-women/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 const enfantImages = import.meta.glob(
   "../../assets/enfantimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 const hommeImages = import.meta.glob(
   "../../assets/hommeimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 const electroniqueImages = import.meta.glob(
   "../../assets/electroniqueimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 const meubleImages = import.meta.glob(
   "../../assets/meubleimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 const tendanceImages = import.meta.glob(
   "../../assets/tendanceimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 const venteImages = import.meta.glob(
   "../../assets/venteimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true }
 );
 
 // 2. Fonction pour transformer "nom_prix.jpg" en objet produit
@@ -57,7 +59,7 @@ const createProducts = (images, categoryName, startId) => {
 
     return {
       id: `${categoryName}_${startId + index}`,
-      img: images[path] || "",
+      img: images[path] ? (images[path].default || images[path]) : "",
       title: `${name.charAt(0).toUpperCase() + name.slice(1)}`,
       color: "Multiples couleurs",
       priceInGNF: rawPrice ? Number(rawPrice) : fallbackPrice,
