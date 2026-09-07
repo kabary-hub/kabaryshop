@@ -503,7 +503,7 @@ const Products = () => {
                           alt={product.title} 
                           className="w-16 h-16 object-cover rounded"
                           onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/100?text=Image';
+                            e.target.src = 'https://kabaryshop.vercel.app/logo2.png';
                           }}
                         />
                         {/* Badge : nombre d'images du produit */}
@@ -804,7 +804,7 @@ const Products = () => {
                   src={selectedProduct.img || selectedProduct.images?.[0]}
                   alt={selectedProduct.title}
                   className="w-full sm:w-40 h-40 object-cover rounded-lg border shrink-0"
-                  onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=Image'; }}
+                  onError={(e) => { e.target.src = 'https://kabaryshop.vercel.app/logo2.png'; }}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-lg font-bold">{selectedProduct.title}</p>

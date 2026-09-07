@@ -263,7 +263,7 @@ const Products = ({ data, searchTerm = "" }) => {
   };
 
   const handleImageError = (e) => {
-    e.target.src = 'https://via.placeholder.com/300x400?text=Image+non+disponible';
+    e.target.src = 'https://kabaryshop.vercel.app/logo2.png';
   };
 
   return (

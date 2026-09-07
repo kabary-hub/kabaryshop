@@ -47,7 +47,7 @@ const ProductGallery = ({ images, extraImages = [], title, badge }) => {
   const current = safeImages[Math.min(activeIndex, safeImages.length - 1)] || "";
 
   const handleImageError = (e) => {
-    e.target.src = "https://via.placeholder.com/500x500?text=Image+non+disponible";
+    e.target.src = "https://kabaryshop.vercel.app/logo2.png";
   };
 
   const goPrev = () => setActiveIndex((i) => (i - 1 + safeImages.length) % safeImages.length);
@@ -640,7 +640,7 @@ const ProductDetail = ({ handleOrder }) => {
                       loading="lazy"
                       decoding="async"
                       onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/300x300?text=Image";
+                        e.target.src = "https://kabaryshop.vercel.app/logo2.png";
                       }}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />

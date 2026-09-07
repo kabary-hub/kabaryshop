@@ -409,7 +409,7 @@ const Notes = () => {
                           alt={product.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/300?text=Image";
+                            e.target.src = "https://kabaryshop.vercel.app/logo2.png";
                           }}
                         />
                       </div>

@@ -121,11 +121,11 @@ const CategoryProducts = ({ handleOrder, searchTerm = "" }) => {
               className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 cursor-pointer"
             >
               <img 
-                src={product.img || product.image || 'https://via.placeholder.com/300'} 
+                src={product.img || product.image || 'https://kabaryshop.vercel.app/logo2.png'} 
                 alt={product.title || product.name}
                 className="w-full h-48 object-cover rounded-t-lg"
                 onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/300?text=Image';
+                  e.target.src = 'https://kabaryshop.vercel.app/logo2.png';
                 }}
               />
               <ShareButton

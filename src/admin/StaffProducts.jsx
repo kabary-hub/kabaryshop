@@ -98,11 +98,11 @@ const StaffProducts = () => {
               className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-lg transition"
             >
               <img
-                src={product.img || product.image || "https://via.placeholder.com/300"}
+                src={product.img || product.image || "https://kabaryshop.vercel.app/logo2.png"}
                 alt={product.title || product.name}
                 className="w-full h-40 object-cover"
                 onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/300?text=Image";
+                  e.target.src = "https://kabaryshop.vercel.app/logo2.png";
                 }}
               />
               <div className="p-3">
