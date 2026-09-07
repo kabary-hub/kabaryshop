@@ -15,31 +15,31 @@ import { getDeletedProductIds } from "../../services/productService";
 // 1. Importation de tous les dossiers
 const womenImages = import.meta.glob(
   "../../assets/products-women/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 const enfantImages = import.meta.glob(
   "../../assets/enfantimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 const hommeImages = import.meta.glob(
   "../../assets/hommeimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 const electroniqueImages = import.meta.glob(
   "../../assets/electroniqueimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 const meubleImages = import.meta.glob(
   "../../assets/meubleimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 const tendanceImages = import.meta.glob(
   "../../assets/tendanceimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 const venteImages = import.meta.glob(
   "../../assets/venteimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "url" },
+  { eager: true, outputFormat: "static" },
 );
 
 // 2. Fonction pour transformer "nom_prix.jpg" en objet produit
