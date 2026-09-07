@@ -7,31 +7,31 @@ import { PRODUCT_DEFAULT_PRICES } from "../utils/productDefaultPrices";
 // 1. Importer les images des produits par défaut
 const womenImages = import.meta.glob(
   "../assets/products-women/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 const enfantImages = import.meta.glob(
   "../assets/enfantimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 const hommeImages = import.meta.glob(
   "../assets/hommeimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 const electroniqueImages = import.meta.glob(
   "../assets/electroniqueimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 const meubleImages = import.meta.glob(
   "../assets/meubleimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 const tendanceImages = import.meta.glob(
   "../assets/tendanceimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 const venteImages = import.meta.glob(
   "../assets/venteimg/*.{png,jpg,jpeg,webp}",
-  { eager: true, outputFormat: "static" },
+  { eager: true, outputFormat: "url" },
 );
 
 // 2. Fonction pour transformer les fichiers en objets produit
