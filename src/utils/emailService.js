@@ -14,7 +14,10 @@
 // Variables d'environnement (voir .env.example) :
 //   VITE_EMAIL_API_URL : URL de la fonction (défaut : /api/send-mail)
 //   VITE_SEND_KEY      : clé partagée (optionnelle, si SEND_API_KEY est
-//                        configurée côté Vercel)
+//                        configurée côté Vercel)// Fallback publique garanti pour les images envoyées par email.
+// Logo du site, utilisable aussi comme fallback produit quand l'image est absente.
+const DEFAULT_SITE_LOGO = "https://kabaryshop.vercel.app/logo2.png";
+const DEFAULT_PRODUCT_IMAGE = "https://kabaryshop.vercel.app/logo2.png";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -71,22 +74,36 @@ const toAbsoluteUrl = (url) => {
   if (/^(https?:)?\/\//i.test(url)) return url; // déjà absolue
   if (url.startsWith("/")) {
     const origin =
-      (typeof window !== "undefined" && window.location?.origin) ||
-      "https://kabaryshop.vercel.app";
-    return `${origin}${url}`;
+      typeof window !== "undefined"
+        ? window.location?.origin
+        : (import.meta.env?.VITE_BASE_URL || "https://kabaryshop.vercel.app");
+    return `${origin.replace(/\/$/, "")}${url}`;
   }
   return url;
 };
 
+// Produit à son URL d’image absolue, en acceptant plusieurs formes de stockage
+// (principal : img, champs historiques : url/image, ou première image de galerie).
+export const getProductImageUrl = (product) => {
+  if (!product) return "";
+  const raw =
+    product.img ||
+    product.url ||
+    product.image ||
+    (Array.isArray(product.images) ? product.images[0] : "") ||
+    "";
+  return toAbsoluteUrl(raw);
+};
+
 // Email de l'administrateur (réception des alertes).
-// Admin figé dans le code : boubacarelbalde94@gmail.com
-// (modifiable depuis Admin > Paramètres > Coordonnées).
+// Lit depuis les paramètres du site (Admin > Paramètres > Coordonnées).
+// Pas de fallback hardcodé : si non configuré, retourne une chaîne vide.
 export const getAdminEmail = () => {
   try {
     const s = JSON.parse(localStorage.getItem("kabary_settings") || "{}");
-    return s.adminEmail || s.siteEmail || "boubacarelbalde94@gmail.com";
+    return s.adminEmail || s.siteEmail || "";
   } catch {
-    return "boubacarelbalde94@gmail.com";
+    return "";
   }
 };
 
@@ -115,13 +132,25 @@ export const sendEmail = async ({
       },
       body: JSON.stringify({ to, toName, fromName, subject, html }),
     });
-    const data = await response.json().catch(() => ({}));
+    // Lire d'abord comme texte pour conserver le message d'erreur exact,
+    // même si le serveur renvoie du HTML (page d'erreur Vercel) au lieu de JSON.
+    const rawBody = await response.text().catch(() => "");
+    let data = {};
+    try { data = JSON.parse(rawBody); } catch { /* non-JSON */ }
     if (!response.ok) {
+      // Extraire un message lisible depuis la réponse brute si ce n'est pas du JSON.
+      const detail = data.message
+        || (rawBody && !rawBody.startsWith("{")
+          ? rawBody.replace(/<[^>]*>/g, "").slice(0, 300)  // strip HTML tags
+          : "")
+        || `La fonction d'envoi a répondu (${response.status}).`;
+      // Ajouter un conseil pour les erreurs 500 (config Resend/Vercel).
+      const hint = response.status >= 500
+        ? " Vérifiez la configuration RESEND_API_KEY et EMAIL_FROM sur Vercel."
+        : "";
       return {
         ok: false,
-        message:
-          data.message ||
-          `La fonction d'envoi a répondu (${response.status}). Vérifiez la configuration Resend/Vercel.`,
+        message: `${detail}${hint}`.trim(),
       };
     }
     return { ok: true, message: data.message || "Email envoyé", id: data.id };
@@ -146,10 +175,31 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+// Remplace une URL d'image par un fallback fiable uniquement quand l'image est absente.
+// Si l'image existe (même non publique), on la conserve dans l'email.
+// Le fallback n'est utilisé que si l'image est manquante.
+const fallbackIfEmpty = (url, fallbackUrl) => {
+  if (!url) return fallbackUrl || DEFAULT_SITE_LOGO;
+  return url;
+};
+
+export const safeImageUrl = (url, fallbackUrl) => {
+  if (!fallbackUrl) {
+    // Garde un fallback constant par défaut pour ne pas dépendre des appelsants.
+    fallbackUrl = DEFAULT_SITE_LOGO;
+  }
+  const normalized = fallbackIfEmpty(url, fallbackUrl);
+  const absolute = toAbsoluteUrl(normalized || "");
+  if (!absolute) return fallbackUrl;
+  if (/^(https?:)?\/\//i.test(absolute)) return absolute;
+  return fallbackUrl;
+};
+
 // Mise en page commune : bandeau (logo + nom + contacts), contenu, pied de page.
-const emailLayout = ({ siteName, preheader, contentHtml }) => {
-  // Logo du site s'il est configuré (Paramètres → Identité du site → Logo).
-  const siteLogo = toAbsoluteUrl(getSiteLogo());
+const emailLayout = ({ siteName, preheader, contentHtml, siteLogoFallback }) => {
+  // Logo du site : on utilise un fallback constant si le paramètre est vide ou non public.
+  const siteLogo = safeImageUrl(getSiteLogo(), siteLogoFallback || DEFAULT_SITE_LOGO);
+
   // Contacts du site (téléphone, email, adresse) — Paramètres → Coordonnées.
   const contacts = getSiteContacts();
   // Lignes de contact affichées sous le nom du site (seulement si renseignées).
@@ -175,11 +225,10 @@ const emailLayout = ({ siteName, preheader, contentHtml }) => {
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
           <!-- Bandeau : logo + nom + contacts -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:22px 24px;text-align:center;">
+          <tr>            <td style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:22px 24px;text-align:center;">
               ${siteLogo
-                ? `<img src="${escapeHtml(siteLogo)}" alt="${escapeHtml(siteName)}" width="72" height="72" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:inline-block;background-color:#ffffff;padding:3px;box-sizing:border-box;vertical-align:middle;margin-right:12px;border:2px solid rgba(255,255,255,0.25);" />`
-                : ""}
+                ? `<img src="${escapeHtml(siteLogo)}" alt="${escapeHtml(siteName)}" width="72" height="72" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block;max-width:72px;max-height:72px;background-color:#ffffff;padding:3px;box-sizing:border-box;border:2px solid rgba(255,255,255,0.25);" />`
+                : `<div style="width:72px;height:72px;border-radius:50%;background-color:#ffffff;padding:3px;margin:0 auto;"><div style="width:100%;height:100%;border-radius:50%;background-color:#0f172a;border:2px solid rgba(255,255,255,0.25);"></div></div>`}
               <div style="display:inline-block;vertical-align:middle;text-align:left;">
                 <h1 style="margin:0;color:#ffffff;font-size:20px;letter-spacing:0.5px;">${escapeHtml(siteName)}</h1>
                 ${contactsHtml}
@@ -254,11 +303,12 @@ export const buildNewArrivalEmail = ({
   siteName,
   product,
   productUrl,
+  productImageFallback,
 }) => {
   const title = escapeHtml(product.title || "Nouveau produit");
   const price = escapeHtml(product.prix || "");
   const category = escapeHtml(product.category || "");
-  const image = product.img || "";
+  const image = safeImageUrl(getProductImageUrl(product), productImageFallback || DEFAULT_PRODUCT_IMAGE);
   const url = productUrl || "#";
 
   const contentHtml = `
@@ -330,24 +380,34 @@ export const buildOrderConfirmationEmail = ({
 };
 
 // Lignes d'articles d'une commande (format HTML), réutilisées par les templates.
+// Pour afficher l'image produit dans les emails de commande, il faut que
+// order.items[].image (ou .productImage) soit un URL public ; sinon, un
+// fallback générique est utilisé.
 export const buildOrderItemsHtml = (items) =>
   (items || [])
     .map(
-      (item) => `
+      (item) => {
+        const image = safeImageUrl(item.image || item.productImage || "", DEFAULT_PRODUCT_IMAGE);
+        return `
       <tr>
+        <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155;width:80px;">
+          ${image ? `<img src="${escapeHtml(image)}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;" />` : ""}
+        </td>
         <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155;">
           ${escapeHtml(item.name || "")} <span style="color:#94a3b8;">× ${escapeHtml(item.quantity || 1)}</span>
         </td>
         <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155;text-align:right;">
           ${escapeHtml(item.priceLabel || "")}
         </td>
-      </tr>`,
+      </tr>`;
+      },
     )
     .join("");
 
 // ---------------------------------------------------------------------------
 // Template : expédition de commande (au livreur / préparateur)
 // ---------------------------------------------------------------------------
+
 export const buildShippingAssignmentEmail = ({
   siteName,
   toName,
@@ -398,6 +458,8 @@ export const buildAdminAlertEmail = ({ siteName, subject, message }) => {
       <strong>${escapeHtml(subject || "Alerte")}</strong>
     </p>
     ${infoBox({ bg: "#fffbeb", border: "#fde68a", color: "#92400e", html: escapeHtml(message || "").replace(/\n/g, "<br/>") })}
+    <p style="margin:0 0 8px;color:#0f172a;font-size:14px;font-weight:bold;">Informations client :</p>
+    ${message ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:8px 0 14px;"><tr><td style="padding:10px 16px;font-size:14px;color:#334155;white-space:pre-line;">${escapeHtml(message || "")}</td></tr></table>` : ""}
     <p style="margin:0;color:#64748b;font-size:13px;">
       Connectez-vous à l'administration pour traiter cet événement.
     </p>

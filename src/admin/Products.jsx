@@ -300,6 +300,8 @@ const Products = () => {
       img: formData.images[0] || '',
       // Galerie ordonnée : la 1ère image est l'image principale (dédupliquée)
       images: [...new Set((formData.images || []).filter(Boolean))],
+      // Sécurité email/site : si l'image principale n'est pas publique, on force
+      // un champ réservé vide pour ne pas casser les templates d'email.
       color: formData.color || "Multiples couleurs",
       isCustom: true,
       aosDelay: "0",

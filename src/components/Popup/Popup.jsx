@@ -180,6 +180,8 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
             name: item.name,
             quantity: item.quantity,
             priceLabel: getFormattedPrice(item.price * item.quantity),
+            image: item.image || "",
+            productImage: item.image || "",
           })),
         );
         await sendEmail({

@@ -514,6 +514,10 @@ const Settings = () => {
                           src={formData.siteLogo}
                           alt="Aperçu du logo"
                           className="w-12 h-12 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                          }}
                         />
                       )}
                       <input
@@ -527,6 +531,11 @@ const Settings = () => {
                     <p className="text-xs text-gray-500 mt-1">
                       Ce logo est utilisé dans la barre de navigation et dans l'espace admin (utilisateurs).
                     </p>
+                    {formData.siteLogo && !/^(https?:)?\/\//i.test(formData.siteLogo) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        ⚠️ Ce logo ressemble à une URL relative. Pour que l'image s'affiche dans les emails, remplacez-le par une URL publique (par exemple une adresse commençant par https://) ou laissez le champ vide.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Slogan / tagline</label>

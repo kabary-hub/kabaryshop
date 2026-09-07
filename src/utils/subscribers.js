@@ -153,6 +153,21 @@ export const notifySubscribersNewProduct = async (product) => {
     subject: `🛍️ Nouveau produit : ${product.title || "Nouveauté"}`,
     html: buildNewArrivalEmail({ siteName, product, productUrl }),
   };
+  if (false && typeof window !== "undefined") {
+    console.info(
+      "[subscribers] buildNewArrivalEmail preview URLs:",
+      "siteLogo:",
+      (() => {
+        try {
+          return JSON.parse(localStorage.getItem('kabary_settings') || '{}');
+        } catch {
+          return {};
+        }
+      })().siteLogo || "(vide)",
+      "productImage:",
+      getProductImageUrl(product) || "(vide)"
+    );
+  }
 
   await sendToEachSubscriber(baseParams, subscribers);
 };
@@ -226,7 +241,7 @@ export const sendTestNewArrivalsEmail = async ({
     title: "Produit de démonstration",
     prix: "150 000 GNF",
     category: "Femmes",
-    img: "https://picsum.photos/300/400",
+    img: "https://kabaryshop.vercel.app/logo2.png",
     id: "test-demo",
   };
 

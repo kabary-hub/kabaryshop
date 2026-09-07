@@ -147,16 +147,49 @@ export const markAlertRead = (alertId) => {
 export const sendAdminEmail = async ({
   subject = "Alerte",
   message = "",
+  customer = {},
+  orderItems = [],
+  total = 0,
   extra = {},
 }) => {
   const siteName = getSiteName();
   const adminEmail = getAdminEmail();
   const fullSubject = `${subject}${extra.order_reference ? ` · ${extra.order_reference}` : ""}`;
+
+    const customerLines = [
+    `👤 Nom : ${customer.name || "—"}`,
+    `📞 Téléphone : ${customer.phone || "—"}`,
+    `🏘️ Quartier / adresse : ${customer.address || "—"}`,
+    `✉️ Email : ${customer.email || "non fourni"}`,
+  ].filter(Boolean).join("\n");
+
+  const itemsLines =
+      (orderItems || []).length > 0
+        ? [``].concat(
+            (orderItems || []).map((i) =>
+              `- ${i.name} x${i.quantity}${i.id ? ` (ID: ${i.id})` : ""}`,
+            ),
+          )
+        : [];
+
+  const messageBody = [
+    message,
+    ``,
+    `--- Informations client ---`,
+    customerLines,
+    ``,
+    `--- Détails commande ---`,
+    `Montant total : ${(total || 0).toLocaleString()} GNF`,
+    itemsLines.length > 0
+      ? `Articles (${(orderItems || []).length})` + itemsLines.join("\n")
+      : ``,
+  ].filter(Boolean).join("\n").trim();
+
   const res = await sendEmail({
     to: adminEmail,
     fromName: siteName,
     subject: fullSubject,
-    html: buildAdminAlertEmail({ siteName, subject, message }),
+    html: buildAdminAlertEmail({ siteName, subject, message: messageBody }),
   });
   if (res.ok) {
     return { ok: true, message: `Email envoyé à ${adminEmail} ✅` };
@@ -180,7 +213,8 @@ const isChannelEnabled = (channel, defaultValue = true) => {
 // Alerte sur nouvelle commande : cloche admin + push + email
 export const notifyNewOrder = (order) => {
   const orderRef = order.reference || `CMD-${order.id}`;
-  const customerName = order.customer?.name || "Client";
+  const customer = order.customer || {};
+  const customerName = customer.name || "Client";
   const total = order.total || 0;
 
   // 1) Toujours : alerte in-app (cloche admin)
@@ -201,18 +235,16 @@ export const notifyNewOrder = (order) => {
 
   // 3) Email admin (si activé dans Paramètres)
   if (isChannelEnabled("email", true)) {
-    const items =
-      order.items && order.items.length
-        ? order.items
-            .map(
-              (i) =>
-                `- ${i.name} x${i.quantity}${i.id ? ` (ID: ${i.id})` : ""}`
-            )
-            .join("\n")
-        : "";
     sendAdminEmail({
       subject: `Nouvelle commande ${orderRef}`,
-      message: `${customerName} vient de passer commande.\nRéférence : ${orderRef}\nTotal : ${total.toLocaleString()} GNF\n\n${items}`,
+      customer,
+      orderItems: (order?.items || []).map((item) => ({
+        ...item,
+        image: item.image || item.productImage || "",
+        productImage: item.image || item.productImage || "",
+      })),
+      total,
+      extra: { order_reference: orderRef },
     });
   }
 };
@@ -256,7 +288,17 @@ export const sendTestNotification = async () => {
     const res = await sendAdminEmail({
       subject: "Test de notification",
       message: "Ceci est un email de test envoyé depuis les paramètres.",
+      customer: {
+        name: "Test Client",
+        phone: "224 123 456 789",
+        address: "Quartier test, Conakry",
+        email: "test@example.com",
+      },
+      total: 0,
+      orderItems: [],
     });
+    // La fonction sendAdminEmail construit désormais le corps avec les informations
+    // client et détails commande, même lors d'un test.
     results.push({ ok: res.ok, message: res.ok ? "Email de test envoyé ✅" : res.message });
   } else {
     results.push({ ok: true, message: "Email désactivé dans les paramètres (canal ignoré)." });
