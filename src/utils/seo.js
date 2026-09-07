@@ -3,9 +3,10 @@
 // <title>, sa meta description et sa canonical URL (important pour
 // apparaître dans les résultats de recherche Google/Bing).
 
-// Domaine gratuit actuel (fourni par Vercel).
-// Quand kabaryshop.com sera acheté, remplacer par "https://kabaryshop.com".
-const getBaseUrl = () => "https://kabaryshop.vercel.app";
+// URL de base du site (configurable via VITE_BASE_URL dans .env).
+// Fallback : le domaine actuel sur Vercel.
+const getBaseUrl = () =>
+  import.meta.env?.VITE_BASE_URL || "https://kabaryshop.vercel.app";
 
 // Met à jour le <title> du document.
 export const setPageTitle = (title) => {

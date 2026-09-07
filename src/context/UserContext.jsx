@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- contexte React : un
    Provider (composant) + un hook useUsers() dans le même fichier. */
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useCallback } from 'react';
 
 const UserContext = createContext();
 
@@ -50,6 +50,26 @@ export const UserProvider = ({ children }) => {
   });
   const [loading] = useState(false);
 
+  // Obtenir l'avatar selon le rôle (déclaré avant addUser/updateUser qui l'utilisent)
+  const getAvatarByRole = (role) => {
+    const avatars = {
+      admin: '👨\u200D💼',
+      livreur: '🚚',
+      preparateur: '📦'
+    };
+    return avatars[role] || '👤';
+  };
+
+  // Obtenir le libellé du rôle
+  const getRoleLabel = (role) => {
+    const labels = {
+      admin: 'Administrateur',
+      livreur: 'Livreur',
+      preparateur: 'Préparateur'
+    };
+    return labels[role] || role;
+  };
+
   // Sauvegarder l'utilisateur connecté
   const saveCurrentUser = (user) => {
     setCurrentUser(user);
@@ -57,19 +77,23 @@ export const UserProvider = ({ children }) => {
   };
 
   // Ajouter un utilisateur
-  const addUser = (userData) => {
-    const newUser = {
-      id: users.length + 1,
-      ...userData,
-      avatar: getAvatarByRole(userData.role),
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-    return newUser;
-  };
+  const addUser = useCallback((userData) => {
+    // ID unique : timestamp + aléatoire pour éviter les collisions
+    const newId = Date.now() + Math.floor(Math.random() * 1000);
+    setUsers(prev => {
+      const newUser = {
+        id: newId,
+        ...userData,
+        avatar: getAvatarByRole(userData.role),
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+      const updatedUsers = [...prev, newUser];
+      localStorage.setItem('app_users', JSON.stringify(updatedUsers));
+      return updatedUsers;
+    });
+    return newId;
+  }, []);
 
   // Modifier un utilisateur
   const updateUser = (userId, userData) => {
@@ -97,26 +121,6 @@ export const UserProvider = ({ children }) => {
   // Changer le rôle d'un utilisateur
   const changeUserRole = (userId, newRole) => {
     updateUser(userId, { role: newRole });
-  };
-
-  // Obtenir l'avatar selon le rôle
-  const getAvatarByRole = (role) => {
-    const avatars = {
-      admin: '👨‍💼',
-      livreur: '🚚',
-      preparateur: '📦'
-    };
-    return avatars[role] || '👤';
-  };
-
-  // Obtenir le libellé du rôle
-  const getRoleLabel = (role) => {
-    const labels = {
-      admin: 'Administrateur',
-      livreur: 'Livreur',
-      preparateur: 'Préparateur'
-    };
-    return labels[role] || role;
   };
 
   return (

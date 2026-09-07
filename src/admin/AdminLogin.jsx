@@ -15,6 +15,7 @@ import {
   isStaffLoggedIn,
 } from '../utils/auth';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
+import { checkRateLimit, recordFailedAttempt, resetRateLimit } from '../utils/rateLimit';
 import {
   getSupabase,
   ensureSupabaseAuth,
@@ -22,7 +23,7 @@ import {
   AUTH_EVENT,
 } from '../services/db';
 
-// Clés de session pour la 2FA
+// Clés de session pour la 2FA (stockées dans sessionStorage pour la sécurité)
 const PENDING_KEY = 'admin_2fa_pending';
 const CODE_KEY = 'admin_2fa_code';
 const CODE_EXPIRY_KEY = 'admin_2fa_expiry';
@@ -93,21 +94,32 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   const twoFactorEnabled = !!settings.security?.twoFactor;
-  const adminEmail = settings.adminEmail || settings.siteEmail || 'boubacarelbalde94@gmail.com';
+  const adminEmail = settings.adminEmail || settings.siteEmail || '';
   const siteName = settings.siteName || 'Kabary Shop';
 
+  // Rate limiting : état du blocage
+  const [rateLimitInfo, setRateLimitInfo] = useState(() => checkRateLimit());
+
+  // Vérifier le rate limiting au montage et toutes les 10 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRateLimitInfo(checkRateLimit());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Récupérer le mot de passe stocké dans localStorage
-  // (admin figé dans le code : mot de passe initial Diaraye@620,
-  // modifiable ensuite dans Admin > Paramètres > Sécurité)
+  // Pas de mot de passe par défaut : si rien n'est stocké, l'admin doit
+  // d'abord en configurer un (la premiere connexion se fait via le mot
+  // de passe Supabase Auth).
   const getStoredPassword = () => {
-    const storedPassword = localStorage.getItem('admin_password');
-    return storedPassword || 'Diaraye@620'; // Valeur par défaut si rien n'est stocké
+    return localStorage.getItem('admin_password') || '';
   };
 
   const clean2FA = () => {
-    localStorage.removeItem(CODE_KEY);
-    localStorage.removeItem(CODE_EXPIRY_KEY);
-    localStorage.removeItem(CODE_DELIVERY_KEY);
+    sessionStorage.removeItem(CODE_KEY);
+    sessionStorage.removeItem(CODE_EXPIRY_KEY);
+    sessionStorage.removeItem(CODE_DELIVERY_KEY);
     sessionStorage.removeItem(PENDING_KEY);
   };
 
@@ -116,8 +128,8 @@ const AdminLogin = () => {
     const codeValue = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = Date.now() + 5 * 60 * 1000; // valide 5 minutes
 
-    localStorage.setItem(CODE_KEY, codeValue);
-    localStorage.setItem(CODE_EXPIRY_KEY, String(expiry));
+    sessionStorage.setItem(CODE_KEY, codeValue);
+    sessionStorage.setItem(CODE_EXPIRY_KEY, String(expiry));
 
     let delivery = 'demo';
     const res = await sendEmail({
@@ -132,7 +144,7 @@ const AdminLogin = () => {
       // Envoi du code 2FA impossible → repli sur le code démo affiché
     }
 
-    localStorage.setItem(CODE_DELIVERY_KEY, delivery);
+    sessionStorage.setItem(CODE_DELIVERY_KEY, delivery);
 
     return {
       code: codeValue,
@@ -282,6 +294,14 @@ const AdminLogin = () => {
     e.preventDefault();
     setError('');
 
+    // ===== Rate limiting : vérifier si l'utilisateur est bloqué =====
+    const rl = checkRateLimit();
+    setRateLimitInfo(rl);
+    if (rl.blocked) {
+      setError(`Trop de tentatives échouées. Réessayez dans ${Math.ceil(rl.remainingSeconds / 60)} minute(s).`);
+      return;
+    }
+
     const trimmedEmail = email.trim().toLowerCase();
 
     // ====================================================================
@@ -290,17 +310,13 @@ const AdminLogin = () => {
     if (trimmedEmail === adminEmail.toLowerCase()) {
       const storedPassword = getStoredPassword();
 
-      // Le mot de passe admin doit respecter la règle 8-15 caractères
-      if (storedPassword && !isValidPassword(storedPassword)) {
-        setError(PASSWORD_ERROR_MESSAGE);
-        return;
-      }
-
-      if (password !== storedPassword) {
-        // Repli : le mot de passe cloud (Supabase Auth) peut être différent
-        // si l'admin a changé son mot de passe sur un autre appareil.
+      // Si aucun mot de passe n'est configuré localement, on tente Supabase Auth
+      // (première connexion ou appareil neuf)
+      if (!storedPassword) {
         const res = await ensureSupabaseAuth(trimmedEmail, password);
         if (!res.ok) {
+          recordFailedAttempt();
+          setRateLimitInfo(checkRateLimit());
           setError('Email ou mot de passe incorrect');
           logActivity({
             type: 'auth',
@@ -310,20 +326,49 @@ const AdminLogin = () => {
           });
           return;
         }
+        // Sauvegarder le mot de passe localement pour les prochaines connexions
+        localStorage.setItem('admin_password', password);
+        resetRateLimit();
+        setRateLimitInfo(checkRateLimit());
+        await completeAdminLogin(null);
+        return;
+      }
+
+      // Le mot de passe admin doit respecter la règle 8-15 caractères
+      if (!isValidPassword(storedPassword)) {
+        setError(PASSWORD_ERROR_MESSAGE);
+        return;
+      }
+
+      if (password !== storedPassword) {
+        // Repli : le mot de passe cloud (Supabase Auth) peut être différent
+        // si l'admin a changé son mot de passe sur un autre appareil.
+        const res = await ensureSupabaseAuth(trimmedEmail, password);
+        if (!res.ok) {
+          recordFailedAttempt();
+          setRateLimitInfo(checkRateLimit());
+          setError('Email ou mot de passe incorrect');
+          logActivity({
+            type: 'auth',
+            action: 'échec de connexion',
+            subject: email || 'Inconnu',
+            details: 'Tentative de connexion admin avec identifiants incorrects',
+          });
+          return;
+        }
+        resetRateLimit();
+        setRateLimitInfo(checkRateLimit());
         await completeAdminLogin(null);
         return;
       }
 
       // Mot de passe local correct → 2FA si activée, puis connexion.
-      // Active aussi la session cloud (compte créé automatiquement si besoin).
-      // On ATTEND la session Supabase Auth : sans elle, les données
-      // sensibles (utilisateurs, logs…) ne seraient PAS synchronisées entre
-      // les ordinateurs (poussée refusée par la politique RLS).
+      resetRateLimit();
+      setRateLimitInfo(checkRateLimit());
       const cloudSession = await ensureSupabaseAuth(trimmedEmail, password);
       if (cloudSession && !cloudSession.ok) {
         // Session cloud non établie — la synchronisation multi-appareils des
         // données admin (utilisateurs, logs…) restera inactive sur cet appareil.
-        // Sans notification bloquante : la connexion admin fonctionne quand même.
       }
       await completeAdminLogin(findAppUser());
       return;
@@ -360,6 +405,8 @@ const AdminLogin = () => {
       }
 
       if (password !== foundUser.password) {
+        recordFailedAttempt();
+        setRateLimitInfo(checkRateLimit());
         setError('Email ou mot de passe incorrect');
         logActivity({
           type: 'auth',
@@ -371,9 +418,9 @@ const AdminLogin = () => {
       }
 
       // Rôle admin → espace admin
-      // (session cloud attendue : nécessaire pour synchroniser les données
-      //  sensibles entre les appareils — cf. branche admin principal)
       if (foundUser.role === 'admin') {
+        resetRateLimit();
+        setRateLimitInfo(checkRateLimit());
         await ensureSupabaseAuth(trimmedEmail, password);
         await completeAdminLogin(foundUser);
         return;
@@ -394,11 +441,10 @@ const AdminLogin = () => {
       }
 
       // Livreur / préparateur → espace staff
-      // (session cloud attendue : nécessaire pour synchroniser les données)
+      resetRateLimit();
+      setRateLimitInfo(checkRateLimit());
       await ensureSupabaseAuth(trimmedEmail, password);
       setStaffSession(foundUser.id);
-      // Session active sur cet onglet (les visites du site public seront
-      // attribuées à cet utilisateur staff plutôt qu'à un visiteur).
       sessionStorage.setItem('kabary_admin_session', '1');
       logActivity({
         type: 'auth',
@@ -424,6 +470,8 @@ const AdminLogin = () => {
         password,
       });
       if (authError) {
+        recordFailedAttempt();
+        setRateLimitInfo(checkRateLimit());
         const msg = String(authError.message || '');
         if (/blocked|disabled|banned/i.test(msg)) {
           setError('Ce compte est bloqué. Contactez l\'administrateur.');
@@ -441,11 +489,12 @@ const AdminLogin = () => {
         return;
       }
 
-      // Déclenche le rechargement des données sensibles (app_users,
-      // commandes, logs…) maintenant que la session Supabase est active.
+      resetRateLimit();
+      setRateLimitInfo(checkRateLimit());
+
+      // Déclenche le rechargement des données sensibles
       window.dispatchEvent(new Event(AUTH_EVENT));
 
-      // Connecté → récupère la fiche du compte depuis le nuage
       const cloudUsers = await fetchCloudAppUsers();
       const cloudUser = (cloudUsers || []).find(
         (u) => (u.email || '').trim().toLowerCase() === trimmedEmail,
@@ -465,7 +514,6 @@ const AdminLogin = () => {
         return;
       }
 
-      // Mémorise les utilisateurs localement pour les prochaines visites
       try {
         const existing = JSON.parse(localStorage.getItem('app_users') || '[]');
         const merged = [
@@ -485,16 +533,16 @@ const AdminLogin = () => {
       if (cloudUser.role === 'livreur' || cloudUser.role === 'preparateur') {
         setStaffSession(cloudUser.id);
         sessionStorage.setItem('kabary_admin_session', '1');
-      logActivity({
-        type: 'auth',
-        action: 'connexion',
-        subject: cloudUser.name,
-        details: `Connexion réussie à l'espace ${cloudUser.role === 'livreur' ? 'livreur' : 'préparateur'} (nouvel appareil)`,
-        actor: { name: cloudUser.name, role: cloudUser.role },
-      });
-      resetForm();
-      navigate('/staff/orders');
-      return;
+        logActivity({
+          type: 'auth',
+          action: 'connexion',
+          subject: cloudUser.name,
+          details: `Connexion réussie à l'espace ${cloudUser.role === 'livreur' ? 'livreur' : 'préparateur'} (nouvel appareil)`,
+          actor: { name: cloudUser.name, role: cloudUser.role },
+        });
+        resetForm();
+        navigate('/staff/orders');
+        return;
       }
 
       setError('Ce compte est un compte client « Utilisateur » : il n\'a pas accès à l\'espace admin ou staff.');
@@ -502,6 +550,8 @@ const AdminLogin = () => {
     }
 
     // ---- Supabase non configuré : aucune autre source d'identité ----
+    recordFailedAttempt();
+    setRateLimitInfo(checkRateLimit());
     setError('Email ou mot de passe incorrect');
     logActivity({
       type: 'auth',
@@ -531,8 +581,8 @@ const AdminLogin = () => {
     e.preventDefault();
     setCodeError('');
 
-    const savedCode = localStorage.getItem(CODE_KEY);
-    const expiry = Number(localStorage.getItem(CODE_EXPIRY_KEY) || 0);
+    const savedCode = sessionStorage.getItem(CODE_KEY);
+    const expiry = Number(sessionStorage.getItem(CODE_EXPIRY_KEY) || 0);
 
     if (!savedCode || Date.now() > expiry) {
       setCodeError('Code expiré. Demandez un nouveau code.');
@@ -706,6 +756,11 @@ const AdminLogin = () => {
             </div>
           </div>
 
+          {rateLimitInfo.blocked && !error && (
+            <div className="p-3 bg-amber-100 text-amber-700 text-sm rounded-lg">
+              ⏳ Trop de tentatives. Réessayez dans {Math.ceil(rateLimitInfo.remainingSeconds / 60)} minute(s).
+            </div>
+          )}
           {error && (
             <div className="p-3 bg-red-100 text-red-700 text-sm rounded-lg">
               {error}
@@ -714,7 +769,7 @@ const AdminLogin = () => {
 
           <button
             type="submit"
-            disabled={sending}
+            disabled={sending || rateLimitInfo.blocked}
             className="w-full bg-primary hover:bg-secondary text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             {sending ? (

@@ -130,7 +130,6 @@ export const runDataMigrations = () => {
       } else {
         clearMigrationReport();
       }
-      console.info("[migration] shop_orders_v1 appliquée :", report);
     }
   }
 };

@@ -14,43 +14,46 @@
 import { Resend } from 'resend';
 
 export default async function handler(req, res) {
-  // Seules les requêtes POST sont acceptées
-  if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, message: 'Méthode non autorisée' });
-  }
-
-  // Protection simple : le site doit envoyer la clé partagée (si configurée)
-  const sendKey = process.env.SEND_API_KEY;
-  if (sendKey && req.headers['x-send-key'] !== sendKey) {
-    return res.status(401).json({ ok: false, message: 'Clé d\'envoi invalide' });
-  }
-
-  const body = req.body || {};
-  const { to, subject, html, fromName = '' } = body;
-
-  // Validation des champs
-  if (!to || !subject || !html) {
-    return res.status(400).json({
-      ok: false,
-      message: 'Destinataire, sujet ou contenu manquant.',
-    });
-  }
-  if (typeof to !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
-    return res.status(400).json({ ok: false, message: 'Adresse email invalide.' });
-  }
-  if (typeof html !== 'string' || html.length > 200000) {
-    return res.status(400).json({ ok: false, message: 'Contenu trop volumineux.' });
-  }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({
-      ok: false,
-      message: 'RESEND_API_KEY non configurée sur Vercel.',
-    });
-  }
+  // En-têtes par défaut pour garantir une réponse JSON, même en cas d'erreur.
+  res.setHeader('Content-Type', 'application/json');
 
   try {
+    // Seules les requêtes POST sont acceptées
+    if (req.method !== 'POST') {
+      return res.status(405).json({ ok: false, message: 'Méthode non autorisée' });
+    }
+
+    // Protection simple : le site doit envoyer la clé partagée (si configurée)
+    const sendKey = process.env.SEND_API_KEY;
+    if (sendKey && req.headers['x-send-key'] !== sendKey) {
+      return res.status(401).json({ ok: false, message: 'Clé d\'envoi invalide' });
+    }
+
+    const body = req.body || {};
+    const { to, subject, html, fromName = '' } = body;
+
+    // Validation des champs
+    if (!to || !subject || !html) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Destinataire, sujet ou contenu manquant.',
+      });
+    }
+    if (typeof to !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return res.status(400).json({ ok: false, message: 'Adresse email invalide.' });
+    }
+    if (typeof html !== 'string' || html.length > 200000) {
+      return res.status(400).json({ ok: false, message: 'Contenu trop volumineux.' });
+    }
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        ok: false,
+        message: 'RESEND_API_KEY non configurée sur Vercel. Ajoutez-la dans Vercel → Settings → Environment Variables.',
+      });
+    }
+
     const resend = new Resend(apiKey);
 
     // Expéditeur : EMAIL_FROM si défini, sinon l'adresse de test Resend

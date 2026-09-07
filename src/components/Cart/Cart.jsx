@@ -29,6 +29,7 @@ const Cart = () => {
           <button 
             onClick={closeCart} 
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            aria-label="Fermer le panier"
           >
             <X size={20} />
           </button>
@@ -66,6 +67,7 @@ const Cart = () => {
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                        aria-label="Diminuer la quantité"
                       >
                         <Minus size={14} />
                       </button>
@@ -73,12 +75,14 @@ const Cart = () => {
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                        aria-label="Augmenter la quantité"
                       >
                         <Plus size={14} />
                       </button>
                       <button
                         onClick={() => removeFromCart(item.id)}
                         className="p-1 hover:bg-red-100 rounded ml-auto text-red-500 transition-colors"
+                        aria-label="Supprimer du panier"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -115,6 +119,7 @@ const Cart = () => {
             <button
               onClick={clearCart}
               className="w-full mt-2 border py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
+              aria-label="Vider le panier"
             >
               Vider le panier
             </button>

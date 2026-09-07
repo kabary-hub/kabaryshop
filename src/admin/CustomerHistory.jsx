@@ -141,7 +141,7 @@ const CustomerHistory = ({ customer, orders = [], archivedOrders = [], onClose }
     const siteLogo = getSiteLogo();
     const logoUrl =
       siteLogo && !/^(https?:)?\/\//i.test(siteLogo)
-        ? `${(typeof window !== "undefined" && window.location?.origin) || "https://kabaryshop.vercel.app"}${siteLogo.startsWith("/") ? siteLogo : `/${siteLogo}`}`
+        ? `${(typeof window !== "undefined" && window.location?.origin) || import.meta.env?.VITE_BASE_URL || "https://kabaryshop.vercel.app"}${siteLogo.startsWith("/") ? siteLogo : `/${siteLogo}`}`
         : siteLogo;
     const siteName = getSiteName();
     const contacts = getSiteContacts();
