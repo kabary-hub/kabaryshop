@@ -1,91 +1,166 @@
 // src/utils/rateLimit.js
-// Limitation du nombre de tentatives de connexion (anti brute-force).
-//
-// Règle : MAX_ATTEMPTS tentatives échouées dans une fenêtre de WINDOW_MS
-// → blocage de BLOCK_MS millisecondes.
-// Le compteur est réinitialisé après une connexion réussie.
+// Rate limiting simple basé sur localStorage pour prévenir le spam
 
-const STORAGE_KEY = "login_rate_limit";
+const RATE_LIMITS = {
+  order: {
+    maxRequests: 3,
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    key: 'rate_limit_order',
+  },
+  newsletter: {
+    maxRequests: 3,
+    windowMs: 24 * 60 * 60 * 1000, // 24 heures
+    key: 'rate_limit_newsletter',
+  },
+  contact: {
+    maxRequests: 5,
+    windowMs: 60 * 60 * 1000, // 1 heure
+    key: 'rate_limit_contact',
+  },
+  emailTest: {
+    maxRequests: 3,
+    windowMs: 60 * 60 * 1000, // 1 heure
+    key: 'rate_limit_email_test',
+  },
+};
 
-const MAX_ATTEMPTS = 5;       // nombre max de tentatives
-const WINDOW_MS = 5 * 60 * 1000;  // fenêtre de 5 minutes
-const BLOCK_MS = 5 * 60 * 1000;   // blocage de 5 minutes
-
-// Lit l'état du rate limit depuis localStorage
-const getState = () => {
+// Stockage des timestamps des requêtes
+const getRequestLog = (key) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { attempts: [], blockedUntil: 0 };
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
   } catch {
-    return { attempts: [], blockedUntil: 0 };
+    return [];
   }
 };
 
-// Sauvegarde l'état
-const saveState = (state) => {
+const saveRequestLog = (key, timestamps) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(key, JSON.stringify(timestamps));
   } catch {
-    // stockage indisponible
+    // localStorage indisponible
   }
 };
 
-// Vérifie si l'utilisateur est actuellement bloqué
-// Retourne { blocked: boolean, remainingSeconds: number }
-export const checkRateLimit = () => {
-  const state = getState();
-  const now = Date.now();
+export const checkRateLimit = (type) => {
+  const config = RATE_LIMITS[type];
+  if (!config) {
+    return { allowed: true, reason: null };
+  }
 
-  // Si bloqué et la fenêtre de blocage n'est pas expirée
-  if (state.blockedUntil > now) {
+  const now = Date.now();
+  const timestamps = getRequestLog(config.key);
+
+  // Filtrer les timestamps hors de la fenêtre
+  const recentTimestamps = timestamps.filter((ts) => now - ts < config.windowMs);
+
+  if (recentTimestamps.length >= config.maxRequests) {
+    const oldestInWindow = recentTimestamps[0];
+    const retryAfter = Math.ceil((config.windowMs - (now - oldestInWindow)) / 1000);
     return {
-      blocked: true,
-      remainingSeconds: Math.ceil((state.blockedUntil - now) / 1000),
+      allowed: false,
+      reason: `Limite atteinte. Réessayez dans ${retryAfter} secondes.`,
+      retryAfter,
+      resetAt: oldestInWindow + config.windowMs,
     };
   }
 
-  // Nettoyer les tentatives hors de la fenêtre
-  const recentAttempts = (state.attempts || []).filter(
-    (t) => now - t < WINDOW_MS
-  );
+  // Ajouter le timestamp actuel
+  recentTimestamps.push(now);
+  saveRequestLog(config.key, recentTimestamps);
 
-  if (recentAttempts.length >= MAX_ATTEMPTS) {
-    // Blocage : première détection du dépassement
-    const newState = {
-      attempts: recentAttempts,
-      blockedUntil: now + BLOCK_MS,
-    };
-    saveState(newState);
-    return {
-      blocked: true,
-      remainingSeconds: Math.ceil(BLOCK_MS / 1000),
-    };
-  }
-
-  return { blocked: false, remainingSeconds: 0 };
-};
-
-// Enregistre une tentative échouée
-export const recordFailedAttempt = () => {
-  const state = getState();
-  const now = Date.now();
-
-  // Si déjà bloqué, on ne fait rien de plus
-  if (state.blockedUntil > now) return;
-
-  const recentAttempts = (state.attempts || []).filter(
-    (t) => now - t < WINDOW_MS
-  );
-  recentAttempts.push(now);
-
-  const newState = {
-    attempts: recentAttempts,
-    blockedUntil: recentAttempts.length >= MAX_ATTEMPTS ? now + BLOCK_MS : 0,
+  const remaining = config.maxRequests - recentTimestamps.length;
+  return {
+    allowed: true,
+    remaining,
+    resetAt: now + config.windowMs,
   };
-  saveState(newState);
 };
 
-// Réinitialise le compteur après une connexion réussie
-export const resetRateLimit = () => {
-  saveState({ attempts: [], blockedUntil: 0 });
+export const resetRateLimit = (type) => {
+  const config = RATE_LIMITS[type];
+  if (config) {
+    saveRequestLog(config.key, []);
+  }
+};
+
+// Enregistrer un échec pour le rate limiting global (utilisé pour AdminLogin)
+export const recordFailedAttempt = () => {
+  const key = 'rate_limit_admin_login';
+  const maxAttempts = 5;
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  
+  try {
+    const stored = localStorage.getItem(key);
+    const timestamps = stored ? JSON.parse(stored) : [];
+    const now = Date.now();
+    
+    // Garder uniquement les timestamps dans la fenêtre
+    const recentTimestamps = timestamps.filter((ts) => now - ts < windowMs);
+    recentTimestamps.push(now);
+    
+    saveRequestLog(key, recentTimestamps);
+    
+    return {
+      allowed: recentTimestamps.length <= maxAttempts,
+      remaining: Math.max(0, maxAttempts - recentTimestamps.length),
+      blocked: recentTimestamps.length > maxAttempts,
+    };
+  } catch {
+    return { allowed: true, remaining: maxAttempts, blocked: false };
+  }
+};
+
+export const resetAdminLoginRateLimit = () => {
+  saveRequestLog('rate_limit_admin_login', []);
+};
+
+export const getRateLimitInfo = (type) => {
+  const config = RATE_LIMITS[type];
+  if (!config) {
+    return null;
+  }
+
+  const timestamps = getRequestLog(config.key);
+  const now = Date.now();
+  const recentTimestamps = timestamps.filter((ts) => now - ts < config.windowMs);
+
+  return {
+    type,
+    maxRequests: config.maxRequests,
+    windowMs: config.windowMs,
+    currentRequests: recentTimestamps.length,
+    remaining: config.maxRequests - recentTimestamps.length,
+    resetAt: recentTimestamps.length > 0
+      ? recentTimestamps[0] + config.windowMs
+      : now + config.windowMs,
+  };
+};
+
+// Hook React pour utiliser le rate limiting dans les composants
+export const useRateLimit = (type) => {
+  const [info, setInfo] = React.useState(() => getRateLimitInfo(type));
+
+  const check = () => {
+    const result = checkRateLimit(type);
+    setInfo({
+      type,
+      maxRequests: RATE_LIMITS[type].maxRequests,
+      windowMs: RATE_LIMITS[type].windowMs,
+      currentRequests: RATE_LIMITS[type].maxRequests - result.remaining,
+      remaining: result.remaining,
+      resetAt: result.resetAt,
+      allowed: result.allowed,
+      reason: result.reason,
+      retryAfter: result.retryAfter,
+    });
+    return result;
+  };
+
+  const reset = () => {
+    resetRateLimit(type);
+    setInfo(getRateLimitInfo(type));
+  };
+
+  return { check, reset, info };
 };

@@ -10,6 +10,20 @@ import { runDataMigrations } from './utils/migrations';
 // rendu : l'interface ne lit jamais de données corrompues.
 runDataMigrations();
 
+// Enregistrement du Service Worker PWA (hors-ligne partiel)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        console.log('SW enregistré avec succès:', registration.scope);
+      })
+      .catch((error) => {
+        console.warn('SW échec d\'enregistrement:', error);
+      });
+  });
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

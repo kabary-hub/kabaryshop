@@ -39,6 +39,14 @@ const NotFound = lazy(() => import("./Pages/NotFound"));
 // réglage comingSoon est actif (bascule depuis Admin → sidebar).
 const ComingSoon = lazy(() => import("./Pages/ComingSoon"));
 
+// Pages légales
+const Terms = lazy(() => import("./pages/Legal/Terms"));
+const Privacy = lazy(() => import("./pages/Legal/Privacy"));
+const Returns = lazy(() => import("./pages/Legal/Returns"));
+
+// Suivi de commande public
+const TrackOrder = lazy(() => import("./pages/TrackOrder"));
+
 // Importation des composants admin (chargés à la demande aussi)
 const AdminLayout = lazy(() => import("./admin/AdminLayout"));
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
@@ -407,6 +415,14 @@ const App = () => {
 
               {/* Page détail produit */}
               <Route path="/produit/:id" element={<LazyPage><ProductDetail handleOrder={handleOrder} /></LazyPage>} />
+
+              {/* Pages légales */}
+              <Route path="/cgv" element={<LazyPage><Terms /></LazyPage>} />
+              <Route path="/confidentialite" element={<LazyPage><Privacy /></LazyPage>} />
+              <Route path="/retours" element={<LazyPage><Returns /></LazyPage>} />
+
+              {/* Suivi de commande public */}
+              <Route path="/track" element={<LazyPage><TrackOrder /></LazyPage>} />
 
               {/* Page 404 (déclarée AVANT la route dynamique des catégories pour qu'elle
                   ne soit pas capturée par /:categorySlug) */}

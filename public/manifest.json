@@ -1,0 +1,41 @@
+{
+  "name": "Kabary Shop",
+  "short_name": "Kabary",
+  "description": "Mode authentique & élégante - Vêtements, sacs, accessoires. Livraison rapide 24h/48h à Conakry, paiement Mobile Money.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "splash_screens": [
+    {
+      "src": "/logo2.png",
+      "sizes": "640x1136",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["shopping", "fashion"],
+  "shortcuts": [
+    {
+      "name": "Commandes",
+      "url": "/track?ref=",
+      "description": "Suivre votre commande"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

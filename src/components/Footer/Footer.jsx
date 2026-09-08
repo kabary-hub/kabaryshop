@@ -57,6 +57,21 @@ const FooterLinks = [
   },
 ];
 
+const LegalLinks = [
+  {
+    title: "CGV",
+    link: "/cgv",
+  },
+  {
+    title: "Confidentialité",
+    link: "/confidentialite",
+  },
+  {
+    title: "Retours",
+    link: "/retours",
+  },
+];
+
 const Footer = () => {
   const { settings } = useSettings();
 
@@ -86,6 +101,18 @@ const Footer = () => {
             <h1 className='text-xl md:text-2xl text-primary font-bold mb-3'>Liens importants</h1>
             <ul className='flex flex-col gap-3'>
               {FooterLinks.map((link) => (
+                <a 
+                  key={link.title}
+                  href={link.link}
+                  className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary break-words'
+                >
+                  {link.title}
+                </a>
+              ))}
+            </ul>
+            <h2 className='text-lg font-semibold mt-6 mb-3'>Mentions légales</h2>
+            <ul className='flex flex-col gap-3'>
+              {LegalLinks.map((link) => (
                 <a 
                   key={link.title}
                   href={link.link}
