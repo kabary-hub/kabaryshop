@@ -69,6 +69,14 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
       const reference = generateOrderReference(existingOrders);
       // ID numérique unique : max existant + 1 (évite les doublons après suppression)
       const nextId = existingOrders.reduce((max, order) => Math.max(max, order.id || 0), 0) + 1;
+      // Construction des articles avec image (publique ou non) pour affichage
+      // dans l'email de confirmation client et l'alerte admin.
+      const itemsWithImage = orderData.items.map((item) => ({
+        ...item,
+        image: item.image || item.productImage || item.img || "",
+        productImage: item.image || item.productImage || item.img || "",
+      }));
+
       const newOrder = {
         id: nextId,
         reference,
@@ -78,7 +86,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
           phone: orderData.customerPhone,
           address: orderData.customerQuartier
         },
-        items: orderData.items,
+        items: itemsWithImage,
         total: orderData.total,
         status: 'pending',
         date: new Date().toISOString(),

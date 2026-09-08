@@ -461,8 +461,6 @@ export const buildAdminAlertEmail = ({ siteName, subject, message }) => {
       <strong>${escapeHtml(subject || "Alerte")}</strong>
     </p>
     ${infoBox({ bg: "#fffbeb", border: "#fde68a", color: "#92400e", html: escapeHtml(message || "").replace(/\n/g, "<br/>") })}
-    <p style="margin:0 0 8px;color:#0f172a;font-size:14px;font-weight:bold;">Informations client :</p>
-    ${message ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:8px 0 14px;"><tr><td style="padding:10px 16px;font-size:14px;color:#334155;white-space:pre-line;">${escapeHtml(message || "")}</td></tr></table>` : ""}
     <p style="margin:0;color:#64748b;font-size:13px;">
       Connectez-vous à l'administration pour traiter cet événement.
     </p>

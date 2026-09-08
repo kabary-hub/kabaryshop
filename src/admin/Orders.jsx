@@ -1116,6 +1116,7 @@ const Orders = () => {
                   <thead className="border-b dark:border-gray-700">
                     <tr>
                       <th className="text-left py-2">Produit</th>
+                      <th className="text-center py-2">Image</th>
                       <th className="text-center py-2">ID produit</th>
                       <th className="text-center py-2">Quantité</th>
                       <th className="text-right py-2">Prix unitaire</th>
@@ -1126,6 +1127,21 @@ const Orders = () => {
                     {selectedOrder.items?.map((item, idx) => (
                       <tr key={idx} className="border-b dark:border-gray-700">
                         <td className="py-2">{item.name}</td>
+                        <td className="py-2">
+                          {(item.image || item.productImage) ? (
+                            <img
+                              src={item.image || item.productImage}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                              loading="lazy"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <span className="inline-flex w-12 h-12 items-center justify-center rounded bg-gray-100 dark:bg-gray-700 text-gray-400 text-xs">
+                              —
+                            </span>
+                          )}
+                        </td>
                         <td className="text-center py-2">
                           {item.id ? (
                             <span className="inline-flex px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-xs font-mono">
@@ -1143,7 +1159,7 @@ const Orders = () => {
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan="4" className="text-right py-3 font-bold">Total :</td>
+                      <td colSpan="5" className="text-right py-3 font-bold">Total :</td>
                       <td className="text-right py-3 font-bold text-primary">{(selectedOrder.total || 0).toLocaleString()} GNF</td>
                     </tr>
                   </tfoot>
