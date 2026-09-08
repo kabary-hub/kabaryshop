@@ -45,7 +45,7 @@ const Privacy = lazy(() => import("./Pages/Legal/Privacy"));
 const Returns = lazy(() => import("./Pages/Legal/Returns"));
 
 // Suivi de commande public
-const TrackOrder = lazy(() => import("./pages/TrackOrder"));
+const TrackOrder = lazy(() => import("./Pages/TrackOrder"));
 
 // Importation des composants admin (chargés à la demande aussi)
 const AdminLayout = lazy(() => import("./admin/AdminLayout"));
