@@ -139,10 +139,8 @@ const CustomerHistory = ({ customer, orders = [], archivedOrders = [], onClose }
     // Logo du site : converti en URL ABSOLUE pour être affiché dans le
     // document imprimé (un chemin relatif ne se charge pas à l'impression).
     const siteLogo = getSiteLogo();
-    const logoUrl =
-      siteLogo && !/^(https?:)?\/\//i.test(siteLogo)
-        ? `${(typeof window !== "undefined" && window.location?.origin) || import.meta.env?.VITE_BASE_URL || "https://kabaryshop.vercel.app"}${siteLogo.startsWith("/") ? siteLogo : `/${siteLogo}`}`
-        : siteLogo;
+    // getSiteLogo() retourne déjà une URL absolue depuis emailService.js
+    const logoUrl = siteLogo || "https://kabaryshop.vercel.app/logo2.png";
     const siteName = getSiteName();
     const contacts = getSiteContacts();
 

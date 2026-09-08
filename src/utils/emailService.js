@@ -45,7 +45,10 @@ export const getSiteName = () => {
 export const getSiteLogo = () => {
   try {
     const s = JSON.parse(localStorage.getItem("kabary_settings") || "{}");
-    return s.siteLogo || "";
+    const raw = s.siteLogo || "";
+    // Les emails ont besoin d'une URL absolue ; on résout les chemins relatifs
+    // (ex : "/logo2.png") vers l'origine du site déployé.
+    return toAbsoluteUrl(raw);
   } catch {
     return "";
   }

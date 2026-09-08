@@ -156,6 +156,8 @@ export const sendAdminEmail = async ({
   const adminEmail = getAdminEmail();
   const fullSubject = `${subject}${extra.order_reference ? ` · ${extra.order_reference}` : ""}`;
 
+    // Construction unique du corps email : infos client + détails commande.
+  // Ne répète pas les informations client dans deux blocs séparés.
     const customerLines = [
     `👤 Nom : ${customer.name || "—"}`,
     `📞 Téléphone : ${customer.phone || "—"}`,
@@ -175,10 +177,10 @@ export const sendAdminEmail = async ({
   const messageBody = [
     message,
     ``,
-    `--- Informations client ---`,
+    `Informations client :`,
     customerLines,
     ``,
-    `--- Détails commande ---`,
+    `Détails commande :`,
     `Montant total : ${(total || 0).toLocaleString()} GNF`,
     itemsLines.length > 0
       ? `Articles (${(orderItems || []).length})` + itemsLines.join("\n")
@@ -233,7 +235,8 @@ export const notifyNewOrder = (order) => {
     );
   }
 
-  // 3) Email admin (si activé dans Paramètres)
+  // 3) Email admin (si activé dans Paramètres) — les items conservent leur
+  // image originale (publique ou non) pour affichage dans l'email.
   if (isChannelEnabled("email", true)) {
     sendAdminEmail({
       subject: `Nouvelle commande ${orderRef}`,
