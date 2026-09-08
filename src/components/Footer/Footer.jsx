@@ -60,9 +60,9 @@ const FooterLinks = [
 const Footer = () => {
   const { settings } = useSettings();
 
-  // Logo : celui des paramètres admin s'il existe, sinon le logo par défaut du footer.
+  // Logo : celui des paramètres admin s'il existe, sinon le logo par défaut public.
   // → le logo changé dans Paramètres se répercute partout (navbar, emails, footer…).
-  const displayLogo = settings.siteLogo || footerLogo;
+  const displayLogo = settings.siteLogo || "https://kabaryshop.vercel.app/logo2.png";
 
   const whatsappNumber = String(settings.whatsapp || '').replace(/\D/g, '');
   const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#";

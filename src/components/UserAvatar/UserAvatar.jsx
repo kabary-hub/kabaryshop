@@ -43,13 +43,15 @@ const UserAvatar = ({
     );
   }
 
-  // 2) Logo du site (configuré dans les paramètres)
-  if (showSiteLogo && settings.siteLogo) {
+  // 2) Logo du site (configuré dans les paramètres ou logo par défaut public)
+  if (showSiteLogo) {
+    const logoUrl = settings.siteLogo || "https://kabaryshop.vercel.app/logo2.png";
     return (
       <img
-        src={settings.siteLogo}
+        src={logoUrl}
         alt={name}
         className={`${className} rounded-full object-cover border border-gray-200 dark:border-gray-600`}
+        onError={(e) => { e.target.style.display = 'none'; }}
       />
     );
   }

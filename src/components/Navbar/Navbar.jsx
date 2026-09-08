@@ -107,11 +107,11 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
             to="/"
             className="font-bold text-lg sm:text-3xl flex items-center gap-2 shrink-0 min-w-0"
           >
-            {/* Logo : celui des paramètres admin s'il existe, sinon le logo par défaut */}
+            {/* Logo : celui des paramètres admin s'il existe, sinon le logo par défaut public */}
             {settings.siteLogo ? (
               <img src={settings.siteLogo} alt="Logo" className="w-8 sm:w-9 rounded-full object-cover" />
             ) : (
-              <img src={Logo} alt="Logo" className="w-7 sm:w-8" />
+              <img src="https://kabaryshop.vercel.app/logo2.png" alt="Logo" className="w-8 sm:w-9 rounded-full object-cover" />
             )}
             <span className="truncate">{settings.siteName}</span>
           </Link>
