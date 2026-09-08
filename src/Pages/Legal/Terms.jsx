@@ -8,7 +8,7 @@ const Terms = () => {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <header className="mb-8">
-        <Link to="/" className="text-primary hover:underline mb-4 inline-block">
+        <Link to="/" className="text-secondary hover:underline mb-4 inline-block">
           ← Retour au site
         </Link>
         <h1 className="text-3xl font-bold mb-2">Conditions Générales de Vente</h1>
@@ -19,28 +19,28 @@ const Terms = () => {
         {/* 1. Objet */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">1. Objet</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Les présentes Conditions Générales de Vente (CGV) ont pour objet de définir
-            les conditions dans lesquelles Kabary Shop (ci-après « le Site ») vend des
-            produits à ses clients (ci-après « le Client ») via le site internet
-            https://kabaryshop.vercel.app (ci-après « le Site »).
+          <p className=" leading-relaxed">
+            Les présentes Conditions Générales de Vente <strong>(CGV)</strong> ont pour objet de définir
+            les conditions dans lesquelles Kabary Shop vend des
+            produits à ses clients via le site internet
+            https://kabaryshop.vercel.app .
           </p>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             L'utilisation du Site et les achats effectués sur celui-ci sont soumis à
-            l'acceptation complète de ces CGV par le Client.
+            l'acceptation complète de ces <strong>(CGV)</strong> par le Client.
           </p>
         </section>
 
         {/* 2. Produits */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">2. Produits et Disponibilité</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Le Site propose des produits de mode (vêtements, sacs, accessoires, etc.)
-            disponibles en différentes tailles, couleurs et catégories.
+          <p className=" leading-relaxed">
+            Le Site propose des produits de mode (télephonies, autos, meubles, électroniques, vêtements, sacs, accessoires, etc.)
+            disponibles en différentes modèles\tailles, couleurs et catégories.
           </p>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             La disponibilité des produits est indiquée sur le Site. En cas de rupture
-            de stock, le Site s'efforce d'informer le Client avant la validation de la
+            de stock, l'administration s'efforce d'informer le Client avant la validation de la
             commande. La présentation des produits sur le Site ne constitue pas
             engagement de disponibilité permanente.
           </p>
@@ -49,19 +49,19 @@ const Terms = () => {
         {/* 3. Prix */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">3. Prix et Paiement</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Les prix affichés sur le Site sont indiqués en Francs Guinéens (GNF) et
-            comprennent la TVA si applicable. Ils sont susceptibles d'évolution sans
+          <p className=" leading-relaxed">
+            Les prix affichés sur le Site sont indiqués en Francs Guinéens (<strong>GNF</strong>), Dollard Us (<strong>$</strong>) ou Franc CFA (<strong>Xaf</strong>) et
+            comprennent la <strong>(TVA)</strong> si applicable. Ils sont susceptibles d'évolution sans
             préavis, sauf during la validité d'une commande.
           </p>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Le paiement s'effectue :
           </p>
-          <ul className="list-disc list-inside text-gray-700 leading-relaxed space-y-1">
-            <li>Par Mobile Money (Orange Money, MTN Money) à la livraison</li>
+          <ul className="list-disc list-inside  leading-relaxed space-y-1">
+            <li>Par espèces, mobile Money (Orange Money, MTN Money) ou carte de crédits à la livraison</li>
             <li>Par échange bancaire (à convenir avec le client)</li>
           </ul>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Aucun paiement n'est exigé avant la livraison du produit.
           </p>
         </section>
@@ -69,40 +69,41 @@ const Terms = () => {
         {/* 4. Commandes */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">4. Passation de Commande</h2>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Pour passer une commande, le Client doit :
           </p>
-          <ol className="list-decimal list-inside text-gray-700 leading-relaxed space-y-1">
+          <ol className="list-decimal list-inside  leading-relaxed space-y-1">
             <li>Sélectionner les produits souhaités</li>
             <li>Préciser la quantité de chaque produit</li>
             <li>Remplir le formulaire de commande avec ses coordonnées</li>
             <li>Confirmer la commande</li>
           </ol>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Une fois la commande confirmée, le Client reçoit un numéro de référence
-            (format CMD-YYMMDD-NNNN) qui lui permet de suivre sa commande.
+            (<strong>format CMD-YYMMDD-NNNN</strong>) qui lui permet de suivre sa commande.
           </p>
         </section>
 
         {/* 5. Livraison */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">5. Livraison</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Kabary Shop livre ses produits à Conakry et ses environs.
+          <p className=" leading-relaxed">
+            <strong>Kabary Shop</strong> livre ses produits à Conakry, ses environs et partout en guinée.
           </p>
-          <ul className="list-disc list-inside text-gray-700 leading-relaxed space-y-2">
+          <ul className="list-disc list-inside  leading-relaxed space-y-2">
             <li>
-              <strong>Délai de livraison :</strong> 24h à 48h après validation de la
-              commande (jours ouvrés)
+              <strong>Délai de livraison :</strong> 24h à 48h pour la zone spéciale de conakry et 2 jours à 5 jours en région ( à l'intérieur)  après validation de la
+              commande
             </li>
             <li>
               <strong>Coût de livraison :</strong> Inclus dans le prix pour les commandes
-              supérieures à 300 000 GNF. Pour les autres commandes, des frais de
+              supérieures à <strong>500 000 GNF</strong> pour les vetements et télephones et <strong>5 000 000 GNF</strong>
+               pour les meubles. Pour les autres commandes, des frais de
               livraison peuvent s'appliquer (à convenir selon le quartier).
             </li>
             <li>
               <strong>Mode de livraison :</strong> Le produit est livré chez le client
-              ou à un point de rendez-vous convenu.
+              ou à un point de rendez-vous convenu (<strong>accès motos et voitures</strong>).
             </li>
           </ul>
         </section>
@@ -110,37 +111,29 @@ const Terms = () => {
         {/* 6. Retours */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">6. Retours et Remboursements</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Le Client dispose d'un droit de rétractation de 7 jours à compter de la
-            réception du produit pour changer d'avis.
+          <p className=" leading-relaxed">
+            Conformément aux présentes conditions, le Client dispose d'un droit de rétractation uniquement 
+            avant la réception, la validation et le paiement du produit. Passé ce stade, aucune rétractation ne sera acceptée.
           </p>
-          <p className="text-gray-700 leading-relaxed">
-            Pour exercer ce droit, le Client doit :
-          </p>
-          <ol className="list-decimal list-inside text-gray-700 leading-relaxed space-y-1">
-            <li>Contacter Kabary Shop par téléphone (+224 620 980 117) ou par email</li>
-            <li>Retourner le produit dans son état d'origine (avec étiquettes, non porté)</li>
-            <li>Justifier de l'achat (numéro de commande)</li>
-          </ol>
-          <p className="text-gray-700 leading-relaxed">
-            Le remboursement est effectué sous 14 jours après réception du retour.
-          </p>
-          <p className="text-gray-700 leading-relaxed">
-            Les produits défectueux ou incorrects sont acceptés pour retour dans les
-            14 jours suivant la réception, avec remboursement intégral ou échange.
+          <p className=" leading-relaxed">
+            Le Client reconnaît et accepte que le droit de rétractation ne s'applique pas après 
+            la <strong>réception</strong>, la <strong>validation</strong> et le <strong>paiement</strong> du produit.          </p>
+          
+          <p className=" leading-relaxed">
+            En cas de litige, seul le service client de <strong>Kabary Shop</strong> est habilité à examiner les demandes, sans engagement de remboursement.
           </p>
         </section>
 
         {/* 7. Responsabilité */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">7. Responsabilité</h2>
-          <p className="text-gray-700 leading-relaxed">
-            Kabary Shop s'engage à fournir des produits de qualité. En cas de
-            défaut de fabrication, le Client peut retourner le produit pour
-            remboursement ou échange dans les conditions prévues à l'article 6.
+          <p className=" leading-relaxed">
+            <strong>Kabary Shop</strong> s'engage à fournir des produits de qualité. En cas de
+            défaut de fabrication, le Client peut reffusé le produit ou l'échangé tout en étant daccord avec 
+            la direction générale de <strong>Kabary Shop</strong>.
           </p>
-          <p className="text-gray-700 leading-relaxed">
-            Kabary Shop ne peut être tenu responsable des dommages résultant d'une
+          <p className=" leading-relaxed">
+            <strong>Kabary Shop</strong> ne peut être tenu responsable des dommages résultant d'une
             mauvaise utilisation du produit par le Client.
           </p>
         </section>
@@ -148,12 +141,12 @@ const Terms = () => {
         {/* 8. Données Personnelles */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">8. Données Personnelles</h2>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Les données personnelles collectées (nom, email, téléphone, adresse) sont
             utilisées uniquement pour la gestion des commandes et la livraison.
             Elles ne sont pas partagées avec des tiers, sauf obligation légale.
           </p>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Pour plus de détails, consulter notre Politique de Confidentialité.
           </p>
         </section>
@@ -161,12 +154,12 @@ const Terms = () => {
         {/* 9. Litiges */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">9. Litiges</h2>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             En cas de litige non résolu à l'amiable, les parties conviennent de
             recourir aux tribunaux compétents de la République de Guinée, plus
             particulièrement ceux de Conakry.
           </p>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Le Site est soumis au droit guinéen.
           </p>
         </section>
@@ -174,19 +167,22 @@ const Terms = () => {
         {/* 10. Contact */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">10. Contact</h2>
-          <p className="text-gray-700 leading-relaxed">
+          <p className=" leading-relaxed">
             Pour toute question sur ces CGV ou vos commandes :
           </p>
-          <ul className="list-disc list-inside text-gray-700 leading-relaxed space-y-1">
-            <li>Email : boubacarelbalde94@gmail.com</li>
-            <li>Téléphone / WhatsApp : +224 620 980 117</li>
+          <ul className="list-disc list-inside  leading-relaxed space-y-1">
+            <li>Email : <strong>boubacarelbalde94@gmail.com</strong></li>
+            <li>Téléphone / WhatsApp : <strong>+224 620 980 117</strong></li>
             <li>Adresse : Cobayah-Conakry, République de Guinée</li>
           </ul>
         </section>
+        <Link to="/" className="text-secondary hover:underline mb-4 inline-block">
+          ← Retour au site
+        </Link>
       </article>
 
-      <footer className="mt-8 pt-4 border-t text-center text-sm text-gray-500">
-        <p>© 2026 Kabary Shop. Tous droits réservés.</p>
+      <footer className="mt-8 pt-4 border-t text-center text-sm text-gray-600">
+        <p>© 2026 <strong>Kabary Shop</strong>. Tous droits réservés.</p>
       </footer>
     </div>
   );

@@ -83,87 +83,91 @@ const Footer = () => {
   const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#";
 
   return (
-    <div style={FooterStyle} className="min-h-100 text-white">
+    <div style={FooterStyle} className="min-h-80 text-white">
       <div className='container mx-auto w-full'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 py-10 pt-5 gap-8 sm:gap-10 font-bold'>
-          <div className='py-8 px-4 sm:col-span-2 lg:col-span-2'>
-            <h1 className='text-2xl sm:text-3xl font-bold mb-3 flex items-center gap-3'>
-              <img src={displayLogo} alt="" className="max-w-12.5" />
+        <div className='flex flex-col sm:flex-row lg:flex-row py-6 pt-4 gap-4 font-bold items-start' style={{ justifyItems: 'center' }}>
+          {/* Colonne 1 : Logo + Description — toujours en haut, centrée horizontalement */}
+          <div className='py-8 px-4 overflow-hidden w-full sm:w-full lg:w-1/2 flex justify-center'>
+            <div className='text-center'>
+            <h1 className='text-xl sm:text-2xl font-bold mb-3 flex items-center justify-center gap-3 mx-auto'>
+              <img src={displayLogo} alt="" className="max-w-10" />
               {settings.siteName}
             </h1>
-            <p className="rounded-bl-4xl rounded-tr-4xl border-2 border-primary px-10 w-135 py-5 italic">
-              Votre destination privilégiée pour une mode authentique et <br /> élégante. Chez {settings.siteName}, nous allions qualité supérieure <br /> et tendances actuelles pour sublimer votre style au quotidien <br /> avec  une touche d'excellence.
-            </p>
-          </div>
-
-          {/* Colonne 2 : Liens Importants */}
-          <div className='py-8 px-4'>
-            <h1 className='text-xl md:text-2xl text-primary font-bold mb-3'>Liens importants</h1>
-            <ul className='flex flex-col gap-3'>
-              {FooterLinks.map((link) => (
-                <a 
-                  key={link.title}
-                  href={link.link}
-                  className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary break-words'
-                >
-                  {link.title}
-                </a>
-              ))}
-            </ul>
-            <h2 className='text-lg font-semibold mt-6 mb-3'>Mentions légales</h2>
-            <ul className='flex flex-col gap-3'>
-              {LegalLinks.map((link) => (
-                <a 
-                  key={link.title}
-                  href={link.link}
-                  className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary break-words'
-                >
-                  {link.title}
-                </a>
-              ))}
-            </ul>
-          </div>
-
-          {/* Colonne 3 : Réseaux Sociaux & Contact */}
-          <div className='py-8 px-4'>
-            <h1 className='text-xl font-bold mb-3'>Liens Sociaux</h1>
-            <div className='flex flex-wrap items-center gap-3 mb-6'>
-              {settings.social?.instagram && <a href={settings.social.instagram} target="_blank" rel="noreferrer"><FaInstagram className="text-3xl hover:text-primary hover:text-5xl duration-300" /></a>}
-              {whatsappLink !== "#" && <a href={whatsappLink} target="_blank" rel="noreferrer"><FaWhatsapp className="text-3xl hover:text-primary hover:text-5xl duration-300" /></a>}
-              {settings.social?.linkedin && <a href={settings.social.linkedin} target="_blank" rel="noreferrer"><FaLinkedin className="text-3xl hover:text-primary hover:text-5xl duration-300" /></a>}
-              {settings.social?.facebook && <a href={settings.social.facebook} target="_blank" rel="noreferrer"><FaFacebook className="text-3xl hover:text-primary hover:text-5xl duration-300" /></a>}
-              {settings.social?.telegram && <a href={settings.social.telegram} target="_blank" rel="noreferrer"><FaLocationArrow className="text-3xl hover:text-primary hover:text-5xl duration-300" /></a>}
-              <a href="#"><FaMobileAlt className="text-3xl hover:text-primary hover:text-5xl duration-300" /></a>
+            <div className="rounded-bl-4xl rounded-tr-4xl border-2 border-primary px-5 py-4 italic text-sm leading-relaxed break-words w-[100%] mx-auto">
+              Votre destination privilégiée pour une mode authentique et élégante. Chez {settings.siteName}, qualité supérieure et tendances actuelles pour sublimer votre style au quotidien.              </div>
             </div>
-            
-            {/* Infos de contact dynamiques */}
-            <div className='flex flex-col gap-3'>
-              <div className="flex items-center">
-                <p>{settings.siteName}</p>
+          </div>
+
+          {/* Ligne 2 : Liens importants (gauche) + Liens sociaux (droite) — côte à côte sur mobile */}
+          <div className='flex flex-row w-full gap-0 sm:gap-4 lg:gap-4'>
+            {/* Bloc Liens importants — au milieu */}
+            <div className='py-2 px-3 w-full sm:w-1/2 flex justify-center'>
+              <div className='text-center w-full'>
+              <h3 className='text-base text-primary font-bold mb-2'>Liens importants</h3>
+              <div className='flex flex-col gap-y-1'>
+                {FooterLinks.map((link) => (
+                  <a 
+                    key={link.title}
+                    href={link.link}
+                    className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-400 hover:text-primary text-xs break-words'
+                  >
+                    {link.title}
+                  </a>
+                ))}
               </div>
-              <div className="flex items-center">
-                <p>{settings.sitePhone}</p>
               </div>
-              <div className="flex items-center">
-                <p className="font-light italic underline cursor-pointer hover:text-secondary text-primary break-all">
-                  {settings.siteEmail}
-                </p>
+            </div>
+
+            {/* Bloc Liens sociaux — tout à droite */}
+            <div className='py-2 px-3 w-full sm:w-1/2 flex
+            '>
+              <div className=' w-full'>
+              <h3 className='text-base font-bold mb-2 block'>Liens Sociaux</h3>
+              <div className='flex flex-wrap items-center gap-2 mb-3'>
+                {settings.social?.instagram && <a href={settings.social.instagram} target="_blank" rel="noreferrer"><FaInstagram className="text-xl hover:text-primary duration-300" /></a>}
+                {whatsappLink !== "#" && <a href={whatsappLink} target="_blank" rel="noreferrer"><FaWhatsapp className="text-xl hover:text-primary duration-300" /></a>}
+                {settings.social?.linkedin && <a href={settings.social.linkedin} target="_blank" rel="noreferrer"><FaLinkedin className="text-xl hover:text-primary duration-300" /></a>}
+                {settings.social?.facebook && <a href={settings.social.facebook} target="_blank" rel="noreferrer"><FaFacebook className="text-xl hover:text-primary duration-300" /></a>}
+                {settings.social?.telegram && <a href={settings.social.telegram} target="_blank" rel="noreferrer"><FaLocationArrow className="text-xl hover:text-primary duration-300" /></a>}
+                <a href="#"><FaMobileAlt className="text-xl hover:text-primary duration-300" /></a>
+              </div>
+              
+              {/* Infos de contact dynamiques */}
+              <div className='flex flex-col gap-1'>
+                <div className="flex items-center">
+                  <p className="text-xs">{settings.siteName}</p>
+                </div>
+                <div className="flex items-center">
+                  <p className="text-xs">{settings.sitePhone}</p>
+                </div>
+                <div className="flex items-center">
+                  <p className="text-xs font-light italic underline cursor-pointer hover:text-secondary text-primary break-all">
+                    {settings.siteEmail}
+                  </p>                </div>
+              </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <p className="text-center py-10 px-4 border-t-2 border-gray-300/50 mt-10">
-        © {new Date().getFullYear()} {settings.siteName}. Tous droits réservés.
-      </p>
+
+      {/* Mentions légales + copyright — une seule ligne horizontale en bas */}
+      <div className="flex flex-wrap items-center justify-center gap-4 py-2 px-4 border-t border-gray-700/50 mt-2 text-xs">
+        <span className="text-gray-400 font-semibold uppercase tracking-wider">Mentions légales</span>
+        <a href="/cgv" className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary'>CGV</a>
+        <a href="/confidentialite" className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary'>Confidentialité</a>
+        <a href="/retours" className='cursor-pointer hover:translate-x-1 duration-300 underline text-gray-200 hover:text-primary'>Retours</a>
+        <span className="text-gray-500">|</span>
+        <span className="text-gray-500">© {new Date().getFullYear()} {settings.siteName}. Tous droits réservés.</span>
+      </div>
       {/* 🔐 Lien secret admin — invisible pour les clients, accessible aux administrateurs.
           Au clic, il pose le jeton d'accès : sans lui, la page /admin/login redirige
           vers l'accueil (l'URL tapée directement ne fonctionne pas). */}
-      <div className="text-center pb-4">
+      <div className="text-center">
         <a
           href="/admin/login"
           onClick={grantAdminAccess}
-          className="text-2xl text-primary/40 hover:text-primary/60 transition-colors cursor-default select-none"
+          className="text-2xl text-primary/20 hover:text-primary/60 transition-colors cursor-default select-none"
           title="Espace administration"
         >
           ·
