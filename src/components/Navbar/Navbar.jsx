@@ -1,7 +1,7 @@
 // src/components/Navbar/Navbar.jsx
 import React, { useState, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import Logo from "../../assets/Logo.webp";
+
 import { FaCartShopping } from "react-icons/fa6";
 import { FaCaretDown, FaHome } from "react-icons/fa";
 import { IoMenu, IoClose } from "react-icons/io5";
@@ -108,11 +108,12 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
             className="font-bold text-lg sm:text-3xl flex items-center gap-2 shrink-0 min-w-0"
           >
             {/* Logo : celui des paramètres admin s'il existe, sinon le logo par défaut public */}
-            {settings.siteLogo ? (
-              <img src={settings.siteLogo} alt="Logo" className="w-8 sm:w-9 rounded-full object-cover" />
-            ) : (
-              <img src="https://kabaryshop.vercel.app/logo2.png" alt="Logo" className="w-8 sm:w-9 rounded-full object-cover" />
-            )}
+            <img
+              src={settings.siteLogo || "https://kabaryshop.vercel.app/logo2.png"}
+              alt="Logo"
+              className="w-8 sm:w-9 rounded-full object-cover"
+              onError={(e) => { e.target.src = "https://kabaryshop.vercel.app/logo2.png"; }}
+            />
             <span className="truncate">{settings.siteName}</span>
           </Link>
 
