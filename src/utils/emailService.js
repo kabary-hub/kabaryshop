@@ -390,17 +390,20 @@ export const buildOrderItemsHtml = (items) =>
   (items || [])
     .map(
       (item) => {
-        const image = safeImageUrl(item.image || item.productImage || "", DEFAULT_PRODUCT_IMAGE);
+        const image = safeImageUrl(item.image || item.productImage || item.img || "", DEFAULT_PRODUCT_IMAGE);
+        const priceLabel = item.priceLabel || item.price || "";
+        const quantity = item.quantity || 1;
+        const name = item.name || "";
         return `
       <tr>
         <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155;width:80px;">
-          ${image ? `<img src="${escapeHtml(image)}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;" />` : ""}
+          ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;" />` : ""}
         </td>
         <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155;">
-          ${escapeHtml(item.name || "")} <span style="color:#94a3b8;">× ${escapeHtml(item.quantity || 1)}</span>
+          ${escapeHtml(name)} <span style="color:#94a3b8;">× ${quantity}</span>
         </td>
         <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155;text-align:right;">
-          ${escapeHtml(item.priceLabel || "")}
+          ${escapeHtml(priceLabel)}
         </td>
       </tr>`;
       },
@@ -455,12 +458,26 @@ export const buildShippingAssignmentEmail = ({
 // ---------------------------------------------------------------------------
 // Template : alerte admin (nouvelle commande, tests)
 // ---------------------------------------------------------------------------
-export const buildAdminAlertEmail = ({ siteName, subject, message }) => {
+// Ce template affiche les images produits comme l'email de confirmation client.
+export const buildAdminAlertEmail = ({
+  siteName,
+  subject,
+  message,
+  items = [],
+}) => {
+  const itemsHtml = buildOrderItemsHtml(items);
+
   const contentHtml = `
     <p style="margin:0 0 14px;color:#334155;font-size:15px;">
       <strong>${escapeHtml(subject || "Alerte")}</strong>
     </p>
     ${infoBox({ bg: "#fffbeb", border: "#fde68a", color: "#92400e", html: escapeHtml(message || "").replace(/\n/g, "<br/>") })}
+    ${itemsHtml ? (
+      `<p style="margin:0 0 8px;color:#0f172a;font-size:14px;font-weight:bold;">Articles commandés :</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:8px 0 14px;">
+         ${itemsHtml}
+       </table>`
+    ) : ''}
     <p style="margin:0;color:#64748b;font-size:13px;">
       Connectez-vous à l'administration pour traiter cet événement.
     </p>

@@ -177,7 +177,6 @@ export const sendAdminEmail = async ({
   const messageBody = [
     message,
     ``,
-    `Informations client :`,
     customerLines,
     ``,
     `Détails commande :`,
@@ -187,11 +186,20 @@ export const sendAdminEmail = async ({
       : ``,
   ].filter(Boolean).join("\n").trim();
 
+  // Passer les items avec images au template pour affichage dans l'email admin
+  const itemsWithImages = (orderItems || []).map((item) => ({
+    name: item.name || "",
+    quantity: item.quantity || 1,
+    priceLabel: item.priceLabel || `${(item.price || 0).toLocaleString()} GNF`,
+    image: item.image || item.productImage || item.img || "",
+    productImage: item.image || item.productImage || item.img || "",
+  }));
+
   const res = await sendEmail({
     to: adminEmail,
     fromName: siteName,
     subject: fullSubject,
-    html: buildAdminAlertEmail({ siteName, subject, message: messageBody }),
+    html: buildAdminAlertEmail({ siteName, subject, message: messageBody, items: itemsWithImages }),
   });
   if (res.ok) {
     return { ok: true, message: `Email envoyé à ${adminEmail} ✅` };
