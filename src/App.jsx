@@ -40,9 +40,9 @@ const NotFound = lazy(() => import("./Pages/NotFound"));
 const ComingSoon = lazy(() => import("./Pages/ComingSoon"));
 
 // Pages légales
-const Terms = lazy(() => import("./pages/Legal/Terms"));
-const Privacy = lazy(() => import("./pages/Legal/Privacy"));
-const Returns = lazy(() => import("./pages/Legal/Returns"));
+const Terms = lazy(() => import("./Pages/Legal/Terms"));
+const Privacy = lazy(() => import("./Pages/Legal/Privacy"));
+const Returns = lazy(() => import("./Pages/Legal/Returns"));
 
 // Suivi de commande public
 const TrackOrder = lazy(() => import("./pages/TrackOrder"));
