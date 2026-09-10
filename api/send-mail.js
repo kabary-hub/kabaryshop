@@ -16,8 +16,19 @@ import { Resend } from 'resend';
 export default async function handler(req, res) {
   // En-têtes par défaut pour garantir une réponse JSON, même en cas d'erreur.
   res.setHeader('Content-Type', 'application/json');
+  
+  // En-têtes CORS pour autoriser les appels depuis le site (localhost en dev, domaine en prod)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-send-key');
 
   try {
+    // Gestion des requêtes preflight CORS
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
     // Seules les requêtes POST sont acceptées
     if (req.method !== 'POST') {
       return res.status(405).json({ ok: false, message: 'Méthode non autorisée' });
