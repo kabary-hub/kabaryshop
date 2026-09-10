@@ -12,7 +12,7 @@ import {
   deleteSiteFeedback,
   setSiteFeedbackReply,
 } from '../utils/reviews';
-import { getAllProducts } from '../services/productService';
+import { getAllProducts } from '../core/products';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
@@ -124,12 +124,11 @@ const Reviews = () => {
       }
       setReplyingId(null);
       setReplyText('');
-      setReplyError('');
-      logActivity({
+      setReplyError('');        logActivity({
         type: 'review',
         action: review.reply ? 'modification de la réponse' : 'réponse',
         subject: `Réponse à ${review.name}`,
-        details: 'Réponse du vendeur ajoutée sur un avis général',
+        details: 'Réponse de l\'admin ajoutée sur un avis général',
       });
       return;
     }
@@ -168,7 +167,7 @@ const Reviews = () => {
         action: 'suppression de la réponse',
         subject: `Réponse à ${review.name}`,
         details: review.isSiteReview
-          ? 'Réponse du vendeur supprimée (avis général)'
+          ? 'Réponse de l\'admin supprimée (avis général)'
           : `Produit : ${review.productTitle}`,
       });
       showToast(`La réponse à ${review.name} a été supprimée`, 'success');
@@ -343,12 +342,12 @@ const Reviews = () => {
 
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 leading-relaxed">
                 « {review.comment} »
-              </p>                  {/* Réponse du vendeur existante */}
+              </p>                  {/* Réponse de l'admin existante */}
                   {review.reply && review.reply.text && (
                 <div className="mt-3 ml-2 sm:ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
                   <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                     <Store size={13} />
-                    Réponse du vendeur
+                    Réponse de l'admin
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
                     {review.reply.text}
@@ -362,7 +361,7 @@ const Reviews = () => {
                     <div className="mt-3 ml-2 sm:ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
                       <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 mb-2">
                         <Store size={13} />
-                        {review.reply ? 'Modifier la réponse' : 'Nouvelle réponse du vendeur'}
+                        {review.reply ? 'Modifier la réponse' : 'Nouvelle réponse de l\'admin'}
                       </p>
                       {review.status === 'pending' && (
                         <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 flex items-start gap-1">

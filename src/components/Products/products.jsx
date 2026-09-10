@@ -9,192 +9,37 @@ import { convertPrice, formatPrice } from "../../utils/currencyUtils";
 import { useCart } from "../../context/CartContext"; // IMPORTANT: Ajout du panier
 import ShareButton from "../ShareButton/ShareButton";
 import { getReviewStats } from "../../utils/reviews";
-import { PRODUCT_DEFAULT_PRICES } from "../../utils/productDefaultPrices";
-import { getDeletedProductIds } from "../../services/productService";
+// getDeletedProductIds, filterProductsByTerm, getCustomProducts… proviennent désormais du fichier central.
 
-// 1. Importation de tous les dossiers
-// Compatibilité Vite : on n'utilise plus outputFormat pour que le dev/build
-// fonctionne aussi sur les versions qui refusent cette option.
-const womenImages = import.meta.glob(
-  "../../assets/products-women/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
-const enfantImages = import.meta.glob(
-  "../../assets/enfantimg/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
-const hommeImages = import.meta.glob(
-  "../../assets/hommeimg/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
-const electroniqueImages = import.meta.glob(
-  "../../assets/electroniqueimg/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
-const meubleImages = import.meta.glob(
-  "../../assets/meubleimg/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
-const tendanceImages = import.meta.glob(
-  "../../assets/tendanceimg/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
-const venteImages = import.meta.glob(
-  "../../assets/venteimg/*.{png,jpg,jpeg,webp}",
-  { eager: true }
-);
+// 1. Catalogue par défaut centralisé (src/core/products.js)
+// Les deux fichiers de génération (ce fichier et productService.js) sont
+// maintenant alignés sur la même source unique.
+import {
+  DEFAULT_PRODUCTS,
+  defaultProducts,
+  getCustomProducts,
+  saveCustomProducts,
+  getAllProducts,
+  getDefaultProducts,
+  getDeletedProductIds,
+  filterProductsByTerm,
+} from '../../core/products';
 
-// 2. Fonction pour transformer "nom_prix.jpg" en objet produit
-const createProducts = (images, categoryName, startId) => {
-  return Object.keys(images).map((path, index) => {
-    const fileName = path.split("/").pop(); // ex : "femme1.jpg"
-    const fullFileName = fileName.split(".")[0];
-    const parts = fullFileName.split("_");
-    const name = parts[0];
-    const rawPrice = parts[1];
+// Québec nommé localement pour la grille de la page d'accueil.
+const productsData = DEFAULT_PRODUCTS;
 
-    // Prix de secours attribué par scripts/assign-prices.mjs quand le nom
-    // de fichier ne contient pas de prix (ex : "femme1.jpg" → 180 000 GNF)
-    const fallbackPrice = PRODUCT_DEFAULT_PRICES[fileName] || 0;
+// Compatibilité : export nommé utilisé par certains appels externes.
+export const ProductsData = getAllProducts();
 
-    return {
-      id: `${categoryName}_${startId + index}`,
-      img: images[path] ? (images[path].default || images[path]) : "",
-      title: `${name.charAt(0).toUpperCase() + name.slice(1)}`,
-      color: "Multiples couleurs",
-      priceInGNF: rawPrice ? Number(rawPrice) : fallbackPrice,
-      prix: rawPrice
-        ? `${Number(rawPrice).toLocaleString().replace(/,/g, " ")} GNF`
-        : fallbackPrice
-          ? `${fallbackPrice.toLocaleString().replace(/,/g, " ")} GNF`
-          : "À définir GNF",
-      category: categoryName,
-      aosDelay: (index * 50).toString(),
-      isCustom: false,
-      createdAt: '2024-01-01T00:00:00.000Z',
-    };
-  });
-};
-
-// 3. Génération des listes
-const womenProducts = createProducts(womenImages, "femmes", 100);
-const enfantProducts = createProducts(enfantImages, "enfants", 300);
-const hommeProducts = createProducts(hommeImages, "hommes", 500);
-const electroniqueProducts = createProducts(electroniqueImages, "electroniques", 700);
-const meubleProducts = createProducts(meubleImages, "meubles", 900);
-const tendanceProducts = createProducts(tendanceImages, "tendances", 1100);
-const venteProducts = createProducts(venteImages, "ventes", 1300);
-
-// 4. Produits par défaut
-const defaultProducts = [
-  ...hommeProducts,
-  ...womenProducts,
-  ...enfantProducts,
-  ...electroniqueProducts,
-  ...meubleProducts,
-  ...tendanceProducts,
-  ...venteProducts,
-];
-
-// 5. Fonction pour récupérer les produits personnalisés
-const getCustomProducts = () => {
-  try {
-    const custom = localStorage.getItem('custom_products');
-    if (custom) {
-      return JSON.parse(custom);
-    }
-  } catch {
-    // Stockage illisible : on repart d'une liste vide
-  }
-  return [];
-};
-
-// 6. Sauvegarder les produits personnalisés
-export const saveCustomProducts = (products) => {
-  localStorage.setItem('custom_products', JSON.stringify(products));
-  window.dispatchEvent(new Event('productsUpdated'));
-};
-
-// 7. Supprimer un produit personnalisé
+// Dispose des produits personnalisés supprimés (comportement d'origine).
 export const deleteCustomProduct = (id) => {
   const products = getCustomProducts();
-  const filtered = products.filter(p => p.id !== id);
+  const filtered = products.filter((p) => p.id !== id);
   saveCustomProducts(filtered);
   return filtered;
 };
 
-// 8. Obtenir tous les produits TRIÉS par date (plus récent d'abord)
-// Les produits personnalisés avec `originalId` remplacent le produit par
-// défaut correspondant (même logique que src/services/productService.js)
-// pour éviter les doublons quand l'admin modifie un produit du catalogue.
-// Les produits supprimés (tombstones deleted_products) sont exclus.
-export const getAllProducts = () => {
-  const customProducts = getCustomProducts();
-  const deletedIds = new Set(getDeletedProductIds());
-
-  // 1) Produits par défaut, SAUF ceux supprimés
-  const allProducts = defaultProducts.filter(
-    (p) => !deletedIds.has(String(p.id)),
-  );
-
-  // 2) Produits personnalisés, sauf ceux supprimés (ou dont l'original l'est)
-  customProducts.forEach((customProduct) => {
-    const hidden =
-      deletedIds.has(String(customProduct.id)) ||
-      (customProduct.originalId &&
-        deletedIds.has(String(customProduct.originalId)));
-    if (hidden) return;
-
-    if (customProduct.originalId) {
-      const index = allProducts.findIndex(
-        (p) => String(p.id) === String(customProduct.originalId),
-      );
-      if (index !== -1) {
-        allProducts[index] = customProduct;
-      } else {
-        allProducts.push(customProduct);
-      }
-    } else {
-      allProducts.push(customProduct);
-    }
-  });
-
-  const sortedProducts = allProducts.sort((a, b) => {
-    const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-    const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-    return dateB - dateA;
-  });
-
-  return sortedProducts;
-};
-
-// 9. Obtenir uniquement les produits par défaut (pour la page d'accueil)
-// (les produits supprimés par l'admin sont exclus)
-export const getDefaultProducts = () => {
-  const deletedIds = new Set(getDeletedProductIds());
-  return defaultProducts.filter((p) => !deletedIds.has(String(p.id)));
-};
-
-// 10. Export pour compatibilité
-export const ProductsData = getAllProducts();
-
-// 10bis. Filtrer des produits par terme de recherche (titre, description, couleur, catégorie)
-export const filterProductsByTerm = (products, term) => {
-  if (!term || !term.trim()) return products;
-  const t = term.trim().toLowerCase();
-  return products.filter((p) => {
-    const title = (p.title || p.name || "").toLowerCase();
-    const desc = (p.description || p.desc || "").toLowerCase();
-    const color = (p.color || "").toLowerCase();
-    const category = (p.category || p.categorySlug || "").toLowerCase();
-    return (
-      title.includes(t) ||
-      desc.includes(t) ||
-      color.includes(t) ||
-      category.includes(t)
-    );
-  });
-};
+// 2. [supprimé] — les définitions locales ont été déplacées dans src/core/products.js
 
 // 11. Composant Products AVEC PANIER
 const Products = ({ data, searchTerm = "" }) => {
@@ -234,7 +79,7 @@ const Products = ({ data, searchTerm = "" }) => {
       allProducts = Array.from(productMap.values());
     } else {
       const productMap = new Map();
-      [...defaultProducts, ...customProducts].forEach(product => {
+      [...productsData, ...customProducts].forEach(product => {
         if (isVisible(product) && !productMap.has(product.id)) {
           productMap.set(product.id, product);
         }

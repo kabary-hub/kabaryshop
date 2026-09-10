@@ -1,7 +1,7 @@
 // src/components/NewsletterBanner/NewsletterBanner.jsx
 // Bannière "Nouveautés" : affichée aux visiteurs abonnés (sur ce navigateur)
 // lorsqu'un nouveau produit est publié, avec un lien vers les nouveautés.
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Sparkles, X } from "lucide-react";
 import {
@@ -11,7 +11,7 @@ import {
   markPublicationsSeen,
 } from "../../utils/subscribers";
 
-const NewsletterBanner = () => {
+const NewsletterBanner = memo(() => {
   const location = useLocation();
   // Pas de bannière sur les pages d'administration
   const isAdminPage = location.pathname.startsWith("/admin");
@@ -88,7 +88,5 @@ const NewsletterBanner = () => {
         </div>
       </div>
     </div>
-  );
-};
-
+  );});
 export default NewsletterBanner;

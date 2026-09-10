@@ -2,9 +2,13 @@
 // détails au clic sur une ligne, toasts explicites, validations (mdp 8-15, téléphone 9-14)
 // et pagination.
 import React, { useState, useEffect } from 'react';
-import { Users as UsersIcon, Edit, Trash2, Shield, UserCheck, UserX, Search, X, Truck, Package, CheckCircle, ChevronDown, Calendar, MoreVertical, Mail, Phone, ShieldAlert, KeyRound, AlertTriangle } from 'lucide-react';
+import { Users as UsersIcon, Edit, Trash2, Shield, UserCheck, UserX, Search, X, Truck, Package, CheckCircle, ChevronDown, Calendar, MoreVertical, Mail, Phone, ShieldAlert, KeyRound, AlertTriangle, Download } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
+import {
+  exportUsersCSV,
+  exportUsersExcel,
+} from '../utils/exportUtils';
 import { isValidPhone, PHONE_ERROR_MESSAGE, isValidPassword, PASSWORD_ERROR_MESSAGE } from '../utils/validation';
 import Pagination from '../components/Pagination/Pagination';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
@@ -464,15 +468,31 @@ const Users = () => {
   // ==================== RENDU (TA DISPOSITION ORIGINALE) ====================
   return (
     <div className="p-6">
-      {/* En-tête avec logo et dropdown utilisateur */}
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
+      {/* En-tête avec logo et dropdown utilisateur */}          <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <img src="/testimon4.webp" alt="" className='w-15 h-15 rounded-full'/>
-             DG {settings.siteName}
+            DG {settings.siteName}
           </h1>
           <p className="text-gray-500 mt-1">Gestion de tous les utilisateurs de la plateforme</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportUsersCSV(users)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition"
+          >
+            <Download size={15} />
+            Export CSV
+          </button>
+          <button
+            onClick={() => exportUsersExcel(users)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition"
+          >
+            <Download size={15} />
+            Export Excel
+          </button>
+        </div>
+        
         
         {/* SECTION UTILISATEUR CONNECTÉ AVEC DROPDOWN */}
         {currentAdminUser && (

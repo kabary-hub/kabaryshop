@@ -108,12 +108,37 @@ const AdminLogin = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Récupérer le mot de passe stocké dans localStorage
-  // Pas de mot de passe par défaut : si rien n'est stocké, l'admin doit
-  // d'abord en configurer un (la premiere connexion se fait via le mot
-  // de passe Supabase Auth).
+  // Récupérer le mot de passe administrateur connu.
+  // Ordre de priorité :
+  //   1. Mot de passe stocké localement (session précédente).
+  //   2. Variable d'environnement VITE_ADMIN_DEFAULT_PASSWORD.
+  // Si aucune valeur n'est connue, le formulaire de connexion doit
+  // d'abord créer ou configurer un mot de passe (par exemple via Supabase
+  // Auth ou une réinitialisation).
   const getStoredPassword = () => {
-    return localStorage.getItem('admin_password') || '';
+    const stored = localStorage.getItem('admin_password');
+    if (stored) return stored;
+
+    const envPassword =
+      typeof import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD === 'string'
+        ? import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD
+        : '';
+    if (envPassword) return envPassword;
+
+    return null;
+  };
+
+  // Mot de passe actuellement utilisable. Quand il n'y en a aucun,
+  // le message d'erreur doit être explicite plutôt que de continuer
+  // avec un mot de passe vide.
+  const currentAdminPassword = () => {
+    const stored = getStoredPassword();
+    if (stored) return stored;
+
+    setError(
+      'Aucun mot de passe administrateur configuré. Définissez VITE_ADMIN_DEFAULT_PASSWORD dans les variables d\'environnement, ou r\u00e9initialisez le mot de passe depuis l\'espace admin.'
+    );
+    return null;
   };
 
   const clean2FA = () => {
@@ -308,11 +333,11 @@ const AdminLogin = () => {
     // 1) ADMIN PRINCIPAL (email configuré dans Paramètres > Coordonnées)
     // ====================================================================
     if (trimmedEmail === adminEmail.toLowerCase()) {
-      const storedPassword = getStoredPassword();
+      const storedPassword = currentAdminPassword();
 
-      // Si aucun mot de passe n'est configuré localement, on tente Supabase Auth
-      // (première connexion ou appareil neuf)
-      if (!storedPassword) {
+      // Aucun mot de passe connu : on tente d'abord Supabase Auth (première
+      // connexion ou appareil neuf).
+      if (storedPassword === null) {
         const res = await ensureSupabaseAuth(trimmedEmail, password);
         if (!res.ok) {
           recordFailedAttempt();
@@ -334,7 +359,7 @@ const AdminLogin = () => {
         return;
       }
 
-      // Le mot de passe admin doit respecter la règle 8-15 caractères
+      // Le mot de passe admin doit respecter la règle 8-15 caractères.
       if (!isValidPassword(storedPassword)) {
         setError(PASSWORD_ERROR_MESSAGE);
         return;

@@ -17,7 +17,7 @@ import {
   X,
   ZoomIn,
 } from 'lucide-react';
-import { getAllProducts } from '../services/productService';
+import { getAllProducts } from '../core/products';
 import { useSettings } from '../context/SettingsContext';
 import { convertPrice, formatPrice } from '../utils/currencyUtils';
 import { useCart } from '../context/CartContext';

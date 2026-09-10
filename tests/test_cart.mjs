@@ -262,6 +262,7 @@ test('le formulaire de commande valide les champs requis', () => {
 // ============================================================================
 
 test('la génération de référence de commande est correcte', () => {
+  // Nouveau format : CMD-YYMMDD-240194XXXX-HHMM
   const generateReference = (existingOrders) => {
     const now = new Date();
     const datePart = [
@@ -269,32 +270,50 @@ test('la génération de référence de commande est correcte', () => {
       String(now.getMonth() + 1).padStart(2, '0'),
       String(now.getDate()).padStart(2, '0'),
     ].join('');
+    const timePart = [
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+    ].join('');
+    const todayPrefix = `CMD-${datePart}-240194`;
     const maxSeq = existingOrders.reduce((max, order) => {
-      const match = String(order.reference || '').match(/^CMD-(\d{6})-(\d+)$/);
-      return match ? Math.max(max, parseInt(match[2], 10)) : max;
+      const ref = String(order.reference || '');
+      const match = ref.match(/^CMD-\d{6}-240194(\d{4})-\d{4}$/);
+      if (match && ref.startsWith(todayPrefix)) {
+        return Math.max(max, parseInt(match[1], 10));
+      }
+      return max;
     }, 0);
-    return `CMD-${datePart}-${String(maxSeq + 1).padStart(4, '0')}`;
+    return `CMD-${datePart}-240194${String(maxSeq + 1).padStart(4, '0')}-${timePart}`;
   };
 
   // Cas 1 : Pas de commandes existantes
   const ref1 = generateReference([]);
   asserting(ref1.startsWith('CMD-'), 'La référence doit commencer par CMD-');
-  asserting(ref1.length === 16, 'La référence doit faire 16 caractères (CMD-YYMMDD-NNNN)');
+  asserting(ref1.length === 27, 'La référence doit faire 27 caractères (CMD-YYMMDD-240194XXXX-HHMM)');
 
-  // Cas 2 : Avec des commandes existantes
+  // Cas 2 : Avec des commandes existantes (même date)
+  const today = new Date();
+  const todayYY = String(today.getFullYear()).slice(2);
+  const todayMM = String(today.getMonth() + 1).padStart(2, '0');
+  const todayDD = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${todayYY}${todayMM}${todayDD}`;
   const existing = [
-    { reference: 'CMD-260908-0001' },
-    { reference: 'CMD-260908-0005' },
-    { reference: 'CMD-260908-0010' },
+    { reference: `CMD-${todayStr}-2401940001-1430` },
+    { reference: `CMD-${todayStr}-2401940005-1500` },
+    { reference: `CMD-${todayStr}-2401940010-1600` },
   ];
   const ref2 = generateReference(existing);
-  asserting(ref2 === 'CMD-260908-0011', 'La référence suivante doit être 0011');
+  asserting(
+    ref2 === `CMD-${todayStr}-2401940011-${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`,
+    'La référence suivante doit être 0011 pour aujourd\'hui',
+  );
 
   // Cas 3 : Format de la référence
-  const match = ref1.match(/^CMD-(\d{6})-(\d{4})$/);
-  asserting(match !== null, 'La référence doit matcher le format CMD-YYMMDD-NNNN');
+  const match = ref1.match(/^CMD-(\d{6})-240194(\d{4})-(\d{4})$/);
+  asserting(match !== null, 'La référence doit matcher le format CMD-YYMMDD-240194XXXX-HHMM');
   asserting(match[1].length === 6, 'La partie date doit faire 6 chiffres');
   asserting(match[2].length === 4, 'La partie séquence doit faire 4 chiffres');
+  asserting(match[3].length === 4, 'La partie heure doit faire 4 chiffres');
 
   console.log('✅ Test 5 : Génération référence - PASSÉ');
 });

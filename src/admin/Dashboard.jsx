@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Users, Package, ShoppingCart, DollarSign, Star, ShoppingBag, Clock, CheckCircle, XCircle, Truck, ChevronRight } from 'lucide-react';
-import { getAllProducts } from '../components/Products/products';
+import { getAllProducts } from '../core/products';
 
 const Dashboard = () => {
   const navigate = useNavigate();

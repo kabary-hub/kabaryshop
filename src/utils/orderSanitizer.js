@@ -89,18 +89,31 @@ const sanitizeItem = (item, index) => {
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
-// Génère une référence unique au même format que la boutique :
-// CMD-AAMMJJ-NNNN (ex. CMD-260811-0004).
+// Génère une référence unique au nouveau format :
+// CMD-AAMMJJ-240194XXXX-HHMM (ex. CMD-260908-2401940001-1430).
 const generateReference = (existingRefs) => {
   const now = new Date();
   const datePart = `${String(now.getFullYear()).slice(2)}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
+  const timePart = `${pad2(now.getHours())}${pad2(now.getMinutes())}`;
+  // Trouver le max séquentiel pour aujourd'hui parmi les références existantes
+  const todayPrefix = `CMD-${datePart}-240194`;
   let maxSeq = 0;
   for (const ref of existingRefs) {
-    const m = String(ref || "").match(/^CMD-(\d{6})-(\d{4})$/);
-    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+    const refStr = String(ref || "");
+    // Nouveau format : CMD-YYMMDD-240194XXXX-HHMM
+    const m = refStr.match(/^CMD-\d{6}-240194(\d{4})-\d{4}$/);
+    if (m && refStr.startsWith(todayPrefix)) {
+      maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+    }
   }
-  return `CMD-${datePart}-${String(maxSeq + 1).padStart(4, "0")}`;
+  return `CMD-${datePart}-240194${String(maxSeq + 1).padStart(4, "0")}-${timePart}`;
 };
+
+// Regex pour valider les références (accepte l'ancien et le nouveau format)
+// Ancien : CMD-YYMMDD-NNNN (16 caractères)
+// Nouveau : CMD-YYMMDD-240194XXXX-HHMM (27 caractères)
+export const REFERENCE_REGEX_OLD = /^CMD-(\d{6})-(\d{4})$/;
+export const REFERENCE_REGEX_NEW = /^CMD-(\d{6})-240194(\d{4})-(\d{4})$/;
 
 // ============================================================
 // sanitizeShopOrders(orders) → { orders, report }

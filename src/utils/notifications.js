@@ -9,6 +9,7 @@ import {
   getSiteName,
   getAdminEmail,
   buildAdminAlertEmail,
+  safeImageUrl,
 } from "./emailService";
 
 // ---------------------------------------------------------------------------
@@ -186,15 +187,22 @@ export const sendAdminEmail = async ({
       : ``,
   ].filter(Boolean).join("\n").trim();
 
-  // Passer les items avec images au template pour affichage dans l'email admin
+  // Passer les items avec images au template pour affichage dans l'email admin.
+  // safeImageUrl remplace les chemins locaux « /src/assets/… » par l'URL
+  // publique ImgBB du catalogue (sinon Gmail afficherait le logo en fallback).
   const itemsWithImages = (orderItems || []).map((item) => ({
     name: item.name || "",
     quantity: item.quantity || 1,
     priceLabel: item.priceLabel || `${(item.price || 0).toLocaleString()} GNF`,
-    image: item.image || item.productImage || item.img || "",
-    productImage: item.image || item.productImage || item.img || "",
+    image: safeImageUrl(item.image || item.productImage || item.img || "", ""),
+    productImage: safeImageUrl(item.image || item.productImage || item.img || "", ""),
   }));
 
+  if (!adminEmail) {
+    console.warn('[Notif] Email admin non configuré — ajoutez adminEmail ou siteEmail dans Paramètres > Coordonnées');
+    return { ok: false, message: "Email admin non configuré (adminEmail vide dans les paramètres)" };
+  }
+  console.log(`[Notif] Envoi email admin vers ${adminEmail}: ${fullSubject}`);
   const res = await sendEmail({
     to: adminEmail,
     fromName: siteName,
@@ -202,8 +210,10 @@ export const sendAdminEmail = async ({
     html: buildAdminAlertEmail({ siteName, subject, message: messageBody, items: itemsWithImages }),
   });
   if (res.ok) {
+    console.log(`[Notif] Email admin envoyé à ${adminEmail} ✅`);
     return { ok: true, message: `Email envoyé à ${adminEmail} ✅` };
   }
+  console.error(`[Notif] Échec email admin:`, res.message);
   return {
     ok: false,
     message: `Envoi email impossible : ${res.message}`,

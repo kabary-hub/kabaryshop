@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getAllProducts } from '../admin/services/productService';
-import { filterProductsByTerm } from '../components/Products/products';
+import { filterProductsByTerm } from '../core/products';
 import ShareButton from '../components/ShareButton/ShareButton';
 import { getReviewStats } from '../utils/reviews';
 

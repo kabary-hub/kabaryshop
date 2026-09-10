@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import Products from "../components/Products/products";
-import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
+import { getAllProducts, filterProductsByTerm } from "../core/products";
 import { IoMdSearch } from "react-icons/io";
 
 const SearchResults = ({ searchTerm, setSearchTerm, handleOrder }) => {

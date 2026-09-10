@@ -1,9 +1,13 @@
 // src/admin/Products.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Edit, Trash2, Plus, Search, Calendar, ArrowUpDown, X, ChevronLeft, ChevronRight, Eye, Tag, Palette } from 'lucide-react';
-import { getAllProducts, saveProduct, deleteProduct } from '../services/productService';
+import { Edit, Trash2, Plus, Search, Calendar, ArrowUpDown, X, ChevronLeft, ChevronRight, Eye, Tag, Palette, Download } from 'lucide-react';
+import { getAllProducts, saveProduct, deleteProduct } from '../core/products';
 import { getReviewStats } from '../utils/reviews';
+import {
+  exportProductsCSV,
+  exportProductsExcel,
+} from '../utils/exportUtils';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 import Pagination from '../components/Pagination/Pagination';
@@ -15,6 +19,8 @@ import {
   recordPublication,
   notifySubscribersNewProduct,
 } from '../utils/subscribers';
+
+import ActionsMenu from '../components/Admin/ActionsMenu';
 
 // Nombre maximal d'images par produit (1 principale + 5 supplémentaires)
 const MAX_IMAGES = 6;
@@ -37,6 +43,8 @@ const Products = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   // Produit en attente de confirmation de suppression
   const [productToDelete, setProductToDelete] = useState(null);
+  // Menu d'actions (trois points) : identifiant du produit ouvert
+  const [actionMenuProductId, setActionMenuProductId] = useState(null);
   // Pagination
   const [page, setPage] = useState(1);
   const [formData, setFormData] = useState({
@@ -390,7 +398,25 @@ const Products = () => {
     <div className="p-6">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Gestion des produits</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Gestion des produits</h1>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => exportProductsCSV(products)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition"
+              >
+                <Download size={15} />
+                Export CSV
+              </button>
+            <button
+              onClick={() => exportProductsExcel(products)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition"
+            >
+              <Download size={15} />
+              Export Excel
+            </button>
+            </div>
+          </div>
           <div className="text-red-500 rounded-full bg-secondary mt-1 text-center font-bold">
             <p>
               {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} trié
@@ -548,29 +574,14 @@ const Products = () => {
                       {formatDate(product.createdAt)}
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => viewProductDetails(product)} 
-                          className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 transition"
-                          title="Voir les détails"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleEdit(product)} 
-                          className="text-blue-600 hover:text-blue-800 transition"
-                          title="Modifier"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(product)} 
-                          className="text-red-600 hover:text-red-800 transition"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                      <ActionsMenu
+                        triggers={['Voir', 'Modifier', 'Supprimer']}
+                        onAction={(label) => {
+                          if (label === 'Voir') viewProductDetails(product);
+                          else if (label === 'Modifier') handleEdit(product);
+                          else if (label === 'Supprimer') handleDelete(product);
+                        }}
+                      />
                     </td>
                   </tr>
                 ))

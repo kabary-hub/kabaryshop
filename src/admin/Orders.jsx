@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb, Archive, Hourglass } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb, Archive, Hourglass, Download } from 'lucide-react';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
+import {
+  exportOrdersCSV,
+  exportOrdersExcel,
+  exportOrdersPDF,
+} from '../utils/exportUtils';
 import { sendShippingAssignmentEmail } from '../utils/subscribers';
 import Pagination from '../components/Pagination/Pagination';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
@@ -35,6 +40,8 @@ const Orders = () => {
   const [orderToReject, setOrderToReject] = useState(null);
   // Fiche client : historique de toutes les commandes d'un même numéro
   const [historyCustomer, setHistoryCustomer] = useState(null);
+  // Auto-ouverture depuis le Dashboard (GET ?open=<orderId>)
+  const [autoOpenedFromDashboard, setAutoOpenedFromDashboard] = useState(false);
 
   // Importer / remplacer la photo de l'utilisateur connecté
   const handlePhotoUpload = (e) => {
@@ -66,6 +73,27 @@ const Orders = () => {
     reader.readAsDataURL(file);
     e.target.value = '';
   };
+
+  // Ouverture automatique depuis le Dashboard : si l'URL contient ?open=<orderId>
+  // (clic sur une ligne des dernières commandes), on cherche la commande cible et
+  // on ouvre ses détails directement à l'arrivée sur la page.
+  useEffect(() => {
+    if (autoOpenedFromDashboard) return;
+    const openOrderId = searchParams.get('open');
+    if (!openOrderId) return;
+    const target = orders.find(
+      (o) => 
+        String(o.id) === String(openOrderId) || 
+        (o.reference && String(o.reference) === String(openOrderId))
+    );
+    if (target) {
+      viewOrderDetails(target);
+      setAutoOpenedFromDashboard(true);
+      // Nettoyer l'URL pour ne pas re-déclencher l'ouverture à chaque re-rendu
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit s'exécuter qu'une fois à l'arrivée sur la page
+  }, [orders, searchParams]);
 
   // ==================== CHARGEMENT DES UTILISATEURS ====================
   const loadUsers = () => {
@@ -150,6 +178,22 @@ const Orders = () => {
     };
   }, [currentUser.id]);
 
+  // ==================== OUVERTURE DEPUIS LE TABLEAU DE BORD ====================
+  // Si l'URL contient ?open=<orderId> (clic depuis le Dashboard), ouvrir les détails
+  useEffect(() => {
+    if (autoOpenedFromDashboard) return;
+    const openOrderId = searchParams.get('open');
+    if (!openOrderId || orders.length === 0) return;
+    const target = orders.find(o => String(o.id) === String(openOrderId) || (o.reference && String(o.reference) === String(openOrderId)));
+    if (target) {
+      viewOrderDetails(target);
+      setAutoOpenedFromDashboard(true); // ne se déclenche qu'une seule fois
+      // Nettoyer l'URL pour ne pas rouvrir la modale à chaque re-rendu
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit s'exécuter qu'à l'arrivée sur la page
+  }, [orders]);
+
   // ==================== LOG DES ACTIONS ====================
   const addActionLog = (orderId, action, details) => {
     const logs = JSON.parse(localStorage.getItem('order_logs') || '[]');
@@ -186,22 +230,6 @@ const Orders = () => {
     loadOrders();
   }, []);
 
-  // ==================== OUVERTURE DEPUIS LE TABLEAU DE BORD ====================
-  // Si l'URL contient ?open=<orderId> (clic depuis le Dashboard), ouvrir les détails
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (autoOpenedRef.current) return;
-    const openOrderId = searchParams.get('open');
-    if (!openOrderId || orders.length === 0) return;
-    const target = orders.find(o => String(o.id) === String(openOrderId) || (o.reference && String(o.reference) === String(openOrderId)));
-    if (target) {
-      viewOrderDetails(target);
-      autoOpenedRef.current = true; // ne se déclenche qu'une seule fois
-      // Nettoyer l'URL pour ne pas rouvrir la modale à chaque re-rendu
-      setSearchParams({}, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit s'exécuter qu'au chargement des commandes
-  }, [orders]);
 
   const loadOrders = () => {
     const savedOrders = localStorage.getItem('shop_orders');
@@ -495,22 +523,45 @@ const Orders = () => {
     <div className="p-6">
       {/* En-tête avec utilisateur connecté */}
       <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-        <h1 className="font-bold text-2xl">Gestion des commandes</h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowUserModal(true)}
-            className="flex items-center gap-3 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-          >
-            <UserAvatar user={currentUser} className="w-10 h-10 sm:w-11 sm:h-11 text-2xl" />
-            <div className="text-left">
-              <p className="font-semibold text-sm">{currentUser.name}</p>
-              <p className="text-xs text-gray-500">
-                {currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'livreur' ? 'Livreur' : 'Préparateur'}
-              </p>
-            </div>
-            <ChevronDown size={16} className="text-gray-400" />
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-bold text-2xl">Gestion des commandes</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportOrdersCSV(orders)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition"
+            >
+              <Download size={15} />
+              Export CSV
+            </button>
+            <button
+              onClick={() => exportOrdersExcel(orders)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition"
+            >
+              <Download size={15} />
+              Export Excel
+            </button>
+            <button
+              onClick={() => exportOrdersPDF(orders)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg hover:bg-secondary text-sm transition"
+            >
+              <Download size={15} />
+              Export PDF
+            </button>
+          </div>
         </div>
+        <button
+          onClick={() => setShowUserModal(true)}
+          className="flex items-center gap-3 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+        >
+          <UserAvatar user={currentUser} className="w-10 h-10 sm:w-11 sm:h-11 text-2xl" />
+          <div className="text-left">
+            <p className="font-semibold text-sm">{currentUser.name}</p>
+            <p className="text-xs text-gray-500">
+              {currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'livreur' ? 'Livreur' : 'Préparateur'}
+            </p>
+          </div>
+          <ChevronDown size={16} className="text-gray-400" />
+        </button>
       </div>
 
       {/* Statistiques */}

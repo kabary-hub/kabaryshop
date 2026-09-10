@@ -4,7 +4,7 @@
 // bouton d'action (pas d'ajout, pas de modification, pas de suppression).
 import React, { useState, useEffect } from "react";
 import { Package, Search } from "lucide-react";
-import { getAllProducts } from "../services/productService";
+import { getAllProducts } from "../core/products";
 
 const StaffProducts = () => {
   // Produits chargés de façon synchrone (initialisation paresseuse, tri par date)
@@ -95,20 +95,22 @@ const StaffProducts = () => {
           {filtered.map((product) => (
             <div
               key={product.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-lg transition"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-lg transition flex flex-col"
             >
-              <img
-                src={product.img || product.image || "https://kabaryshop.vercel.app/logo2.png"}
-                alt={product.title || product.name}
-                className="w-full h-40 object-cover"
-                onError={(e) => {
-                  e.target.src = "https://kabaryshop.vercel.app/logo2.png";
-                }}
-              />
-              <div className="p-3">
+              <div className="w-full aspect-[4/3] overflow-hidden">
+                <img
+                  src={product.img || product.image || "https://kabaryshop.vercel.app/logo2.png"}
+                  alt={product.title || product.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = "https://kabaryshop.vercel.app/logo2.png";
+                  }}
+                />
+              </div>
+              <div className="p-3 flex-1 flex flex-col">
                 <h3 className="font-semibold text-sm truncate">{product.title || product.name}</h3>
-                <p className="text-xs text-gray-500 capitalize">{product.category || "—"}</p>
-                <p className="mt-1 font-bold text-secondary text-sm">{formatPrice(product)}</p>
+                <p className="text-xs text-gray-500 capitalize mt-0.5">{product.category || "—"}</p>
+                <p className="mt-auto font-bold text-secondary text-sm pt-2">{formatPrice(product)}</p>
               </div>
             </div>
           ))}

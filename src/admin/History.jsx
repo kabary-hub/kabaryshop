@@ -22,6 +22,9 @@ import {
   XCircle,
   Home,
   FileText,
+  Mail,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import {
   getHistory,
@@ -37,6 +40,17 @@ import {
   fetchCloudActivity,
   clearCloudActivity,
 } from "../services/db";
+import {
+  getLogsFiltered,
+  getLogEntry,
+  clearLogs,
+  EMAIL_TYPES,
+  EMAIL_LOG_MAX_ENTRIES,
+} from "../services/emailLogService";
+import {
+  exportEmailsCSV,
+  BOM,
+} from "../utils/exportUtils";
 
 const PERIODS = [
   { key: "all", label: "Tout" },
@@ -88,7 +102,7 @@ const History = () => {
   // Entrées distantes (site_activity) : visites/actions des CLIENTS depuis
   // d'autres appareils, remontées via le journal append-only Supabase.
   const [cloudEntries, setCloudEntries] = useState([]);
-  const [activeTab, setActiveTab] = useState("activity"); // activity | users | pages
+  const [activeTab, setActiveTab] = useState("activity"); // activity | users | pages | emails
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
@@ -99,6 +113,30 @@ const History = () => {
   const [staffOnly, setStaffOnly] = useState(false);
   // Ligne du journal développée (clic sur une ligne du tableau)
   const [expandedEntryId, setExpandedEntryId] = useState(null);
+
+  // ---- Onglet Emails ----
+  const [emailSearch, setEmailSearch] = useState("");
+  const [emailPeriod, setEmailPeriod] = useState("all");
+  const [emailTypeFilter, setEmailTypeFilter] = useState("all");
+  const [emailOnlyFailed, setEmailOnlyFailed] = useState(false);
+  const [expandedEmailId, setExpandedEmailId] = useState(null);
+  const emailLogs = useMemo(() => {
+    return getLogsFiltered({
+      type: emailTypeFilter,
+      search: emailSearch,
+      period: emailPeriod,
+      onlyFailed: emailOnlyFailed,
+      limit: 300,
+    });
+  }, [emailSearch, emailPeriod, emailTypeFilter, emailOnlyFailed]);
+  const emailStats = useMemo(() => {
+    const logs = getLogsFiltered({ limit: 2000 });
+    return {
+      total: logs.length,
+      ok: logs.filter((e) => e.ok).length,
+      failed: logs.filter((e) => !e.ok).length,
+    };
+  }, []);
 
   // Rafraîchir en direct quand une activité est enregistrée (locale) ou
   // quand le journal distant des clients est mis à jour / la session change.
@@ -231,7 +269,7 @@ const History = () => {
   const exportCSV = () => {
     if (!filtered.length) return;
     const header = ["Date", "Type", "Action", "Sujet", "Détails", "Acteur", "Rôle"];
-    const lines = filtered.map((e) => [
+    const rows = filtered.map((e) => [
       new Date(e.date).toLocaleString("fr-FR"),
       HISTORY_TYPES[e.type]?.label || e.type,
       e.action,
@@ -240,10 +278,17 @@ const History = () => {
       e.actor?.name || "",
       e.actor?.role || "",
     ]);
-    const csv = [header, ...lines]
-      .map((row) => row.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+    const csv = [header, ...rows]
+      .map((row) =>
+        row.map((c) => {
+          if (c === null || c === undefined) return "";
+          const str = String(c);
+          const escaped = str.replace(/"/g, '""');
+          return `"${escaped}"`;
+        }).join(";")
+      )
       .join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -271,6 +316,7 @@ const History = () => {
     { key: "activity", label: "Activité générale", icon: HistoryIcon },
     { key: "users", label: "Utilisateurs & rôles", icon: UserCog },
     { key: "pages", label: "Pages visitées", icon: Eye },
+    { key: "emails", label: "Emails", icon: Mail },
   ];
 
   const roleLabels = {
@@ -484,38 +530,42 @@ const History = () => {
                               {e.action || "—"}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            {/* Liens cliquables pour les visites de pages */}
-                            {e.type === "page" && typeof e.subject === "string" && e.subject.startsWith("/") ? (
-                              <Link
-                                to={e.subject}
-                                onClick={(ev) => ev.stopPropagation()}
-                                className="text-sm text-blue-600 hover:underline font-medium"
-                              >
-                                {e.subject === "/" ? "Accueil" : e.subject}
-                              </Link>
-                            ) : (
-                              <p className="text-sm text-gray-800 dark:text-gray-100 font-medium">
-                                {e.subject || "—"}
-                              </p>
-                            )}
-                            {e.details && (
-                              <p className="text-xs text-gray-500 mt-0.5 max-w-md truncate">{e.details}</p>
-                            )}
+                          <td className="px-4 py-3 min-w-0">
+                            <div className="max-w-[200px]">
+                              {/* Liens cliquables pour les visites de pages */}
+                              {e.type === "page" && typeof e.subject === "string" && e.subject.startsWith("/") ? (
+                                <Link
+                                  to={e.subject}
+                                  onClick={(ev) => ev.stopPropagation()}
+                                  className="text-sm text-blue-600 hover:underline font-medium truncate"
+                                >
+                                  {e.subject === "/" ? "Accueil" : e.subject}
+                                </Link>
+                              ) : (
+                                <p className="text-sm text-gray-800 dark:text-gray-100 font-medium truncate">
+                                  {e.subject || "—"}
+                                </p>
+                              )}
+                              {e.details && (
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">{e.details}</p>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-2">
-                              {/* Avatar de l'acteur : photo → logo du site → initiales */}
-                              <UserAvatar user={e.actor} className="w-6 h-6 text-[10px] shrink-0" />
-                              <span className="text-sm text-gray-700 dark:text-gray-200">
-                                {e.actor?.name || "Inconnu"}
-                              </span>
-                            </span>
-                            {e.actor?.role && (
-                              <span className="ml-1 text-[10px] text-gray-400">
-                                {roleLabels[e.actor.role] || e.actor.role}
-                              </span>
-                            )}
+                          <td className="px-4 py-3 min-w-0">
+                            <div className="flex items-center gap-2" title={e.actor?.name ? `${e.actor.name} · ${roleLabels[e.actor.role] || e.actor.role}` : undefined}>
+                              {/* Avatar de l'acteur : photo → initiales (pas de logo, pour distinguer les acteurs) */}
+                              <UserAvatar user={e.actor} className="w-7 h-7 text-xs shrink-0" showSiteLogo={false} />
+                              <div className="min-w-0">
+                                <span className="text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                                  {e.actor?.name || "Inconnu"}
+                                </span>
+                                {e.actor?.role && (
+                                  <span className="ml-1.5 text-[10px] text-gray-400 whitespace-nowrap block">
+                                    {roleLabels[e.actor.role] || e.actor.role}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </td>
                         </tr>
                         {/* Ligne de détails complets (clic sur la ligne) */}
@@ -725,6 +775,241 @@ const History = () => {
               </ul>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ============ ONGLET EMAILS ============ */}
+      {activeTab === "emails" && (
+        <div className="space-y-4">
+          {/* Statistiques */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+              <p className="text-sm text-gray-500">Total envoyés</p>
+              <p className="text-2xl font-bold">{emailStats.total}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+              <p className="text-sm text-gray-500">Succès</p>
+              <p className="text-2xl font-bold text-green-600">{emailStats.ok}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+              <p className="text-sm text-gray-500">Échecs</p>
+              <p className="text-2xl font-bold text-red-600">{emailStats.failed}</p>
+            </div>
+          </div>
+
+          {/* Filtres */}
+          <div className="rounded-lg shadow p-4 bg-white dark:bg-gray-800 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  value={emailSearch}
+                  onChange={(e) => setEmailSearch(e.target.value)}
+                  placeholder="Rechercher (destinataire, sujet, référence...)"
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 text-sm"
+                />
+              </div>
+              <select
+                value={emailTypeFilter}
+                onChange={(e) => setEmailTypeFilter(e.target.value)}
+                className="px-3 py-2 border rounded-lg dark:bg-gray-900 text-sm"
+              >
+                <option value="all">Tous les types</option>
+                {Object.entries(EMAIL_TYPES).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+              <select
+                value={emailPeriod}
+                onChange={(e) => setEmailPeriod(e.target.value)}
+                className="px-3 py-2 border rounded-lg dark:bg-gray-900 text-sm"
+              >
+                <option value="all">Toutes les périodes</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="week">7 derniers jours</option>
+                <option value="month">30 derniers jours</option>
+              </select>
+              <button
+                onClick={() => setEmailOnlyFailed((v) => !v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition shrink-0 ${
+                  emailOnlyFailed
+                    ? "bg-red-600 text-white border-red-600"
+                    : "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                <AlertCircle size={15} />
+                {emailOnlyFailed ? "échecs uniquement" : "Inclure les succès"}
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => {
+                  if (!emailLogs.length) return;
+                  const header = ["Date", "Type", "Destinataire", "Sujet", "Référence", "Statut", "Message"];
+                  const lines = emailLogs.map((e) => [
+                    new Date(e.sentAt).toLocaleString("fr-FR"),
+                    EMAIL_TYPES[e.type] || e.type,
+                    e.to,
+                    e.subject,
+                    e.reference || "",
+                    e.ok ? "OK" : "ÉCHEC",
+                    (e.message || "").replace(/[\n;]/g, " "),
+                  ]);
+                  const csv = [header, ...lines]
+                    .map((row) =>
+                      row.map((c) => {
+                        if (c === null || c === undefined) return "";
+                        const str = String(c);
+                        const escaped = str.replace(/"/g, '""');
+                        return `"${escaped}"`;
+                      }).join(";")
+                    )
+                    .join("\n");
+                  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `emails_${new Date().toISOString().split("T")[0]}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                disabled={!emailLogs.length}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                <Download size={16} />
+                Exporter CSV
+              </button>
+              <button
+                onClick={() => clearLogs()}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition border ${
+                  confirmClear
+                    ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                    : "bg-white dark:bg-gray-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                }`}
+              >
+                <Trash2 size={16} />
+                {confirmClear ? "Confirmer l'effacement ?" : "Effacer les logs"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400">
+              {emailLogs.length} email{emailLogs.length > 1 ? "s" : ""} affiché{emailLogs.length > 1 ? "s" : ""}.
+              Le journal conserve les {EMAIL_LOG_MAX_ENTRIES} dernières entrées.
+            </p>
+          </div>
+
+          {/* Liste des emails */}
+          {emailLogs.length === 0 ? (
+            <div className="text-center py-14 bg-white dark:bg-gray-800 rounded-xl shadow">
+              <Mail size={40} className="mx-auto text-gray-400 mb-3" />
+              <p className="text-gray-500">Aucun email journalisé pour le moment.</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Les envois depuis le site (confirmation de commande, newsletter, expédition, 2FA, alertes…) apparaîtront ici.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl shadow overflow-hidden bg-white dark:bg-gray-800">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-800">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Destinataire</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Sujet</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Référence</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Statut</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {emailLogs.map((e) => (
+                      <React.Fragment key={e.id}>
+                        <tr
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer"
+                          onClick={() =>
+                            setExpandedEmailId(expandedEmailId === e.id ? null : e.id)
+                          }
+                        >
+                          <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                            {formatHistoryDate(e.sentAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                              {EMAIL_TYPES[e.type] || e.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                            <span className="block truncate">{e.to || "—"}</span>
+                            {e.toName && <span className="text-xs text-gray-500">{e.toName}</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{e.subject || "—"}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            {e.reference ? (
+                              <span className="text-sm font-mono text-blue-600 dark:text-blue-400 break-all">{e.reference}</span>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {e.ok ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                                <CheckCircle2 size={12} />
+                                Envoyé
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full">
+                                <XCircle size={12} />
+                                Échec
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setExpandedEmailId(expandedEmailId === e.id ? null : e.id);
+                              }}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              Détails
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedEmailId === e.id && (
+                          <tr className="bg-blue-50/50 dark:bg-blue-900/10">
+                            <td colSpan={7} className="px-4 py-3 text-sm">
+                              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                                Détails de l'envoi
+                              </p>
+                              <div className="grid grid-cols-2 gap-4 text-xs text-gray-600 dark:text-gray-300">
+                <div><strong>Destinataire :</strong> {e.to}</div>
+                <div><strong>Nom :</strong> {e.toName || "—"}</div>
+                <div><strong>Expéditeur affiché :</strong> {e.fromName || "—"}</div>
+                <div><strong>Sujet :</strong> {e.subject || "—"}</div>
+                <div><strong>Référence :</strong> {e.reference || "—"}</div>
+                <div><strong>Statut :</strong> {e.ok ? "OK" : "ÉCHEC"}</div>
+                <div><strong>Réponse :</strong> {e.message || "—"}</div>
+                <div><strong>Date :</strong> {new Date(e.sentAt).toLocaleString("fr-FR")}</div>
+              </div>
+              {!e.ok && (
+                <p className="mt-2 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 rounded p-2 border border-red-200 dark:border-red-800">
+                  <strong className="block">Échec de l'envoi.</strong>
+                  Pour réexpédier, utilisez la fonction d'envoi normale du site ou le bouton prévu dans les détails de la commande.
+                </p>
+              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

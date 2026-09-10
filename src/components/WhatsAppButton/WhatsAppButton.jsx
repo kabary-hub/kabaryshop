@@ -2,12 +2,12 @@
 // Bouton WhatsApp flottant : toujours visible en bas à droite de l'écran
 // (mobile comme desktop) pour permettre aux clients de contacter la boutique
 // en un tap. Masqué dans l'espace admin / staff.
-import React from "react";
+import React, { memo } from "react";
 import { useLocation } from "react-router-dom";
 import { FaWhatsapp } from "react-icons/fa";
 import { useSettings } from "../../context/SettingsContext";
 
-const WhatsAppButton = () => {
+const WhatsAppButton = memo(() => {
   const { pathname } = useLocation();
   const { settings } = useSettings();
 
@@ -45,7 +45,5 @@ const WhatsAppButton = () => {
         </span>
       </span>
     </a>
-  );
-};
-
+  );});
 export default WhatsAppButton;

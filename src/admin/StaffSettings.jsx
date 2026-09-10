@@ -136,104 +136,106 @@ const StaffSettings = () => {
     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800";
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-6xl">
       <h1 className="text-2xl font-bold mb-1">Paramètres de mon compte</h1>
       <p className="text-sm text-gray-500 mb-6">
         Modifiez vos informations personnelles et votre mot de passe.
       </p>
 
-      {/* Informations personnelles */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-          <UserRound size={18} className="text-primary" />
-          Mes informations
-        </h2>
-        <form onSubmit={saveInfo} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nom complet</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className={inputClass}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Téléphone (9 à 14 chiffres)</label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) =>
-                setForm({ ...form, phone: e.target.value.replace(/[^0-9+ ]/g, "") })
-              }
-              className={inputClass}
-              placeholder="+224 6xx xxx xxx"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition disabled:opacity-50"
-          >
-            <Save size={16} />
-            Enregistrer
-          </button>
-        </form>
-      </div>
-
-      {/* Mot de passe */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-          <Key size={18} className="text-primary" />
-          Changer mon mot de passe
-        </h2>
-        <form onSubmit={savePassword} className="space-y-4">
-          {[
-            { key: "current", label: "Mot de passe actuel", placeholder: "••••••••" },
-            { key: "next", label: "Nouveau mot de passe (8 à 15 caractères)", placeholder: "••••••••" },
-            { key: "confirm", label: "Confirmer le nouveau mot de passe", placeholder: "••••••••" },
-          ].map((field) => (
-            <div key={field.key}>
-              <label className="block text-sm font-medium mb-1">{field.label}</label>
-              <div className="relative">
-                <input
-                  type={showPwd[field.key] ? "text" : "password"}
-                  value={passwordForm[field.key]}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, [field.key]: e.target.value })}
-                  className={inputClass + " pr-10"}
-                  placeholder={field.placeholder}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd({ ...showPwd, [field.key]: !showPwd[field.key] })}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                  aria-label={showPwd[field.key] ? "Masquer" : "Afficher"}
-                >
-                  {showPwd[field.key] ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Informations personnelles */}
+        <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <UserRound size={18} className="text-primary" />
+            Mes informations
+          </h2>
+          <form onSubmit={saveInfo} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nom complet</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className={inputClass}
+                required
+              />
             </div>
-          ))}
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition disabled:opacity-50"
-          >
-            <Key size={16} />
-            Changer le mot de passe
-          </button>
-        </form>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Téléphone (9 à 14 chiffres)</label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm({ ...form, phone: e.target.value.replace(/[^0-9+ ]/g, "") })
+                }
+                className={inputClass}
+                placeholder="+224 6xx xxx xxx"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition disabled:opacity-50"
+            >
+              <Save size={16} />
+              Enregistrer
+            </button>
+          </form>
+        </div>
+
+        {/* Mot de passe */}
+        <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <Key size={18} className="text-primary" />
+            Changer mon mot de passe
+          </h2>
+          <form onSubmit={savePassword} className="space-y-4">
+            {[
+              { key: "current", label: "Mot de passe actuel", placeholder: "••••••••" },
+              { key: "next", label: "Nouveau mot de passe (8 à 15 caractères)", placeholder: "••••••••" },
+              { key: "confirm", label: "Confirmer le nouveau mot de passe", placeholder: "••••••••" },
+            ].map((field) => (
+              <div key={field.key}>
+                <label className="block text-sm font-medium mb-1">{field.label}</label>
+                <div className="relative">
+                  <input
+                    type={showPwd[field.key] ? "text" : "password"}
+                    value={passwordForm[field.key]}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, [field.key]: e.target.value })}
+                    className={inputClass + " pr-10"}
+                    placeholder={field.placeholder}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd({ ...showPwd, [field.key]: !showPwd[field.key] })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    aria-label={showPwd[field.key] ? "Masquer" : "Afficher"}
+                  >
+                    {showPwd[field.key] ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition disabled:opacity-50"
+            >
+              <Key size={16} />
+              Changer le mot de passe
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

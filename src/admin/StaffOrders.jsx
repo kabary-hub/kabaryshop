@@ -109,16 +109,15 @@ const StaffOrders = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Eye className="text-blue-600" />
-            Commandes (lecture seule)
+            Commandes
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Vous consultez les commandes. Les actions de gestion sont réservées à l'administrateur.
+            Consultation des commandes. Les actions de gestion sont réservées à l'administrateur.
           </p>
         </div>
-        {!canSeePending && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-sm font-medium">
+        {!canSeePending && (            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-sm font-medium">
             <Clock size={15} />
-            Commandes en attente masquées
+            Commandes en attentes
           </span>
         )}
       </div>

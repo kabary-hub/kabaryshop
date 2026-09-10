@@ -9,7 +9,12 @@
   color-scheme: dark;
 }
 
-/* Garde-fou anti-débordement horizontal *//* Animation d'apparition de la bannière « Nouveautés » pour les abonnés */
+/* Garde-fou anti-débordement horizontal */
+html, body {
+  overflow-x: clip;
+}
+
+/* Animation d'apparition de la bannière « Nouveautés » pour les abonnés */
 @keyframes newsletterSlideInUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

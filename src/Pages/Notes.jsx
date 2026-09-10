@@ -14,7 +14,7 @@ import {
   getAllReviews,
   computeStats,
 } from "../utils/reviews";
-import { getAllProducts } from "../services/productService";
+import { getAllProducts } from "../core/products";
 import { logActivity } from "../utils/history";
 
 const AVATAR_COLORS = [
@@ -498,13 +498,13 @@ const Notes = () => {
                       {r.comment}
                     </p>
 
-                    {/* Réponse du vendeur */}
-                    {r.reply && r.reply.text && (
-                      <div className="mt-3 ml-2 sm:ml-6 pl-4 border-l-2 border-primary/40 bg-gray-50 dark:bg-gray-900/60 rounded-r-xl py-3 pr-3">
-                        <p className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-1.5">
-                          <Store size={13} />
-                          Réponse du vendeur
-                        </p>
+                  {/* Réponse de l'admin */}
+                  {r.reply && r.reply.text && (
+                    <div className="mt-3 ml-2 sm:ml-6 pl-4 border-l-2 border-primary/40 bg-gray-50 dark:bg-gray-900/60 rounded-r-xl py-3 pr-3">
+                      <p className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-1.5">
+                        <Store size={13} />
+                        Réponse de l'admin
+                      </p>
                         <p className="text-sm text-gray-700 dark:text-gray-200 mt-1.5 leading-relaxed">
                           {r.reply.text}
                         </p>

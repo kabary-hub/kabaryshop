@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { FaStar } from "react-icons/fa";
-import { getAllProducts } from "../Products/products";
+import { getAllProducts } from '../../core/products';
 import { useSettings } from "../../context/SettingsContext";
 
 // Calcule les meilleures ventes réelles à partir des commandes enregistrées
@@ -43,7 +43,7 @@ const getTopSellingProducts = (orders, allProducts) => {
     .slice(0, 4);
 };
 
-const TopProducts = ({ handleOrder }) => {
+const TopProducts = memo(({ handleOrder }) => {
   const { settings } = useSettings();
   // Meilleures ventes calculées de façon synchrone (initialisation paresseuse)
   const [topProducts, setTopProducts] = useState(() => {
@@ -176,7 +176,9 @@ const TopProducts = ({ handleOrder }) => {
         )}
       </div>
     </div>
-  );
-};
-
+  );});
 export default TopProducts;
+
+// Le contenu de cette section ne change que quand les commandes ou les
+// paramètres changent. memo() évite un re-rendu inutile au montage de
+// tout l'app (navbar, footer…) quand React parcourt les enfants.

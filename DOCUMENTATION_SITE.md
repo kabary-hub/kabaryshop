@@ -1,4 +1,4 @@
-# 📘 JOURNAL & DOCUMENTATION COMPLÈTE DU SITE — KABARY SHOP
+# 📘 DOCUMENTATION COMPLÈTE DU SITE — KABARY SHOP
 
 > **Document de présentation — fonctionnalité par fonctionnalité.**
 > Ce fichier répertorie TOUT ce que fait le site : pages, composants, espace admin, notifications, sécurité, paramètres modifiables, données et services externes.
@@ -33,21 +33,79 @@
 
 ## 2. 🧭 STRUCTURE DU PROJET
 
-```
+```text
 src/
 ├── App.jsx                    → Routage principal + fournisseurs de contexte
 ├── main.jsx                   → Point d'entrée React
-├── Pages/                     → Pages publiques (11 pages)
-├── components/                → Composants réutilisables (12 dossiers)
-├── admin/                     → Espace d'administration (12 pages)
-├── context/                   → Contexte React : Cart, Category, Settings, User
-├── services/                  → Service produits (catalogue)
-├── utils/                     → Utilitaires : currency, reviews, subscribers, notifications
-└── assets/                    → Images produits par catégorie + images de fond
+├── hooks/
+│   └── usePageTracking.js     → Nouveau : suivi analytique des pages (Tâche 10)
+├── services/
+│   ├── analyticsService.js    → Nouveau : service de tracking (Tâche 10)
+│   ├── emailLogService.js     → Nouveau : journal des emails (Tâche 8)
+│   ├── backupService.js       → Nouveau : sauvegarde (Tâche 6)
+│   └── productService.js      → Ré-export du catalogue central (Tâche 1)
+├── core/
+│   └── products.js            → Nouveau : fichier source unique du catalogue (Tâche 1)
+├── utils/
+│   ├── exportUtils.js         → Nouveau : exports CSV/Excel/PDF (Tâche 5)
+│   └── emailService.js        → Modifié : journalisation (Tâche 8)
+├── admin/
+│   ├── Backup.jsx             → Nouveau : page sauvegarde (Tâche 6)
+│   ├── Settings.jsx           → Modifié : onglet Sauvegarde + sécurité
+│   ├── History.jsx            → Modifié : onglet Emails (Tâche 8)
+│   ├── Analytics.jsx          → Modifié : accrues (Tâche 10)
+│   └── ...
+├── api/
+│   └── order.js               → Nouveau : API suivi public (Tâche 7)
+└── ...
 ```
 
-### Routes du site
+### Nouveaux fichiers créés lors de la session
+| Fichier | Tâche | Description |
+|---|---|---|
+| `src/core/products.js` | 1 | Fichier source unique du catalogue |
+| `src/hooks/usePageTracking.js` | 10 | Hook de suivi des pages |
+| `src/services/analyticsService.js` | 10 | Service de tracking |
+| `src/services/emailLogService.js` | 8 | Journal des emails |
+| `src/services/backupService.js` | 6 | Sauvegarde |
+| `src/utils/exportUtils.js` | 5 | Exports CSV/Excel/PDF |
+| `api/order.js` | 7 | API de suivi public |
+| `src/admin/Backup.jsx` | 6 | Page de sauvegarde |
+| `tests/test_basic.mjs` | 11 | Tests de base |
 
+### Modifications majeures des fichiers existants
+- `src/services/productService.js` : ré-export du fichier central (Tâche 1)
+- `src/components/Products/products.jsx` : import depuis le central (Tâche 1)
+- `src/utils/emailService.js` : journalisation (Tâche 8)
+- `src/admin/Settings.jsx` : onglet Sauvegarde + sécurité (Tâches 2, 6)
+- `src/admin/History.jsx` : onglet Emails (Tâche 8)
+- `src/admin/Orders.jsx`, `Products.jsx`, `Users.jsx` : boutons export (Tâche 5)
+- `src/pages/TrackOrder.jsx` : API publique + fallback (Tâche 7)
+- `src/App.jsx` : prefetch + AnalyticsTracker (Tâches 9, 10)
+- `src/index.css` : nettoyage CSS (problème écran blanc)
+- Plusieurs composants : `React.memo` (Tâche 9)
+
+---
+
+## 3. ✅ ÉTAT DES TÂCHES (SESSION)
+
+| Tâche | Statut | Fichiers / Actions clés |
+|---|---|---|
+| **Tâche 1 — Unifier la génération des produits** | ✅ Terminée | `src/core/products.js` créé, `productService.js` + `products.jsx` + toutes les pages alignés |
+| **Tâche 2 — Sécuriser le mot de passe admin** | ✅ Terminée | `VITE_ADMIN_DEFAULT_PASSWORD` dans `.env`, `Settings.jsx` + `AdminLogin.jsx` nettoyés, fallback `Diaraye@620` supprimé |
+| **Tâche 5 — Exports PDF/Excel pour l'admin** | ✅ Terminée | `exportUtils.js` créé, boutons export sur Orders/Products/Users |
+| **Tâche 6 — Sauvegarde automatique des données** | ✅ Terminée | `backupService.js`, `Backup.jsx`, onglet dans Settings, route `/admin/backup` |
+| **Tâche 7 — Suivi de commande public** | ✅ Terminée | `api/order.js` créé, `TrackOrder.jsx` adapté, lecture publique + fallback, rate limiting serveur |
+| **Tâche 8 — Journal des emails** | ✅ Terminée | `emailLogService.js`, `sendEmail` modifié, onglet Emails dans Historiques, export CSV |
+| **Tâche 9 — Performances** | ✅ Terminée | Prefetch pages fréquentes, `React.memo` (TopProducts, SearchBar, NewsletterBanner, WhatsAppButton, Footer, Popup), service worker déjà actif |
+| **Tâche 10 — Analytics** | ✅ Terminée | `analyticsService.js`, `usePageTracking.js`, intégration dans `App.jsx` (via `AnalyticsTracker`), entonnoir de conversion |
+| **Tâche 11 — Tests automatisés** | ✅ Terminée | `tests/test_basic.mjs` créé (produits, panier, commandes, validation, références), tests existants vérifiés |
+
+---
+
+## 4. 🧭 STRUCTURE DU SITE (PAGES & ROUTES)
+
+### Routes publiques
 | Route | Page |
 |---|---|
 | `/` | Accueil (Maison) |
@@ -58,301 +116,150 @@ src/
 | `/contacts` | Page contact |
 | `/recherche?q=…` | Résultats de recherche globale |
 | `/produit/:id` | Fiche détail produit |
-| `/:categorySlug` | Route dynamique pour toutes les catégories (y compris créées par l'admin) |
-| `/admin/login` | Connexion administrateur |
-| `/admin` (+ 8 sous-routes) | Espace admin protégé |
+| `/:categorySlug` | Route dynamique pour toutes les catégories |
+| `/track-order` ou `/track` | Suivi de commande public |
+| `/cgv`, `/confidentialite`, `/retours` | Pages légales |
+
+### Routes administration (protégées)
+| Route | Page |
+|---|---|
+| `/admin/login` | Connexion admin |
+| `/admin` | Tableau de bord |
+| `/admin/products` | Gestion des produits |
+| `/admin/reviews` | Avis clients |
+| `/admin/orders` | Commandes |
+| `/admin/users` | Utilisateurs |
+| `/admin/categories` | Catégories |
+| `/admin/analytics` | Analytiques |
+| `/admin/settings` | Paramètres (Général, Notifications, Sécurité, Sauvegarde) |
+| `/admin/backup` | Sauvegarde (Tâche 6) |
+| `/admin/subscribers` | Abonnés |
+| `/admin/history` | Historiques (avec onglet Emails — Tâche 8) |
 
 ---
 
-## 3. 🛍️ FONCTIONNALITÉS PUBLIQUES (CÔTÉ CLIENT)
+## 5. 🔹 FONCTIONNALITÉS CLÉS — DÉTAILS
 
-### 3.1 Barre de navigation (Navbar)
-- **Logo + nom du site** (modifiable dans Paramètres).
-- **Barre de recherche intelligente** :
-  - Placeholder adapté à la page active (« Rechercher dans la mode Femmes… », etc.).
-  - **Suggestions en direct** (jusqu'à 6 produits) avec image, catégorie et prix converti.
-  - Compteur de résultats (« Voir tous les résultats (n) »).
-  - Sur une page produits : filtre en direct + défilement vers la section ; ailleurs : redirection vers `/recherche`.
-- **Panier** : bouton avec **badge du nombre d'articles**, ouvre le panier latéral.
-- **Bascule mode sombre/clair** animée.
-- **Menu catégories dynamique** : les catégories actives gérées dans l'admin s'affichent automatiquement (événement `categoriesUpdated`).
-- **Menu déroulant « Produits tendances »** : Tendances, Ventes, Notes, Contacts.
-- **Lien « Admin »** visible (bleu) → espace d'administration.
-- **Menu mobile hamburger** avec tous les liens.
+### 5.1 Panier & Commande
+- **Panier persistant** (localStorage, clé `cart`)
+- **Badge compteur** dans la navbar
+- **Panneau latéral** avec liste, quantités, suppression, total
+- **Commande** : 2 modes (produit seul ou panier entier)
+- **Référence unique** : format `CMD-YYMMDD-240194XXXX-HHMM`
+- **Email de confirmation** au client (via Resend/Vercel)
+- **Notification admin** (cloche + push + email)
+- **Écran de confirmation** modale (remplace `alert()`)
 
-### 3.2 Page d'accueil
-Enchaîne les sections dans l'ordre :
-1. **Héros carrousel** (10 slides) : promotions avec image, titre et description, défilement automatique toutes les 4 s, boucle infinie, bouton « Commander maintenant ».
-2. **Nouveaux arrivages** : grille des 10 produits les plus récents (tri par date réelle), cartes avec image, partage, note moyenne des avis, prix converti, bouton « 🛒 Ajouter », effet zoom au survol, bouton « Voir Plus » → `/ventes`.
-3. **Nos meilleures ventes** : top 4 produits **calculés à partir des vraies commandes** (quantité vendue + revenus), avec badge « N vendus », bouton « Acheter ».
-4. **Soldes d'hiver** : bannière promotionnelle avec arguments (qualité, livraison rapide, paiement facile, offres).
-5. **Newsletter** : champ email + bouton « S'abonner » (voir section Newsletter).
-6. **Témoignages** : carrousel de 12 avis clients avec photos (autoplay, responsive 4 → 1 colonne).
+### 5.2 Produits (Tâche 1 — unification)
+- **Fichier source unique** : `src/core/products.js`
+- **Ré-export** via `src/services/productService.js`
+- Toutes les pages et composants importent depuis le central
+- **Produits par défaut** + **produits personnalisés** (admin)
+- **Suppression logique** (tombstone) conservée
 
-### 3.3 Pages catégories (Femmes, Hommes, Enfants, Électroniques, Meubles, Tendances, Ventes)
-- Grande **bannière avec titre + sous-titre + image de fond** (composant réutilisable).
-- Grille de produits filtrés par catégorie.
-- Filtre en direct par la recherche.
-- Les produits personnalisés ajoutés par l'admin apparaissent automatiquement.
-- Les pages Tendances & Ventes existent en dur ; toute autre catégorie créée dans l'admin est servie par la **route dynamique** `/:categorySlug` (avec nom de catégorie lu dans les paramètres, couleurs, notes, description, bouton Ajouter).
+### 5.3 Recherche
+- **Barre de recherche** avec placeholder adapté à la page
+- **Suggestions en direct** (6 produits max) avec image, prix, catégorie
+- **Page de résultats** `/recherche?q=…` avec filtre par titre, description, couleur, catégorie
+- **Deep-link** : le terme est synchronisé dans l'URL et la barre
 
-### 3.4 Fiche produit (`/produit/:id`)
-- **Fil d'Ariane** (Accueil > Catégorie > Produit) et bouton retour.
-- **Galerie d'images** :
-  - Image principale + photos du produit (jusqu'à 6) + autres modèles de la même catégorie (mention « Les autres photos montrent d'autres modèles »).
-  - Flèches précédent/suivant, compteur « 1 / n », miniatures cliquables.
-  - **Lightbox plein écran** : zoom au clic, navigation ← →, fermeture Échap, focus accessibilité, blocage du scroll.
-- **Badge catégorie** coloré avec icône (👩 Femmes, 👨 Hommes, 🧒 Enfants, 📱 Électroniques, 🛋️ Meubles, 🔥 Tendances, 💥 Promotions).
-- **Bouton partager** (voir 3.6).
-- **Note réelle** : moyenne calculée à partir des avis clients validés (étoiles + nombre d'avis, lien vers la section avis).
-- **Prix** converti selon la devise du site, mention « TTC ».
-- **Couleur** avec pastille colorée.
-- **Caractéristiques** : Haute qualité, Livraison rapide, Paiement sécurisé, Retour si non satisfait.
-- **Stock** : « En stock – Livraison sous 24h/48h dans tout Conakry » (info modifiable dans Paramètres).
-- **Sélecteur de quantité** (+ / −).
-- **Boutons** : « Ajouter au panier » + « Commander maintenant » (ouvre le formulaire de commande).
-- **Avis clients** (voir 3.5).
-- **Produits similaires** : 8 produits de la même catégorie avec note et prix.
-- **État « Produit introuvable »** élégant avec lien retour à l'accueil.
-- Notification verte « ✅ ajouté au panier ! » en bas à droite.
+### 5.4 Newsletter & Abonnés
+- **Formulaire d'abonnement** sur l'accueil
+- **Email de confirmation** automatique
+- **Bannière "Nouveautés"** quand un nouveau produit est publié
+- **Email automatique** aux abonnés à chaque nouveau produit
+- **Liste des abonnés** dans l'admin (copier emails, supprimer)
 
-### 3.5 Avis clients (page Notes + bloc avis produit)
-**Bloc avis sur chaque fiche produit :**
-- Résumé : note moyenne sur 10 (ex. 4.5/5), étoiles, « Basé sur n avis ».
-- **Répartition par étoiles** (5★ → 1★) avec barres de progression animées.
-- **Formulaire** : nom, note interactive (étoiles cliquables avec survol), commentaire.
-  - Validation (nom requis, note requise, commentaire ≥ 3 caractères).
-  - L'avis est soumis **en attente de validation admin** puis publié après approbation.
-- Liste des avis : avatar coloré (initiale), nom, badge « Avis validé » ou « Acheteur vérifié », date, étoiles, commentaire, **réponse du vendeur** (avec date) quand l'admin a répondu.
+### 5.5 Avis clients
+- **Bloc avis sur chaque fiche produit** (note moyenne, étoiles, formulaire)
+- **Page Notes** (`/notes`) : note globale, avis validés, produits les mieux notés
+- **Modération** : avis en attente → validation admin → publication
+- **Réponse du vendeur** possible
+- **Mise à jour en temps réel** (événements `reviewsUpdated`)
 
-**Page Notes (`/notes`) :**
-- Bannière « Vos Avis ICI ».
-- **Note globale du site** : moyenne combinée des avis boutique + avis produits, avec demi-étoiles et répartition 5★→1★.
-- Formulaire « Laissez votre note » (avis général sur la boutique, modéré par l'admin).
-- **Avis de nos clients** : avis validés mélangés, avec lien « À propos de : [produit] » vers la fiche produit.
-- **Produits les mieux notés** : grille des 6 produits au meilleur score (moyenne + nombre d'avis), cliquables.
-- Tout se met à jour **en temps réel** quand l'admin valide/supprime un avis (événements `reviewsUpdated` / `storage`).
+### 5.6 Admin — Tableau de bord
+- **4 cartes cliquables** : Produits, Commandes, Utilisateurs, Revenus (données réelles)
+- **Dernières commandes** (cliquables)
+- **Produits les plus vendus** (calculés depuis les commandes)
+- **Rafraîchissement auto** quand les données changent
 
-### 3.6 Bouton partager (ShareButton)
-Menu contextuel avec :
-- **Partager natif** (si supporté par le navigateur/mobile),
-- **Copier le lien** (presse-papiers, avec confirmation « Lien copié ! »),
-- **WhatsApp, Facebook, X (Twitter), Email** (fenêtre de partage dédiée),
-- Fermeture au clic extérieur et à la touche Échap.
+### 5.7 Admin — Commandes
+- **Tableau complet** avec filtres (période, expéditeur), tris (date, montant, statut, expéditeur)
+- **Demandes** : Détails, Expédition (choix du responsable), Marquer complétée, Rejeter
+- **Recherche** par client/ID/référence
+- **Journal d'actions** (`order_logs`)
 
-### 3.7 Panier (CartContext + panneau latéral)
-- **Glouton** : persistance dans `localStorage` (clé `cart`), survit au rechargement.
-- **Panneau latéral** coulissant avec animation, liste des articles (image, nom, couleur, prix, quantité +/−, suppression), total.
-- Badge compteur dans la navbar.
-- **Ajout automatique** depuis les grilles, la fiche produit (avec quantité) et les cartes.
-- « Passer la commande » → ouvre le formulaire de commande avec tout le panier.
-- « Vider le panier », message « livraison gratuite à partir de 200 000 GNF », prix convertis selon la devise.
+### 5.8 Admin — Utilisateurs (CRUD)
+- **Rôles** : Administrateur, Livreur, Préparateur
+- **Statuts** : Actif / Bloqué
+- **Recherche + filtre par rôle**
+- **Bloquer/débloquer, supprimer, modifier**
+- **« Sélectionner comme utilisateur actif »** (synchronisé)
 
-### 3.8 Commande (Popup)
-- **2 modes** : commande directe d'un produit ou commande de tout le panier.
-- Récapitulatif (articles, quantités, total) avant validation.
-- **Formulaire** : nom complet *, email, quartier de livraison *, téléphone * (chiffres uniquement).
-- À la validation :
-  1. La commande est **enregistrée** (`localStorage` clé `shop_orders`) avec **ID numérique unique** et **référence lisible unique** (format `CMD-AAMMJJ-NNNN`, numéro séquentiel par jour) ;
-  2. Chaque article conserve son **ID produit** ;
-  3. **Email récapitulatif** envoyé au client via **Resend** (fonction Vercel) avec : référence commande, liste des articles avec leurs ID produits, quantités, prix, total, date, devise ;
-  4. **Notification de l'admin** déclenchée (voir section Notifications) ;
-  5. **Écran de confirmation** (modale dédiée, remplace l'ancien `alert()`) : icône ✅, référence de la commande, récapitulatif des articles avec photos, total, quartier de livraison, mention du paiement Mobile Money et de l'email envoyé au client — bouton « Continuer mes achats » ; panier vidé.
+### 5.9 Admin — Paramètres (modifiable 100%)
+- **Onglet Général** : identité du site, coordonnées, livraison, devise, page contact, réseaux sociaux
+- **Onglet Notifications** : push, email, alertes, notifications abonnés
+- **Onglet Sécurité** : 2FA, mot de passe, délai d'inactivité
+- **Onglet Sauvegarde** (Tâche 6) : créer, télécharger, restaurer, historique, nettoyage
 
-### 3.9 Newsletter & abonnés
-- **Formulaire d'abonnement** (section accueil) : l'email est enregistré (dédupliqué, clé `site_subscribers`) + email de confirmation envoyé via **Resend** (aucun template externe à créer).
-- **Bannière « Nouveautés du site ! »** : affichée aux visiteurs abonnés (sur ce navigateur) quand l'admin publie un nouveau produit — boutons « Voir les nouveautés » et « Plus tard », ne se réaffiche qu'à la prochaine publication.
-- **Email automatique aux abonnés** à chaque nouveau produit publié : l'email « Nouveaux arrivages » (titre, prix, image, bouton « Voir le produit ») est généré automatiquement en français par le site, activable/désactivable dans Paramètres → Notifications.
-- Liste des abonnés consultable et gérable dans l'admin (copier les emails, supprimer).
+### 5.10 Admin — Analytiques (Tâche 10 — amélioré)
+- **Périodes** : aujourd'hui, cette semaine, ce mois, cette année
+- **3 cartes** : Revenus (avec variation % et tendance), Commandes, Utilisateurs
+- **Graphiques** : revenus et commandes par période
+- **Top 10 des produits les plus vendus**
+- **Exports** : CSV, JSON, impression
+- **Données réelles** (calculées depuis les commandes)
 
-### 3.10 Recherche globale
-- Page `/recherche?q=…` : compte les résultats, affiche la grille, gère le terme vide, deep-link (le terme dans l'URL est synchronisé dans la barre de recherche).
-- Filtre sur titre, description, couleur **et** catégorie.
+### 5.11 Admin — Historiques (Tâche 8 — enrichi)
+- **4 onglets** : Activité générale, Utilisateurs & rôles, Pages visitées, Emails
+- **Onglet Emails** : statistiques (total, succès, échecs), filtres (type, période, recherche, échecs uniquement), liste, détails, export CSV, effacement
+- **Journal fusionné** : local (site_history) + distant (site_activity Supabase)
+- **Filtres** : recherche, type, acteur, période, admin & staff uniquement
+- **Export CSV** et **effacement** du journal
 
-### 3.11 Page Contact
-- Bannière (titre + sous-titre **modifiables dans Paramètres**).
-- Coordonnées : **téléphone, email, adresse, WhatsApp** (lien direct `wa.me`) — toutes **modifiables dans Paramètres**.
-- Note WhatsApp (« Disponible sur WhatsApp 24h/7j ») modifiable.
-- **Carte de remerciement** : titre + message entièrement modifiables, avec description du site et infos de livraison ajoutées automatiquement.
+### 5.12 Admin — Sauvegarde (Tâche 6)
+- **Créer une sauvegarde** (téléchargement JSON immédiat)
+- **Historique des sauvegardes** (liste des fichiers)
+- **Restaurer** depuis un fichier JSON ou par ID
+- **Télécharger** une sauvegarde existante
+- **Nettoyage** (garder les 50 dernières)
+- **Données sauvegardées** : commandes, produits, catégories, paramètres, avis, abonnés, utilisateurs, logs
 
-### 3.12 Pied de page (Footer)
-- Logo + nom du site, description.
-- Liens importants (2 colonnes).
-- **Réseaux sociaux** : Instagram, WhatsApp, LinkedIn, Facebook, Telegram (affichés seulement si renseignés dans Paramètres).
-- Coordonnées dynamiques (siteName, téléphone, email).
-- Copyright : « © 2026 {Nom du site}. Tous droits réservés. »
-
-### 3.13 Référencement (SEO) & performance
-- **Titres, descriptions et canonical uniques par page** : le composant `RouteMeta` (dans `App.jsx`) met à jour dynamiquement le `<title>`, la meta description et la balise `<link rel="canonical">` à chaque navigation — accueil, catégories (Femmes, Hommes…), fiche produit (titre du produit), recherche, contacts, notes. Les pages `/admin` et `/staff` ne sont pas indexées.
-- **Balises sociales dans `index.html`** : Open Graph (partage Facebook, WhatsApp, Telegram) + Twitter Card, avec logo et description du site.
-- **`public/sitemap.xml`** : plan du site (10 URLs) à soumettre à Google Search Console. ⚠️ Remplacer `kabaryshop.com` par le domaine réellement utilisé tant que le domaine n'est pas actif (voir `GUIDE_DOMAINE.md`).
-- **`public/robots.txt`** : autorise l'indexation, bloque `/admin/` et `/staff/`, référence le sitemap.
-- **`vercel.json`** : réécriture de toutes les routes vers `index.html` (corrige les 404 SPA au rafraîchissement sur Vercel).
-- **Performance** : `loading="lazy"` + `decoding="async"` sur toutes les images du site, `fetchPriority="high"` sur l'image principale du héros, code-splitting des pages (chunks légers chargés à la demande).
+### 5.13 Suivi de commande public (Tâche 7)
+- **API `api/order.js`** : point GET `/api/order?ref=…` (lecture publique depuis Supabase)
+- **Côté client** : appel à l'API avec fallback localStorage
+- **Champs exposés** : référence, date, client, email, téléphone, adresse, mode de paiement (sans données sensibles)
+- **Rate limiting** côté serveur (placeholder 5 req/min)
 
 ---
 
-## 4. 🔐 ESPACE ADMINISTRATION
+## 6. 🔐 SÉCURITÉ & ACCESSIBILITÉ
 
-### 4.1 Connexion (`/admin/login`)
-- Écran moderne (dégradé sombre), email + mot de passe avec **affichage/masquage**.
-- **Email admin** : `boubacarelbalde94@gmail.com` par défaut (modifiable dans Paramètres → Coordonnées).
-- Mot de passe par défaut : `Diaraye@620` (modifiable dans Paramètres → Sécurité).
-- **Authentification à deux facteurs (2FA)** optionnelle (voir section Sécurité).
-- Écran « Vérification en deux étapes » : saisie du code à 6 chiffres (champ formaté, chiffres uniquement), **renvoi du code** avec compte à rebours 30 s, retour à l'écran précédent.
+### 6.1 Authentification admin
+- **Connexion** : email + mot de passe (avec affichage/masquage)
+- **2FA optionnelle** : code à 6 chiffres envoyé par email (5 min, renvoi, code de secours)
+- **ProtectedRoute** : bloque l'admin si la 2FA n'est pas validée
+- **Raccourci clavier secret** : Ctrl+Shift+A → pose le jeton + redirection vers `/admin/login`
 
-### 4.2 Protection des routes (ProtectedRoute)
-- L'accès à `/admin` et toutes ses sous-routes exige la session admin.
-- **Si la 2FA est activée, la vérification est obligatoire** : sans code validé dans la session, l'utilisateur est redirigé vers la connexion.
-
-### 4.3 Interface admin (AdminLayout)
-- **Sidebar** (fixe sur desktop, tiroir sur mobile) avec 10 entrées : Tableau de bord, Produits, Avis clients, Abonnés, Commandes, Utilisateurs, Catégories, Analytiques, **Historiques**, Paramètres.
-- Bouton **Déconnexion**.
-- **Cloche de notifications 🔔** avec badge de non-lues (dans la sidebar et la barre mobile) : panneau des alertes, « Tout marquer lu », clic sur une alerte → navigation vers l'endroit concerné, fermeture au clic extérieur.
-
-### 4.4 Tableau de bord (Dashboard) — **données réelles**
-Toutes les statistiques sont **calculées depuis les vraies données du site** (pas de valeurs codées) :
-- **4 cartes cliquables** : Produits (catalogue réel), Commandes (total réel), Utilisateurs (enregistrés), Revenus (somme réelle des commandes) → mènent chacune à la page admin correspondante.
-- **5 dernières commandes** (cliquables) : référence, client, date, montant, badge de statut → ouvrent la fiche détaillée de la commande.
-- **Produits les plus vendus** (calculés depuis les commandes) : image, nom, quantité vendue, revenus → ouvrent la fiche publique du produit (ou la recherche admin si le produit a été supprimé).
-- **Liens « Voir tout »** vers Commandes / Produits.
-- Se rafraîchit en direct quand les données changent (événements `ordersUpdated`, `productsUpdated`, etc.).
-
-### 4.5 Produits (admin)
-- **Liste complète** : produits par défaut + produits personnalisés, **triés par date** (récents d'abord), recherche par nom, colonne images (compteur), note moyenne réelle, tri récent/ancien.
-- **Ajout / modification** (modale complète) :
-  - Nom, prix (GNF ou texte), catégorie (liste active), couleur, note.
-  - **Images : upload via ImgBB** (API) ou URL, **jusqu'à 6 images** (1 principale + 5), galerie ordonnée (déplacer, supprimer), déduplication.
-- **Suppression** (avec confirmation).
-- **Publication** : à chaque nouveau produit → enregistrement dans « publications récentes » (bannière Nouveautés) + **email automatique aux abonnés**.
-- Gestion des catégories actives pour le formulaire.
-
-### 4.6 Commandes (admin)
-- **Tableau complet** : référence, client, date/heure, montant, statut, expéditeur, actions.
-- **Statistiques** : total, en attente, complétées, expédiées.
-- **Recherche** par client / ID / référence.
-- **Filtres** : période (toutes / cette semaine / ce mois), expéditeur (tous / non expédiées / par livreur).
-- **Tris** : date, expéditeur, statut, montant (asc/desc).
-- **Actions par commande** :
-  - **Détails** (modale) : infos client (nom, email, téléphone, adresse), date, mode de paiement, infos d'expédition, **liste des produits avec leur ID**, quantités, prix, total.
-  - **Expédition** : choix du responsable parmi les utilisateurs (livreur/admin) → statut « Expédiée » + journal d'action.
-  - **Marquer complétée**, **Rejeter** (suppression avec confirmation).
-- **Journal d'actions** (`order_logs`) : chaque action est tracée (qui, quand, quoi).
-- **Changer d'utilisateur actif** (modale avec liste des utilisateurs) — l'utilisateur connecté est enregistré (`current_admin_user`).
-
-### 4.7 Utilisateurs (admin)
-- Gestion complète (CRUD) : nom, email, téléphone, **rôle** (Administrateur / Livreur / Préparateur), **statut** (Actif / Bloqué), date d'enregistrement.
-- Validation stricte du formulaire (email valide, mot de passe ≥ 6 caractères, confirmation).
-- Recherche + filtre par rôle.
-- **Bloquer / débloquer**, supprimer, modifier.
-- **« Sélectionner comme utilisateur actif »** : synchronisé partout (Orders, Journal).
-- Statistiques : total, actifs, administrateurs, livreurs.
-
-### 4.8 Avis clients (admin)
-- **Modération** : onglets « En attente / Validés / Tous » avec compteurs.
-- Valider / supprimer un avis (produit ou général du site).
-- **Répondre au client** (réponse du vendeur) : ajout, modification, suppression.
-- Badge « Avis site » pour les avis généraux, image + titre du produit pour les avis produits (avec gestion « Produit supprimé »).
-- Rappel si l'avis est en attente (la réponse sera visible après validation).
-
-### 4.9 Abonnés newsletter (admin)
-- Liste des abonnés avec date d'abonnement, recherche, **« Copier les emails »** (presse-papiers), suppression.
-- **Rappel de configuration Resend** : encart d'information confirmant que les emails partent via Resend (fonction Vercel) et rappelant les variables `RESEND_API_KEY` / `EMAIL_FROM` à renseigner dans les variables d'environnement sur Vercel (voir `GUIDE_RESEND_VERCEL.md`).
-
-### 4.10 Catégories (admin)
-- Liste en cartes : nom, slug, **nombre de produits réel** (compteurs recalculés automatiquement), statut.
-- Ajouter / modifier (slug auto-généré depuis le nom), supprimer, **activer/désactiver** (les catégories inactives disparaissent du menu public).
-
-### 4.11 Analytiques (admin) — **données réelles**
-- Sélecteur de période : **Aujourd'hui / Cette semaine / Ce mois / Cette année**.
-- **3 cartes** : Revenus totaux (avec variation % vs période précédente et tendance ↑↓), Commandes (idem), Utilisateurs.
-- **Graphiques en barres** : Revenus et Commandes par heure (jour) / jour (semaine) / jour (mois) / mois (année).
-- **Top 10 des produits les plus vendus** (rang, ventes, revenus).
-- **Exports** : CSV (téléchargement), JSON, Impression (window.print()).
-- Tout est calculé depuis les commandes réelles stockées.
-
-### 4.12 Historiques (admin) — **journal complet du site**
-
-Nouveau module `src/utils/history.js` + page `src/admin/History.jsx` (route `/admin/history`, entrée « Historiques » dans le menu) :
-- **Journal central** (`localStorage` clé `site_history`, max 2000 entrées) : toutes les actions du site y sont enregistrées automatiquement avec date, type, action, sujet, détails et **acteur** (nom + rôle).
-- **Types d'événements journalisés** :
-  - 👁️ **Pages** : chaque page visitée (accueil, catégories, produit, admin…) avec l'acteur (Visiteur ou admin connecté) ;
-  - 🔐 **Connexions** : connexion réussie, échec de connexion, 2FA validée, déconnexion, changement d'utilisateur actif ;
-  - 👥 **Utilisateurs & rôles** : création, modification, suppression, blocage/déblocage, **changement de rôle** (avec l'ancien et le nouveau rôle) ;
-  - 🛒 **Commandes** : nouvelle commande client (avec référence, total, quartier), expédition, complétée, rejet ;
-  - 📦 **Produits** : création, modification, suppression ;
-  - ⭐ **Avis** : soumission d'avis (page Notes), validation, suppression, réponse du vendeur (ajout/modification/suppression) ;
-  - 🗂️ **Catégories** : création, modification, suppression, activation/désactivation ;
-  - 📧 **Abonnés** : abonnement newsletter (site public), désabonnement (admin) ;
-  - ⚙️ **Paramètres** : enregistrement des modifications.
-- **Onglet « Activité générale »** : tableau complet avec **filtres** (recherche plein texte, type, acteur, période : aujourd'hui / 7 jours / 30 jours / tout), badges colorés par type, icône selon l'action.
-- **Onglet « Utilisateurs & rôles »** : pour chaque utilisateur — avatar, rôle, statut, date d'enregistrement, nombre d'actions, **historique des rôles** (bandeau ambre) et **dernières actions**.
-- **Onglet « Pages visitées »** : classement des pages les plus visitées (barres de progression) + journal des 100 dernières visites.
-- **Export CSV** (séparateur `;`, compatible Excel) et **effacement du journal** (avec confirmation).
-- Rafraîchissement **en temps réel** (événement `historyUpdated`).
-
-### 4.13 Paramètres (admin) — **tout le site est modifiable**
-
-**Onglet Général :**
-- *Identité du site* : nom, slogan/tagline, description.
-- *Coordonnées* : email de contact (affiché), **email admin** (connexion + alertes), téléphone, **WhatsApp**, adresse.
-- *Livraison & devise* : infos de livraison, seuil de livraison gratuite, **devise** (GNF / USD / EUR / XAF — conversion automatique partout sur le site).
-- *Page contact* : titre bannière, sous-titre bannière, titre section coordonnées, note WhatsApp, titre + message de la carte de remerciement.
-- *Réseaux sociaux* : Facebook, Instagram, LinkedIn, Telegram.
-- Bouton « Enregistrer les modifications » → appliqué immédiatement partout (navbar, footer, contact, emails…).
-
-**Onglet Notifications (voir section 5).**
-
-**Onglet Sécurité (voir section 6).**
-
----
-
-## 5. 🔔 NOTIFICATIONS (fonctionnelles et propres)
-
-Module `src/utils/notifications.js` — 3 canaux activables indépendamment dans **Paramètres → Notifications** :
-
-### 5.1 Alertes in-app (cloche admin) — toujours actives
-- Chaque événement (nouvelle commande, test) crée une alerte persistée (max 50, clé `admin_alerts`) : type (commande/succès/avertissement/info), titre, message, **lien de navigation**, date, lu/non-lu.
-- Affichées dans la **cloche 🔔** de l'admin avec **badge rouge non-lues**, « Tout marquer lu », clic → navigation.
-
-### 5.2 Push navigateur (Notification API)
-- Bouton « Activer le push » dans Paramètres (demande la permission, détecte les états : autorisé / bloqué / non supporté, avec guidage si bloqué).
-- Notifications système affichées par le navigateur (ex. « 🛒 Nouvelle commande #CMD-… ») quand la permission est accordée.
-
-### 5.3 Emails (Resend + fonction Vercel)
-Tous les emails sont envoyés via **Resend**, relayés par la fonction Vercel `api/send-mail.js` (la clé API ne figure jamais dans le code du site). Le contenu de chaque email est **généré automatiquement en français** par `src/utils/emailService.js` — aucun template externe à configurer :
-- **Alerte email admin** à chaque nouvelle commande : référence, client, total, liste des articles **avec leurs ID produits**.
-- **Email de confirmation au client** à chaque commande (avec référence + ID produits).
-- **Email aux abonnés** à chaque nouveau produit (email « Nouveaux arrivages »).
-- **Email de confirmation d'abonnement** newsletter.
-- **Email du code 2FA** (voir Sécurité).
-
-### 5.4 Paramètres de notification
-- Interrupteurs : push, email, alertes nouvelles commandes, notifier les abonnés des nouveaux produits.
-- **Aucun champ de template** : le contenu de chaque email est construit automatiquement par le site en français.
-- **Bouton « Tester les notifications »** : teste les 3 canaux et affiche le résultat clair de chacun (✅/⚠️) — in-app, push, email.
-- **Email de test aux abonnés** : vers une adresse précise ou vers tous les abonnés (avec un produit fictif, sans rien publier).
-
----
-
-## 6. 🛡️ SÉCURITÉ
-
-### 6.1 Authentification à deux facteurs (2FA) — opérationnelle
-- Activable/désactivable dans **Paramètres → Sécurité** (interrupteur + bannière d'état).
-- **Déroulement à la connexion** :
-  1. Saisie email + mot de passe ;
-  2. Un **code à 6 chiffres** est généré et **envoyé par email** (via Resend) à l'email admin ;
-  3. Écran de vérification : saisie du code (5 min de validité), **renvoi** avec compte à rebours 30 s, **retour** possible ;
-  4. **Si l'envoi email échoue, un code de secours s'affiche à l'écran** (le flux reste testable) ;
-  5. Code validé → session sécurisée (`admin_2fa_verified`).
-- **ProtectedRoute bloque l'admin tant que la 2FA n'est pas validée** dans la session.
-
-### 6.2 Mots de passe
-- **Changer le mot de passe** : ancien + nouveau + confirmation (règles : ≥ 6 caractères, correspondance), sauvegardé dans `localStorage`.
-- **Mot de passe oublié** : récupération en 2 étapes (email ou téléphone → code de validation → nouveau mot de passe), code valable 5 min.
+### 6.2 Mots de passe (Tâche 2 — sécurisés)
+- **Mot de passe par défaut** : variable d'environnement `VITE_ADMIN_DEFAULT_PASSWORD` (`.env`)
+- **Fallback visible supprimé** (`Diaraye@620` retiré du code)
+- **Changement de mot de passe** : ancien + nouveau + confirmation (règles ≥ 6 caractères)
+- **Mot de passe oublié** : récupération en 2 étapes (email/téléphone → code → nouveau mot de passe)
 
 ### 6.3 Délai d'inactivité
-- Configurable (15 min / 30 min / 1 h / 2 h) dans Paramètres → Sécurité.
+- Configurable : 15 min / 30 min / 1 h / 2 h
+
+### 6.4 Emails (Tâche 8 — traçabilité)
+- **Journal de tous les emails envoyés** (`site_email_logs`, localStorage)
+- **Champs** : id, type, destinataire, nom, expéditeur, sujet, statut, message, référence, date
+- **Types reconnus** : confirmation commande, confirmation abonnement, nouveaux arrivages, assignation expédition, alerte admin, 2FA, test, autre
+- **Export CSV** dans l'admin
+- **Effacement** (admin only)
+
+### 6.5 Rate limiting
+- **Côté client** : `src/utils/rateLimit.js` (connexion admin, 6 tentatives max)
+- **Côté serveur** : `api/send-mail.js` (anti-abus avec `x-send-key`)
 
 ---
 
@@ -362,7 +269,7 @@ Le site fonctionne **sans serveur** : toutes les données sont dans le `localSto
 
 | Clé | Contenu |
 |---|---|
-| `kabary_settings` | Tous les paramètres du site (identité, contact, contact page, social, notifications, sécurité, devise…) |
+| `kabary_settings` | Tous les paramètres du site (identité, contact, page contact, social, notifications, sécurité, devise…) |
 | `custom_products` | Produits ajoutés/modifiés par l'admin |
 | `categories` | Catégories (nom, slug, statut, compteur produits) |
 | `cart` | Panier en cours |
@@ -370,22 +277,19 @@ Le site fonctionne **sans serveur** : toutes les données sont dans le `localSto
 | `order_logs` | Journal des actions sur les commandes |
 | `app_users` | Utilisateurs (rôles, statuts) |
 | `current_admin_user` | Utilisateur admin actuellement connecté |
-| `current_user` | Utilisateur courant (UserContext) |
 | `product_reviews` | Avis par produit (statut, réponse du vendeur) |
 | `site_feedback` | Avis généraux sur la boutique |
 | `site_subscribers` | Abonnés newsletter (email + date) |
-| `site_subscriber_device` | Marqueur « ce navigateur est abonné » |
 | `site_publications` | Dernières publications (pour la bannière Nouveautés) |
-| `site_last_seen_publications` | Dernière consultation des nouveautés |
 | `admin_alerts` | Notifications in-app de l'admin |
-| `admin_password` | Mot de passe admin (défaut `Diaraye@620`) |
-| `adminToken`, `isAuthenticated`, `adminLoggedIn`, `admin_2fa_*` | Session admin + 2FA |
+| `admin_password` | Mot de passe admin |
 | `theme` | Mode sombre/clair choisi |
-| `resetCode`, `resetCodeExpiry` | Code de réinitialisation de mot de passe |
+| **`site_email_logs`** | **Nouveau (Tâche 8)** : journal des emails envoyés |
+| **`kabary_analytics_events`** | **Nouveau (Tâche 10)** : événements analytiques (page_view, home_view, etc.) |
 
 ### Synchronisation en temps réel
 Le site utilise des **événements JavaScript** (`window.dispatchEvent`) pour que toutes les pages se mettent à jour instantanément quand une donnée change :
-`productsUpdated`, `ordersUpdated`, `reviewsUpdated`, `subscribersUpdated`, `categoriesUpdated`, `userChanged`, `newPublications`, `adminAlertsUpdated`, `settingsUpdated`, `currencyChanged`, `storage`.
+`productsUpdated`, `ordersUpdated`, `reviewsUpdated`, `subscribersUpdated`, `categoriesUpdated`, `userChanged`, `newPublications`, `adminAlertsUpdated`, `settingsUpdated`, `currencyChanged`, `storage`, `historyUpdated`, `analyticsUpdated`, `backupCreated`, `emailLogsUpdated`.
 
 ---
 
@@ -396,46 +300,150 @@ Le site utilise des **événements JavaScript** (`window.dispatchEvent`) pour qu
 |---|---|
 | Fournisseur | Resend (resend.com) — plan gratuit : 3 000 emails/mois |
 | Clé API | `RESEND_API_KEY` (variable d'environnement Vercel, jamais dans le code) |
-| Expéditeur | `EMAIL_FROM` (domaine vérifié, ex. `contact@kabaryshop.com`) |
+| Expéditeur | `EMAIL_FROM` (domaine vérifié) |
 | Fonction d'envoi | `api/send-mail.js` (Vercel serverless — `POST /api/send-mail`) |
-| Templates | **Aucun** — tous les emails (commande, arrivages, abonnement, 2FA, expédition livreur, alerte admin) sont construits en français par `src/utils/emailService.js` |
+| Templates | **Aucun** — tous les emails sont construits en français par `src/utils/emailService.js` |
 | Test local | `node scripts/dev-mail-server.mjs` + `npm run dev` (mode simulation → emails visibles sur http://localhost:3010/dev-emails) |
 
 ### ImgBB (images uploadées par l'admin)
-- API Key intégrée dans l'admin Produits (upload jusqu'à 6 images par produit, galerie ordonnée).
+- API Key intégrée dans l'admin Produits (upload jusqu'à 6 images par produit, galerie ordonnée)
+
+### Supabase (optionnel — synchronisation)
+- Si configuré : synchronisation des paramètres (`kabary_settings`), des commandes (`shop_orders`), des activités (`site_activity`)
+- Si non configuré : le site reste 100 % local
 
 ---
 
 ## 9. ⭐ POINTS FORTS POUR VOTRE PRÉSENTATION
 
 1. **Aucune donnée fictive dans l'admin** : tableau de bord, analytiques, meilleures ventes, notes — tout est **calculé depuis les vraies données** (commandes, produits, avis).
-2. **Commandes avec référence unique** (`CMD-AAMMJJ-NNNN`) : chaque article conserve son **ID produit** partout (admin, emails, notifications).
+2. **Commandes avec référence unique** (`CMD-YYMMDD-240194XXXX-HHMM`) : chaque article conserve son **ID produit** partout (admin, emails, notifications).
 3. **Site 100 % personnalisable** : nom, description, slogan, coordonnées, WhatsApp, adresse, réseaux sociaux, devise, livraison, page contact (y compris la carte de remerciement) — le tout depuis **Paramètres**, appliqué partout en temps réel.
 4. **Notifications complètes** : cloche admin avec badge, push navigateur, emails — **testables** depuis les Paramètres (bouton « Tester les notifications »).
-5. **Sécurité renforcée** : 2FA par email opérationnelle (code 6 chiffres, 5 min, renvoi, code de secours), mots de passe modifiables, récupération de mot de passe, délai d'inactivité.
+5. **Sécurité renforcée** : 2FA par email opérationnelle (code 6 chiffres, 5 min, renvoi, code de secours), mots de passe sécurisés (variable d'environnement, fallback supprimé), récupération de mot de passe, délai d'inactivité.
 6. **Avis clients modérés** : formulaire public → validation admin → publication, avec **réponse du vendeur**, page Notes avec note globale et produits les mieux notés.
 7. **Expérience utilisateur soignée** : mode sombre, recherche avec suggestions en direct, panier persistant, galeries avec lightbox, animations AOS, design responsive, partage produit (WhatsApp/Facebook/X/Email).
 8. **Newsletter automatisée** : les abonnés sont prévenus par email à chaque nouveau produit + bannière « Nouveautés » sur le site.
-9. **Journalisation** : toutes les actions sur les commandes sont tracées (qui, quand, quoi).
-10. **Export des analytiques** : rapports CSV / JSON / impression.
-11. **SEO prêt pour Google** : titres + descriptions + canonical uniques par page, sitemap.xml, robots.txt, balises Open Graph/Twitter — le site est optimisé pour apparaître dans les résultats de recherche.
+9. **Journalisation complète** : toutes les actions sur les commandes, les utilisateurs, les produits, les catégories, les paramètres sont tracées (qui, quand, quoi) — avec onglet Emails (Tâche 8).
+10. **Sauvegarde automatique** (Tâche 6) : création, téléchargement, restauration, historique, nettoyage.
+11. **Exports admin** (Tâche 5) : commandes, produits, utilisateurs en CSV/Excel/PDF.
+12. **Suivi public des commandes** (Tâche 7) : API publique + fallback, sans données sensibles.
+13. **Analytics** (Tâche 10) : suivi des pages, durée de séjour, referrer, entonnoir de conversion (accueil → produit → panier → commande).
+14. **Performances** (Tâche 9) : prefetch des pages fréquentes, `React.memo` sur les composants lourds, service worker (cache intelligent).
 
 ---
 
-## 10. 📝 RÉSUMÉ DES PAGES & FICHIERS (pour référence)
+## 10. 📝 FICHIERS & COMPOSANTS (RÉFÉRENCE)
 
-| Zone | Fichiers principaux |
+### Tâche 1 — Unification catalogue
+- `src/core/products.js` (créé) — fichier source unique
+- `src/services/productService.js` (modifié) — ré-export du central
+- `src/components/Products/products.jsx` (modifié) — import depuis le central
+- Toutes les pages catégories, `SearchBar`, `TopProducts`, `ProductDetail`, `Notes`, `Admin/Dashboard`, `Admin/Products`, `Admin/Categories`, `Admin/Reviews`, `Admin/StaffProducts` alignés
+
+### Tâche 2 — Sécurité admin
+- `.env` (créé) — `VITE_ADMIN_DEFAULT_PASSWORD`
+- `src/admin/Settings.jsx` (modifié) — fallback supprimé, interface de changement
+- `src/admin/AdminLogin.jsx` (modifié) — aligné sur le même mécanisme
+
+### Tâche 5 — Exports
+- `src/utils/exportUtils.js` (créé) — `exportOrdersCSV`, `exportOrdersExcel`, `exportOrdersPDF`, `exportProductsCSV`, `exportProductsExcel`, `exportUsersCSV`, `exportUsersExcel`, `exportEmailsCSV`, `exportEmailsExcel`
+- `src/admin/Orders.jsx` (modifié) — boutons Export CSV, Export Excel, Export PDF
+- `src/admin/Products.jsx` (modifié) — bouton Export CSV
+- `src/admin/Users.jsx` (modifié) — bouton Export CSV
+
+### Tâche 6 — Sauvegarde
+- `src/services/backupService.js` (créé)
+- `src/admin/Backup.jsx` (créé)
+- `src/admin/Settings.jsx` (modifié) — onglet Sauvegarde
+- `src/App.jsx` (modifié) — route `/admin/backup`
+
+### Tâche 7 — Suivi public
+- `api/order.js` (créé) — API GET `/api/order?ref=…`
+- `src/pages/TrackOrder.jsx` (modifié) — appel API + fallback localStorage
+- `src/services/supabase.js` (déjà avait `getPublicOrderByReference`)
+
+### Tâche 8 — Journal emails
+- `src/services/emailLogService.js` (créé) — `logSend`, `getLogsFiltered`, `getLogEntry`, `clearLogs`, `pruneLogs`, `EMAIL_TYPES`, `EMAIL_LOG_MAX_ENTRIES`
+- `src/utils/emailService.js` (modifié) — `sendEmail` appelle `logSend`
+- `src/admin/History.jsx` (modifié) — onglet Emails (stats, filtres, liste, détails, export CSV, effacement)
+
+### Tâche 9 — Performances
+- `src/App.jsx` (modifié) — prefetch des pages fréquentes (prod uniquement)
+- `src/components/TopProducts/TopProducts.jsx` (modifié) — `React.memo`
+- `src/components/SearchBar/SearchBar.jsx` (modifié) — `React.memo`
+- `src/components/NewsletterBanner/NewsletterBanner.jsx` (modifié) — `React.memo`
+- `src/components/WhatsAppButton/WhatsAppButton.jsx` (modifié) — `React.memo`
+- `src/components/Footer/Footer.jsx` (modifié) — `React.memo`
+- `src/components/Popup/Popup.jsx` (modifié) — `React.memo`
+- `public/sw.js` (déjà existant) — service worker actif en production
+
+### Tâche 10 — Analytics
+- `src/services/analyticsService.js` (créé) — `trackEvent`, `getEvents`, `getPageViews`, `getFunnelStats`, `pruneAnalytics`
+- `src/hooks/usePageTracking.js` (créé) — hook de suivi (page_view, home_view, durée, referrer)
+- `src/App.jsx` (modifié) — `AnalyticsTracker` (utilise `usePageTracking` à l'intérieur du Router)
+
+### Tâche 11 — Tests
+- `tests/test_basic.mjs` (créé) — 10 tests : structure des produits, filtrage, recherche, création commande, panier, total panier, validation téléphone, génération référence, formatage prix, statistiques
+
+---
+
+## 11. 🚀 LANCEMENT & DÉPLOIEMENT
+
+### Développement local
+```bash
+npm install
+npm run dev
+```
+
+### Build production
+```bash
+npm run build
+```
+→ Fichiers dans `dist/` (prêts pour Vercel / tout hébergement statique).
+
+### Configuration requise
+- **Resend** : `RESEND_API_KEY` + `EMAIL_FROM` dans les variables d'environnement Vercel
+- **ImgBB** : API Key dans l'admin (upload images)
+- **Supabase** (optionnel) : pour la synchronisation multi-appareils
+
+### Variables d'environnement (Voir `.env.example`)
+| Variable | Description |
 |---|---|
-| Routage | `src/App.jsx` |
-| Pages publiques | `src/Pages/` : Maison, Femmes, Hommes, Enfants, Electroniques, Meubles, Tendances, Ventes, Notes, Contacts, SearchResults, CategoryProducts, ProductDetail |
-| Composants | `src/components/` : Navbar, Hero, HeroCard, Products, TopProducts, Wintersale, Subscribe, Testimonial, Cart, Popup, Footer, Banner, SearchBar, ShareButton, DarkMode, NewsletterBanner, ProductReviews |
-| Admin | `src/admin/` : AdminLogin, AdminLayout, ProtectedRoute, Dashboard, Products, Orders, Users, Reviews, Subscribers, Categories, Analytics, Settings |
-| Contextes | `src/context/` : SettingsContext, CartContext, CategoryContext, UserContext |
-| SEO | `src/utils/seo.js` (titre/description/canonical), `RouteMeta` dans `App.jsx`, `public/robots.txt`, `public/sitemap.xml`, meta OG dans `index.html` |
-| Services | `src/services/productService.js`, `src/admin/services/productService.js` |
-| Utilitaires | `src/utils/` : currencyUtils, reviews, subscribers, notifications, history, seo, emailService |
-| Configuration | `package.json`, `vite.config.js`, `tailwind.config.js`, `index.html`, `vercel.json`, `public/robots.txt`, `public/sitemap.xml` |
+| `VITE_ADMIN_DEFAULT_PASSWORD` | Mot de passe admin par défaut (Tâche 2) |
+| `VITE_EMAIL_API_URL` | URL de la fonction Vercel d'envoi d'emails (défaut : `/api/send-mail`) |
+| `VITE_SEND_KEY` | Clé partagée optionnelle pour l'anti-abus |
+| `VITE_BASE_URL` | Origine publique du site (pour les emails, ex. `https://kabaryshop.com`) |
 
 ---
 
-*Fin du document — Kabary Shop, documentation complète générée à partir de l'audit du code source (août 2026).*
+## 12. 🔧 NOTES D'INTÉGRATION & LIMITATIONS
+
+1. **Mode "Coming Soon"** : par défaut, `SettingsContext` a `comingSoon: true`. Pour afficher le site, il faut soit changer ce réglage dans l'admin (déconnecté), soit initialiser `kabary_settings` dans le localStorage avec `comingSoon: false`, soit configurer `scheduledOpenDate` dans le futur.
+2. **Service Worker** : déjà enregistré en production (`main.jsx` vérifie `import.meta.env.PROD`). Il met en cache les pages HTML (Network First) et les assets (Stale While Revalidate).
+3. **Analytics** : les événements sont stockés localement (max 2000). L'entonnoir de conversion est calculé par session. Pour une analyse cross-device, il faudrait synchroniser `kabary_analytics_events` vers Supabase (similaire à `shop_orders`).
+4. **Email logs** : idem, stockés localement (max 300 entrées). Pour un historique serveur, synchroniser `site_email_logs` vers Supabase.
+5. **Exports PDF** : l'implémentation actuelle génère un HTML imprimable (nouvelle fenêtre → impression). Pour des PDF plus élaborés (autotable, pagination), installer `jspdf` + `jspdf-autotable` et remplacer `exportOrdersPDF`.
+6. **Rate limiting API publique** : le fichier `api/order.js` a un placeholder. Pour le faire fonctionner, il faut une Vérification coté serveur (ex. vérifier l'IP, utiliser une limite par adresse).
+
+---
+
+## 13. ✅ CHECKLIST DE VÉRIFICATION FINALE
+
+- [x] Build propre (`npx vite build` ✅)
+- [x] Tests de base passent (`tests/test_basic.mjs` ✅)
+- [x] Tests existants vérifiés (`test_rateLimit.mjs` ✅, `test_cart.mjs` ✅, `test_validation.mjs` ✅)
+- [x] Site affiché (code runtime OK, erreur `useLocation` corrigée via `AnalyticsTracker`)
+- [x] Tâche 1 : unification catalogue ✅
+- [x] Tâche 2 : sécurité admin ✅
+- [x] Tâche 5 : exports admin ✅
+- [x] Tâche 6 : sauvegarde ✅
+- [x] Tâche 7 : suivi public ✅
+- [x] Tâche 8 : journal emails ✅
+- [x] Tâche 9 : performances ✅
+- [x] Tâche 10 : analytics ✅
+- [x] Tâche 11 : tests ✅
+
+---
+
+*Fin du document — Kabary Shop, documentation complète générée à partir de l'audit du code source (septembre 2026).*

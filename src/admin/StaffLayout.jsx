@@ -46,7 +46,7 @@ const StaffLayout = () => {
     window.location.href = "/admin/login";
   };
 
-  // Onglets principaux de la navbar staff
+  // Onglets principaux de la navbar staff (noms compatibles avec l'interface public).
   const menuItems = [
     { path: "/staff/orders", name: "Commandes", icon: ShoppingCart },
     { path: "/staff/products", name: "Produits", icon: Package },

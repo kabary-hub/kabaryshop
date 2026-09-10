@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Products from "../components/Products/products";
-import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
+import { getAllProducts, filterProductsByTerm } from "../core/products";
 import Banner from "../components/Banner/Banner";
 import ImgFemme from "../assets/background-pages/women116.webp";
 

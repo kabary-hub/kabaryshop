@@ -8,6 +8,33 @@ import React, { useState, useEffect, lazy, Suspense } from "react";
 
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { UserProvider } from './context/UserContext';
+import { usePageTracking } from './hooks/usePageTracking';
+
+// Prefetch léger des pages les plus visitées (uniquement en production) :
+// le navigateur les garde en cache HTTP quand le visiteur arrive sur la page
+// d'accueil, ce qui accélère l'affichage des catégories les plus demandées.
+if (import.meta.env?.PROD) {
+  const PRE_fETCH_PAGES = [
+    '/femmes',
+    '/hommes',
+    '/enfants',
+    '/electroniques',
+    '/meubles',
+    '/tendances',
+    '/ventes',
+    '/recherche',
+  ];
+  PRE_fETCH_PAGES.forEach((path) => {
+    let link = document.getElementById(`prefetch-${path}`);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = `prefetch-${path}`;
+      link.rel = 'prefetch';
+      document.head.appendChild(link);
+    }
+    link.href = path;
+  });
+}
 import { logActivity } from './utils/history';
 import { updatePageMeta, setNoIndex, setPageTitle } from './utils/seo';
 import { getEffectiveComingSoon } from './utils/visibility';
@@ -64,6 +91,7 @@ const Settings = lazy(() => import("./admin/Settings"));
 const Reviews = lazy(() => import("./admin/Reviews"));
 const Subscribers = lazy(() => import("./admin/Subscribers"));
 const History = lazy(() => import("./admin/History"));
+const Backup = lazy(() => import("./admin/Backup"));
 // Espace staff (livreurs / préparateurs)
 const StaffLayout = lazy(() => import("./admin/StaffLayout"));
 const StaffOrders = lazy(() => import("./admin/StaffOrders"));
@@ -308,19 +336,18 @@ const LazyPage = ({ children }) => {
   return children;
 };
 
+// Suivi analytique (doit être à l'intérieur du Router pour utiliser useLocation).
+const AnalyticsTracker = () => {
+  usePageTracking();
+  return null;
+};
+
 const App = () => {
   const [orderPopup, setOrderPopup] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    const handleOpenCartCheckout = () => {
-      setSelectedProduct(null);
-      setOrderPopup(true);
-    };
-    window.addEventListener('openCartCheckout', handleOpenCartCheckout);
-    return () => window.removeEventListener('openCartCheckout', handleOpenCartCheckout);
-  }, []);
+  // usePageTracking() est maintenant dans AnalyticsTracker (à l'intérieur du Router).
 
   const handleOrder = (product) => {
     setSelectedProduct(product);
@@ -360,8 +387,10 @@ const App = () => {
           <div className="dark:bg-gray-900 dark:text-white min-h-screen">
             {/* SEO : titre + description + canonical par page */}
             <RouteMeta />
-            {/* Journalise les visites de toutes les pages */}
+            {/* Journalise les visites de toutes les pages (historique local) */}
             <PageVisitTracker />
+            {/* Suivi analytique des pages visitées (analyticsService) */}
+            <AnalyticsTracker />
             {/* Synchronisation des données entre appareils (Supabase) */}
             <Suspense fallback={null}>
               <SyncProvider />
@@ -398,6 +427,8 @@ const App = () => {
               <Route path="/ventes" element={<LazyPage><Ventes handleOrder={handleOrder} searchTerm={searchTerm} /></LazyPage>} />
               <Route path="/notes" element={<LazyPage><Notes /></LazyPage>} />
               <Route path="/contacts" element={<LazyPage><Contacts /></LazyPage>} />
+              <Route path="/track-order/:ref" element={<TrackOrder />} />
+              <Route path="/track-order" element={<TrackOrder />} />
 
               {/* Recherche globale */}
               <Route
@@ -466,6 +497,7 @@ const App = () => {
                 <Route path="categories" element={<Categories />} />
                 <Route path="analytics" element={<Analytics />} />   
                 <Route path="settings" element={<Settings />} />
+                <Route path="backup" element={<Backup />} />
                 <Route path="subscribers" element={<Subscribers />} />
                 <Route path="history" element={<History />} />
               </Route>

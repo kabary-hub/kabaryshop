@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, memo } from "react";
 import { IoCloseOutline } from "react-icons/io5";
 import { FaCheckCircle } from "react-icons/fa";
 import { useSettings } from "../../context/SettingsContext";
 import { useCart } from "../../context/CartContext";
+import { getAllProducts } from "../../services/productService";
 import { convertPrice, formatPrice } from "../../utils/currencyUtils";
 import { notifyNewOrder } from "../../utils/notifications";
 import { logActivity } from "../../utils/history";
@@ -14,7 +15,7 @@ import {
   buildOrderItemsHtml,
 } from "../../utils/emailService";
 
-const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
+const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
   const form = useRef();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState("");
@@ -35,8 +36,33 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
     if (orderPopup) setOrderSuccess(null);
   }, [orderPopup]);
 
-  // Vérifier si c'est une commande directe ou depuis le panier
-  const isCartOrder = cartItems.length > 1 || (cartItems.length === 1 && !selectedProduct);
+  // Vérifier si c'est une commande directe ou depuis le panier.
+  // Une commande est "depuis le panier" quand le panier contient des articles,
+  // même si un produit seul est aussi passé en prop (ex: clic depuis le panier
+  // après fermeture du volet). On privilégie le panier pour garder le récap complet.
+
+  // Résout l'image ACTUELLE du produit depuis le catalogue. L'URL mémorisée
+  // dans le panier peut être périmée (hash de build Vite changé après un
+  // redéploiement) ou pointer vers un chemin dev-only (« /src/assets/… »)
+  // impossible à charger dans un email. On privilégie donc l'image fraîche
+  // du catalogue ; à défaut, on garde celle de l'article d'origine.
+  const resolveFreshImage = (item) => {
+    try {
+      const product = getAllProducts().find(
+        (p) =>
+          String(p.id) === String(item.id) ||
+          (item.originalId != null && String(p.id) === String(item.originalId)),
+      );
+      const fresh =
+        product?.img ||
+        (Array.isArray(product?.images) ? product.images[0] : "") ||
+        "";
+      if (fresh) return fresh;
+    } catch {
+      // Catalogue indisponible : on garde l'image stockée
+    }
+    return item.image || item.productImage || item.img || "";
+  };
 
   const getFormattedPrice = (priceInGNF) => {
     if (!priceInGNF || priceInGNF === 0) {
@@ -46,20 +72,36 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
     return formatPrice(convertedPrice, settings.currency);
   };
 
-  // Générer un ID de référence unique et lisible pour la commande
+  // Générer une référence de commande au format : CMD-YYMMDD-240194XXXX-HHMM
+  // Exemple : CMD-260908-2401940001-1430
+  // - YYMMDD : date (année sur 2 chiffres, mois, jour)
+  // - 240194 : préfixe fixe identifiant les commandes du site
+  // - XXXX   : numéro incrémental pour la journée (0001, 0002, …)
+  // - HHMM   : heure au format 24h (heures + minutes)
   const generateOrderReference = (existingOrders) => {
     const now = new Date();
-    const datePart = [
-      String(now.getFullYear()).slice(2),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0')
-    ].join('');
-    // Numéro séquentiel : max des références existantes + 1
+    const yy = String(now.getFullYear()).slice(2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePart = `${yy}${mm}${dd}`;
+    // Heure au format HHMM (24h)
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const timePart = `${hh}${min}`;
+    // Trouver le numéro séquentiel le plus élevé pour aujourd'hui
+    const todayPrefix = `CMD-${datePart}-240194`;
     const maxSeq = existingOrders.reduce((max, order) => {
-      const match = String(order.reference || '').match(/^CMD-\d{6}-(\d+)$/);
-      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      const ref = String(order.reference || '');
+      // Correspond au format CMD-YYMMDD-240194XXXX-HHMM
+      const match = ref.match(/^CMD-\d{6}-240194(\d{4})-\d{4}$/);
+      // Vérifier aussi que c'est pour aujourd'hui (même préfixe date)
+      if (match && ref.startsWith(todayPrefix)) {
+        return Math.max(max, parseInt(match[1], 10));
+      }
+      return max;
     }, 0);
-    return `CMD-${datePart}-${String(maxSeq + 1).padStart(4, '0')}`;
+    const seq = String(maxSeq + 1).padStart(4, '0');
+    return `CMD-${datePart}-240194${seq}-${timePart}`;
   };
 
   // Sauvegarder la commande dans localStorage
@@ -131,7 +173,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
         name: item.title,
         quantity: item.quantity,
         price: item.priceInGNF,
-        image: item.img
+        image: resolveFreshImage(item)
       }));
       totalAmount = getTotalPrice();
     } else if (selectedProduct) {
@@ -141,7 +183,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
         name: selectedProduct.title,
         quantity: 1,
         price: selectedProduct.priceInGNF || 0,
-        image: selectedProduct.img
+        image: resolveFreshImage(selectedProduct)
       }];
       totalAmount = selectedProduct.priceInGNF || 0;
     }
@@ -180,6 +222,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
     // Email de confirmation au client (Resend via la fonction Vercel) —
     // uniquement si une adresse email a été saisie. En cas d'échec, la
     // commande reste enregistrée (elle est déjà dans localStorage).
+    let emailClientOk = false;
     if (customerEmail) {
       try {
         const siteName = getSiteName();
@@ -192,7 +235,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
             productImage: item.image || "",
           })),
         );
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: customerEmail,
           toName: customerName,
           fromName: siteName,
@@ -207,8 +250,12 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
             address: customerQuartier,
           }),
         });
-      } catch {
-        // Email de confirmation non envoyé : la commande reste enregistrée
+        emailClientOk = emailResult.ok;
+        if (!emailResult.ok) {
+          console.warn('[Commande] Email client échoué:', emailResult.message);
+        }
+      } catch (err) {
+        console.error('[Commande] Exception email client:', err);
       }
     }
 
@@ -220,7 +267,7 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
       items: itemsToOrder,
       total: totalAmount,
       quartier: customerQuartier,
-      emailSent: Boolean(customerEmail),
+      emailSent: emailClientOk,
     });
 
     // Vider le panier après commande
@@ -233,8 +280,28 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
     setIsSubmitting(false);
   };
 
+  // Vérifier si c'est une commande directe ou depuis le panier.
+  // (défini après les handlers pour réutiliser cartItems à jour)
+  const isCartOrder = cartItems.length > 1 || (cartItems.length === 1 && !selectedProduct);
+
   // Calculer le nombre d'articles dans le panier
   const cartItemsCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Réagir à l'événement émis par le bouton "Passer la commande" du panier.
+  // Le panier ferme son volet puis émet 'openCartCheckout' : on ouvre le formulaire
+  // de commande avec le contenu du panier ( Récap légué par useCart).
+  useEffect(() => {
+    if (!orderPopup) {
+      const onCartCheckout = () => {
+        // Si le panier contient des articles, on ouvre le formulaire de commande.
+        if (cartItems.length > 0) {
+          setOrderPopup(true);
+        }
+      };
+      window.addEventListener('openCartCheckout', onCartCheckout);
+      return () => window.removeEventListener('openCartCheckout', onCartCheckout);
+    }
+  }, [orderPopup, cartItems.length]);
 
   return (
     <>
@@ -344,13 +411,21 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
                   {/* Livraison & paiement */}
                   <div className="text-left rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 mb-4">
                     <p className="text-sm mb-1">
-                      <span className="font-semibold">📍 Livraison :</span>{" "}
+                      <span className="font-semibold">📍
+                        
+                        
+                         Livraison :</span>{" "}
                       <span className="text-gray-600 dark:text-gray-300">{orderSuccess.quartier}</span>
                     </p>
-                    <p className="text-xs text-gray-500">💳 Paiement à la livraison (Mobile Money)</p>
-                    {orderSuccess.emailSent && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        ✉️ Un email de confirmation a été envoyé à {orderSuccess.email}
+                    <p className="text-xs text-gray-500">💳 Paiement à la livraison </p>
+                    {orderSuccess.email && orderSuccess.emailSent && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✉️ Email de confirmation envoyé à {orderSuccess.email}
+                      </p>
+                    )}
+                    {orderSuccess.email && !orderSuccess.emailSent && (
+                      <p className="text-xs text-orange-500 mt-1">
+                        ⚠️ Email non envoyé — vérifiez la console (F12) pour le détail
                       </p>
                     )}
                   </div>
@@ -473,7 +548,5 @@ const Popup = ({ orderPopup, setOrderPopup, selectedProduct }) => {
         </div>
       )}
     </>
-  );
-};
-
+  );});
 export default Popup;

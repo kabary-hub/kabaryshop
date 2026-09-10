@@ -283,27 +283,32 @@ export const updateOrderStatus = async (id, status, shipping = null) => {
 };
 
 export const getPublicOrderByReference = async (reference) => {
-  // Fonction pour le suivi de commande public (sans authentification)
+  // 1) Essayer d'abord le localStorage (lecture locale, rapide, fonctionne
+  //    même sans Supabase). C'est la source privilégiée pour le suivi public.
+  const localOrders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
+  const localOrder = localOrders.find(o => o.reference === reference);
+  if (localOrder) return localOrder;
+
+  // 2) Si non trouvée localement et que Supabase est disponible, essayer la
+  //    table orders de Supabase (utile quand la commande a été créée sur un
+  //    autre appareil et synchronisée).
   const sb = getSupabase();
-  if (!sb || !isSyncConfigured()) {
-    // Fallback localStorage - lecture publique
-    const orders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
-    return orders.find(o => o.reference === reference) || null;
+  if (sb && isSyncConfigured()) {
+    try {
+      const { data, error } = await sb
+        .from('orders')
+        .select('*')
+        .eq('reference', reference)
+        .single();
+
+      if (!error && data) return data;
+    } catch {
+      // Supabase indisponible : on conserve le résultat local (null).
+    }
   }
 
-  try {
-    const { data, error } = await sb
-      .from('orders')
-      .select('*')
-      .eq('reference', reference)
-      .single();
-
-    if (error) throw error;
-    return data || null;
-  } catch {
-    const orders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
-    return orders.find(o => o.reference === reference) || null;
-  }
+  // 3) Non trouvée ni localement ni sur Supabase.
+  return null;
 };
 
 // ============================================================================
@@ -689,15 +694,19 @@ export const markAlertAsRead = async (id) => {
 // UTILITAIRES
 // ============================================================================
 
+// Génère une référence de commande au format : CMD-YYMMDD-240194XXXX-HHMM
+// Utilisé comme fallback si aucune référence n'est fournie lors de la création
+// d'une commande (comportement de sécurité).
 const generateReference = () => {
   const now = new Date();
-  const datePart = [
-    String(now.getFullYear()).slice(2),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('');
-  const maxSeq = 1;
-  return `CMD-${datePart}-${String(maxSeq).padStart(4, '0')}`;
+  const yy = String(now.getFullYear()).slice(2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const datePart = `${yy}${mm}${dd}`;
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const timePart = `${hh}${min}`;
+  return `CMD-${datePart}-2401940001-${timePart}`;
 };
 
 // Synchronisation : copier les données locales vers les tables normalisées

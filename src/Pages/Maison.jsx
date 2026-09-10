@@ -5,7 +5,7 @@ import Products from "../components/Products/products";
 import TopProducts from "../components/TopProducts/TopProducts";
 import Wintersale from "../components/Wintersale/Wintersale";
 import Subscribe from "../components/Subscribe/Subrscribe";
-import { getAllProducts, filterProductsByTerm } from "../components/Products/products";
+import { getAllProducts, filterProductsByTerm } from "../core/products";
 
 // 🔥 Code-splitting : react-slick (lourd) n'est chargé que si la page d'accueil
 // est visitée, et pas dans le chunk initial.

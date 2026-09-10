@@ -60,7 +60,7 @@ const DarkMode = () => {
       onClick={handleToggle}
       aria-label={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
       title={isDark ? "Mode clair" : "Mode sombre"}
-      className="relative w-16 h-9 shrink-0 rounded-full cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-secondary/50"
+      className="relative w-15 h-9 shrink-0 rounded-full cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-secondary/50"
     >
       {/* Piste */}
       <span

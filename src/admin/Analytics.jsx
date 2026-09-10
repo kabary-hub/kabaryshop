@@ -346,6 +346,14 @@ const Analytics = () => {
 
   // Fonction d'export
   const handleExport = (format) => {
+    if (format === 'print') {
+      // L'impression est synchrone : on n'affiche pas d'overlay de chargement,
+      // car window.print() ouvre immédiatement la boîte de dialogue du navigateur
+      // et aucun traitement asynchrone n'est nécessaire.
+      window.print();
+      return;
+    }
+
     setExportLoading(true);
     
     try {
@@ -364,9 +372,7 @@ const Analytics = () => {
         topProducts: topProducts
       };
 
-      if (format === 'print') {
-        window.print();
-      } else if (format === 'csv') {
+      if (format === 'csv') {
         exportCSV(data);
       } else if (format === 'json') {
         exportJSON(data);
@@ -380,23 +386,36 @@ const Analytics = () => {
   };
 
   const exportCSV = (data) => {
-    let csv = `Rapport Analytique ${siteName}\n`;
-    csv += `Période: ${data.period}\n`;
-    csv += `Comparé à: ${data.comparedTo}\n`;
-    csv += `Généré le: ${data.generatedAt}\n\n`;
-    csv += 'Statistiques\n';
-    csv += `Revenus totaux,${data.stats.revenue}\n`;
-    csv += `Variation revenus,${data.stats.revenueChange}%\n`;
-    csv += `Commandes,${data.stats.orders}\n`;
-    csv += `Variation commandes,${data.stats.ordersChange}%\n`;
-    csv += `Utilisateurs,${data.stats.users}\n\n`;
-    csv += 'Top Produits\n';
-    csv += 'Produit,Ventes,Revenus\n';
+    const BOM = '\uFEFF';
+    const SEP = ';';
+    const LINE_END = '\r\n';
+    
+    const escapeField = (value) => {
+      const str = String(value ?? '');
+      const escaped = str.replace(/"/g, '""');
+      return `"${escaped}"`;
+    };
+    
+    let csv = BOM;
+    csv += `Rapport Analytique ${siteName}${LINE_END}`;
+    csv += `Période:${SEP} ${data.period}${LINE_END}`;
+    csv += `Comparé à:${SEP} ${data.comparedTo}${LINE_END}`;
+    csv += `Généré le:${SEP} ${data.generatedAt}${LINE_END}`;
+    csv += LINE_END;
+    csv += `Statistiques${LINE_END}`;
+    csv += `${escapeField('Revenus totaux')}${SEP} ${escapeField(data.stats.revenue)}${LINE_END}`;
+    csv += `${escapeField('Variation revenus')}${SEP} ${escapeField(data.stats.revenueChange + '%')}${LINE_END}`;
+    csv += `${escapeField('Commandes')}${SEP} ${escapeField(data.stats.orders)}${LINE_END}`;
+    csv += `${escapeField('Variation commandes')}${SEP} ${escapeField(data.stats.ordersChange + '%')}${LINE_END}`;
+    csv += `${escapeField('Utilisateurs')}${SEP} ${escapeField(data.stats.users)}${LINE_END}`;
+    csv += LINE_END;
+    csv += `Top Produits${LINE_END}`;
+    csv += `${escapeField('Produit')}${SEP} ${escapeField('Ventes')}${SEP} ${escapeField('Revenus')}${LINE_END}`;
     data.topProducts.forEach(p => {
-      csv += `${p.name},${p.sales},${p.revenue}\n`;
+      csv += `${escapeField(p.name)}${SEP} ${escapeField(p.sales)}${SEP} ${escapeField(p.revenue)}${LINE_END}`;
     });
     
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

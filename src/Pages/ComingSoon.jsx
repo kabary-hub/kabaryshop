@@ -172,8 +172,7 @@ const ComingSoon = () => {
             Suivre sur Facebook
           </a>
           <p className="cs-footer">
-            © 2026 {siteName} — République de Guinée · Photo : Conakry (Kaloum),
-            vue drone — CC BY-SA 4.0, Wikimedia Commons
+            © 2026 {siteName} — République de Guinée ·
           </p>
         </div>
       </div>

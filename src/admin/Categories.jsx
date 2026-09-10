@@ -7,7 +7,7 @@ import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import { useSettings } from '../context/SettingsContext';
 import {
   getAllProducts,
-} from '../services/productService';
+} from '../core/products';
 import {
   getCategories as loadStoredCategories,
   updateCategoryProductCounts as recalcAllCounts,

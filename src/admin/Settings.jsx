@@ -1,6 +1,7 @@
 // src/admin/Settings.jsx
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Globe, Clock, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle, Plus, ChevronUp, ChevronDown, Image as ImageIcon, Info } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon, Bell, Lock, Save, X, Key, Mail, Phone, Send, Eye, EyeOff, Globe, Clock, Megaphone, Loader, MapPin, MessageCircle, Link2, ShieldCheck, RefreshCw, CheckCircle2, BellRing, AlertTriangle, Plus, ChevronUp, ChevronDown, Image as ImageIcon, Info, Database, Download } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import ConfirmModal from '../components/ConfirmModal/ConfirmModal';
 import {
@@ -43,6 +44,7 @@ const normalizeHeroSlides = (s) => {
 
 const Settings = () => {
   const { settings, updateSettings } = useSettings();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [formData, setFormData] = useState(() => ({
     ...settings,
@@ -94,11 +96,38 @@ const Settings = () => {
     requesting: false,
   }));
 
-  // Récupérer le mot de passe stocké dans localStorage
-  // (admin figé dans le code : mot de passe initial Diaraye@620)
+  // Récupérer le mot de passe stocké dans localStorage.
+  // Si aucun mot de passe n'est configuré localement, on utilise la variable
+  // d'environnement VITE_ADMIN_DEFAULT_PASSWORD. Quand elle n'est pas définie,
+  // l'admin affiche un message explicite au lieu de continuer avec un
+  // mot de passe visible dans le code source.
   const getStoredPassword = () => {
     const storedPassword = localStorage.getItem('admin_password');
-    return storedPassword || 'Diaraye@620'; // Valeur par défaut si rien n'est stocké
+    if (storedPassword) return storedPassword;
+
+    const envPassword =
+      typeof import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD === 'string'
+        ? import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD
+        : '';
+    if (envPassword) return envPassword;
+
+    return null;
+  };
+
+  // Mot de passe actuellement utilisable pour la validation du formulaire.
+  // Quand il n'y a aucune valeur connue, le formulaire de changement / réinitialisation
+  // doit afficher un message explicite plutôt que de tomber sur un mot de passe caché.
+  const currentPasswordOrMissing = () => {
+    const stored = getStoredPassword();
+    if (stored) return stored;
+
+    // Aucun mot de passe connu : la méthode d'authentification par défaut est
+    // indisponible jusqu'au configuration de VITE_ADMIN_DEFAULT_PASSWORD ou
+    // à un premier enregistrement manuel.
+    setPasswordError(
+      'Aucun mot de passe administrateur configuré. Définissez VITE_ADMIN_DEFAULT_PASSWORD dans les variables d\'environnement, ou r\u00e9initialisez le mot de passe depuis la page de connexion.'
+    );
+    return null;
   };
 
   // Sauvegarder le mot de passe dans localStorage
@@ -294,8 +323,10 @@ const Settings = () => {
     setPasswordError('');
     setPasswordSuccess('');
 
-    const currentPassword = getStoredPassword();
-
+    const currentPassword = currentPasswordOrMissing();
+    if (currentPassword === null) {
+      return;
+    }
     if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
       setPasswordError('Tous les champs sont requis');
       return;
@@ -451,9 +482,14 @@ const Settings = () => {
     { id: 'general', name: 'Général', icon: SettingsIcon },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Sécurité', icon: Lock },
+    { id: 'backup', name: 'Sauvegarde', icon: Database },
   ];
 
   const inputClass = "w-full max-w-md px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600";
+
+  const handleBackupClick = () => {
+    navigate('/admin/backup');
+  };
 
   return (
     <div className="p-6">
@@ -1166,6 +1202,24 @@ const Settings = () => {
                 </div>
 
 
+              </div>
+            )}              {/* ONGLET SAUVEGARDE */}
+            {activeTab === 'backup' && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                  <p className="text-sm text-gray-500">
+                    Les sauvegardes manuelles et automatiques des donn\u00e9es critiques
+                    sont g\u00e9r\u00e9es depuis l\'espace d\'administration d\u00e9di\u00e9.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleBackupClick}
+                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition"
+                  >
+                    <Database size={17} />
+                    Ouvrir la page de sauvegarde
+                  </button>
+                </div>
               </div>
             )}
 

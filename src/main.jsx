@@ -11,7 +11,14 @@ import { runDataMigrations } from './utils/migrations';
 runDataMigrations();
 
 // Enregistrement du Service Worker PWA (hors-ligne partiel)
-if ('serviceWorker' in navigator) {
+// DÉSACTIVÉ en mode développement : en dev, Vite gère le rechargement
+// des modules via HMR. Le SW intercepterait les requêtes et servirait
+// des versions périmées en cache, ce qui forcerait un refresh manuel
+// à chaque navigation.
+if (
+  'serviceWorker' in navigator &&
+  import.meta.env?.PROD
+) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

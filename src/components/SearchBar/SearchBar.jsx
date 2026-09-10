@@ -1,9 +1,9 @@
 // src/components/SearchBar/SearchBar.jsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { IoMdSearch } from "react-icons/io";
 import { IoClose, IoSearchOutline } from "react-icons/io5";
-import { getAllProducts, filterProductsByTerm } from "../Products/products";
+import { getAllProducts, filterProductsByTerm } from '../../core/products';
 import { useSettings } from "../../context/SettingsContext";
 import { convertPrice, formatPrice } from "../../utils/currencyUtils";
 
@@ -32,7 +32,7 @@ const isProductPage = (pathname) =>
   !pathname.startsWith("/admin") &&
   !["/notes", "/contacts", "/recherche"].includes(pathname);
 
-const SearchBar = ({ searchTerm, setSearchTerm, className = "", autoFocus = false }) => {
+const SearchBar = memo(({ searchTerm, setSearchTerm, className = "", autoFocus = false }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { settings } = useSettings();
@@ -197,7 +197,5 @@ const SearchBar = ({ searchTerm, setSearchTerm, className = "", autoFocus = fals
         </div>
       )}
     </form>
-  );
-};
-
+  );});
 export default SearchBar;

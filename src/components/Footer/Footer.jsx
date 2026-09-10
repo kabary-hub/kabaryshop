@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 import {
   FaInstagram,
@@ -55,6 +55,10 @@ const FooterLinks = [
     title: "Contacts",
     link: "/contacts",
   },
+  {
+    title: "Suivre ma commande",
+    link: "/track-order",
+  },
 ];
 
 const LegalLinks = [
@@ -72,7 +76,7 @@ const LegalLinks = [
   },
 ];
 
-const Footer = () => {
+const Footer = memo(() => {
   const { settings } = useSettings();
 
   // Logo : celui des paramètres admin s'il existe, sinon le logo par défaut public.
@@ -123,17 +127,17 @@ const Footer = () => {
             '>
               <div className=' w-full'>
               <h3 className='text-base font-bold mb-2 block'>Liens Sociaux</h3>
-              <div className='flex flex-wrap items-center gap-2 mb-3'>
-                {settings.social?.instagram && <a href={settings.social.instagram} target="_blank" rel="noreferrer"><FaInstagram className="text-xl hover:text-primary duration-300" /></a>}
-                {whatsappLink !== "#" && <a href={whatsappLink} target="_blank" rel="noreferrer"><FaWhatsapp className="text-xl hover:text-primary duration-300" /></a>}
-                {settings.social?.linkedin && <a href={settings.social.linkedin} target="_blank" rel="noreferrer"><FaLinkedin className="text-xl hover:text-primary duration-300" /></a>}
-                {settings.social?.facebook && <a href={settings.social.facebook} target="_blank" rel="noreferrer"><FaFacebook className="text-xl hover:text-primary duration-300" /></a>}
-                {settings.social?.telegram && <a href={settings.social.telegram} target="_blank" rel="noreferrer"><FaLocationArrow className="text-xl hover:text-primary duration-300" /></a>}
-                <a href="#"><FaMobileAlt className="text-xl hover:text-primary duration-300" /></a>
+              <div className='flex flex-wrap items-center gap-3 mb-3 mt-5'>
+                {settings.social?.instagram && <a href={settings.social.instagram} target="_blank" rel="noreferrer"><FaInstagram className="text-3xl hover:text-primary duration-300" /></a>}
+                {whatsappLink !== "#" && <a href={whatsappLink} target="_blank" rel="noreferrer"><FaWhatsapp className="text-3xl hover:text-primary duration-300" /></a>}
+                {settings.social?.linkedin && <a href={settings.social.linkedin} target="_blank" rel="noreferrer"><FaLinkedin className="text-3xl hover:text-primary duration-300" /></a>}
+                {settings.social?.facebook && <a href={settings.social.facebook} target="_blank" rel="noreferrer"><FaFacebook className="text-3xl hover:text-primary duration-300" /></a>}
+                {settings.social?.telegram && <a href={settings.social.telegram} target="_blank" rel="noreferrer"><FaLocationArrow className="text-3xl hover:text-primary duration-300" /></a>}
+                
               </div>
               
               {/* Infos de contact dynamiques */}
-              <div className='flex flex-col gap-1'>
+              <div className='flex flex-col mt-7 gap-2'>
                 <div className="flex items-center">
                   <p className="text-xs">{settings.siteName}</p>
                 </div>
@@ -172,9 +176,7 @@ const Footer = () => {
         >
           ·
         </a>
-      </div>
-    </div>
+      </div>    </div>
   );
-}
-
+});
 export default Footer;
