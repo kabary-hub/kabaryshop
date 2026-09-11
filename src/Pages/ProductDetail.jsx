@@ -1,6 +1,7 @@
 // src/Pages/ProductDetail.jsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { DEFAULT_SITE_LOGO_URL } from '../utils/siteConfig';
 import {
   Star,
   ShoppingBag,
@@ -35,7 +36,7 @@ const getCategoryStyle = (category) => {
     tendances: { icon: "🔥", color: "bg-red-500", text: "Tendances" },
     ventes: { icon: "💥", color: "bg-orange-500", text: "Promotions" },
   };
-  return styles[category] || { icon: "📦", color: "bg-gray-500", text: category };
+  return styles[category] || { icon: "Package", color: "bg-gray-500", text: category };
 };
 
 // Galerie d'images avec image principale, flèches, compteur et miniatures
@@ -47,7 +48,7 @@ const ProductGallery = ({ images, extraImages = [], title, badge }) => {
   const current = safeImages[Math.min(activeIndex, safeImages.length - 1)] || "";
 
   const handleImageError = (e) => {
-    e.target.src = "https://kabaryshop.vercel.app/logo2.png";
+    e.target.src = DEFAULT_SITE_LOGO_URL;
   };
 
   const goPrev = () => setActiveIndex((i) => (i - 1 + safeImages.length) % safeImages.length);
@@ -640,7 +641,7 @@ const ProductDetail = ({ handleOrder }) => {
                       loading="lazy"
                       decoding="async"
                       onError={(e) => {
-                        e.target.src = "https://kabaryshop.vercel.app/logo2.png";
+                        e.target.src = DEFAULT_SITE_LOGO_URL;
                       }}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />

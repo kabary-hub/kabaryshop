@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { useSettings } from "../../context/SettingsContext";
 import { grantAdminAccess } from "../../utils/auth";
+import { DEFAULT_SITE_LOGO_URL } from "../../utils/siteConfig";
 
 // Fond noir uni (l'image de fond a été retirée)
 const FooterStyle = {
@@ -81,7 +82,7 @@ const Footer = memo(() => {
 
   // Logo : celui des paramètres admin s'il existe, sinon le logo par défaut public.
   // → le logo changé dans Paramètres se répercute partout (navbar, emails, footer…).
-  const displayLogo = settings.siteLogo || "https://kabaryshop.vercel.app/logo2.png";
+  const displayLogo = settings.siteLogo || DEFAULT_SITE_LOGO_URL;
 
   const whatsappNumber = String(settings.whatsapp || '').replace(/\D/g, '');
   const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#";
@@ -89,26 +90,26 @@ const Footer = memo(() => {
   return (
     <div style={FooterStyle} className="min-h-80 text-white">
       <div className='container mx-auto w-full'>
-        <div className='flex flex-col sm:flex-row lg:flex-row py-6 pt-4 gap-4 font-bold items-start' style={{ justifyItems: 'center' }}>
-          {/* Colonne 1 : Logo + Description — toujours en haut, centrée horizontalement */}
-          <div className='py-8 px-4 overflow-hidden w-full sm:w-full lg:w-1/2 flex justify-center'>
-            <div className='text-center'>
+        <div className='flex flex-col sm:flex-row lg:flex-row py-6 pt-4 gap-4 font-bold items-start justify-center'>
+          {/* Colonne 1 : Logo + Description — centré horizontalement */}
+          <div className='py-8 px-4 overflow-hidden w-full sm:w-1/2 lg:w-auto flex justify-center'>
+            <div className='text-center w-full max-w-md mx-auto'>
             <h1 className='text-xl sm:text-2xl font-bold mb-3 flex items-center justify-center gap-3 mx-auto'>
               <img src={displayLogo} alt="" className="max-w-10" />
               {settings.siteName}
             </h1>
-            <div className="rounded-bl-4xl rounded-tr-4xl border-2 border-primary px-5 py-4 italic text-sm leading-relaxed break-words w-[100%] mx-auto">
+            <div className="rounded-bl-4xl rounded-tr-4xl border-2 border-primary px-5 py-4 italic text-sm leading-relaxed break-words mx-auto">
               Votre destination privilégiée pour une mode authentique et élégante. Chez {settings.siteName}, qualité supérieure et tendances actuelles pour sublimer votre style au quotidien.              </div>
             </div>
           </div>
 
           {/* Ligne 2 : Liens importants (gauche) + Liens sociaux (droite) — côte à côte sur mobile */}
-          <div className='flex flex-row w-full gap-0 sm:gap-4 lg:gap-4'>
-            {/* Bloc Liens importants — au milieu */}
+          <div className='flex flex-row w-full gap-0 sm:gap-4 lg:gap-4 justify-center'>
+            {/* Bloc Liens importants — centré et aligné */}
             <div className='py-2 px-3 w-full sm:w-1/2 flex justify-center'>
-              <div className='text-center w-full'>
+              <div className='text-center w-full max-w-sm mx-auto'>
               <h3 className='text-base text-primary font-bold mb-2'>Liens importants</h3>
-              <div className='flex flex-col gap-y-1'>
+              <div className='grid grid-cols-2 gap-x-4 gap-y-1 text-center sm:text-left'>
                 {FooterLinks.map((link) => (
                   <a 
                     key={link.title}
@@ -122,12 +123,11 @@ const Footer = memo(() => {
               </div>
             </div>
 
-            {/* Bloc Liens sociaux — tout à droite */}
-            <div className='py-2 px-3 w-full sm:w-1/2 flex
-            '>
-              <div className=' w-full'>
+            {/* Bloc Liens sociaux — centré et aligné */}
+            <div className='py-2 px-3 w-full sm:w-1/2 flex justify-center'>
+              <div className='text-center w-full max-w-sm mx-auto'>
               <h3 className='text-base font-bold mb-2 block'>Liens Sociaux</h3>
-              <div className='flex flex-wrap items-center gap-3 mb-3 mt-5'>
+              <div className='flex flex-wrap items-center justify-center gap-3 mb-3 mt-5'>
                 {settings.social?.instagram && <a href={settings.social.instagram} target="_blank" rel="noreferrer"><FaInstagram className="text-3xl hover:text-primary duration-300" /></a>}
                 {whatsappLink !== "#" && <a href={whatsappLink} target="_blank" rel="noreferrer"><FaWhatsapp className="text-3xl hover:text-primary duration-300" /></a>}
                 {settings.social?.linkedin && <a href={settings.social.linkedin} target="_blank" rel="noreferrer"><FaLinkedin className="text-3xl hover:text-primary duration-300" /></a>}
@@ -137,15 +137,15 @@ const Footer = memo(() => {
               </div>
               
               {/* Infos de contact dynamiques */}
-              <div className='flex flex-col mt-7 gap-2'>
-                <div className="flex items-center">
-                  <p className="text-xs">{settings.siteName}</p>
+              <div className='flex flex-col items-center gap-2 mt-7'>
+                <div className="flex items-center justify-center">
+                  <p className="text-xs text-center">{settings.siteName}</p>
                 </div>
-                <div className="flex items-center">
-                  <p className="text-xs">{settings.sitePhone}</p>
+                <div className="flex items-center justify-center">
+                  <p className="text-xs text-center">{settings.sitePhone}</p>
                 </div>
-                <div className="flex items-center">
-                  <p className="text-xs font-light italic underline cursor-pointer hover:text-secondary text-primary break-all">
+                <div className="flex items-center justify-center">
+                  <p className="text-xs font-light italic underline cursor-pointer hover:text-secondary text-primary break-all text-center">
                     {settings.siteEmail}
                   </p>                </div>
               </div>

@@ -356,10 +356,10 @@ const App = () => {
 
   useEffect(() => {
     AOS.init({
-      offset: 100,
-      duration: 800,
-      easing: "ease-in-sine",
-      delay: 100,
+      offset: 80,
+      duration: 300,
+      easing: "ease-out-cubic",
+      delay: 40,
     });
     AOS.refresh();
   }, []);

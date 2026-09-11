@@ -42,14 +42,14 @@ export const requestPushPermission = async () => {
         "Ce navigateur ne prend pas en charge les notifications push. Utilisez Chrome, Edge ou Firefox.",
     };
   }
-  if (Notification.permission === "granted") {
-    return { ok: true, message: "Notifications déjà autorisées ✅", permission: "granted" };
+  if (Notification.permission === "granted") {    return {
+      ok: true, message: "Notifications déjà autorisées.", permission: "granted" };
   }
   if (Notification.permission === "denied") {
     return {
       ok: false,
       message:
-        "Les notifications sont bloquées par le navigateur. Autorisez-les dans les réglages du site (icône 🔒 à côté de l'URL).",
+        "Les notifications sont bloquées par le navigateur. Autorisez-les dans les réglages du site.",
       permission: "denied",
     };
   }
@@ -59,7 +59,7 @@ export const requestPushPermission = async () => {
       ok: permission === "granted",
       message:
         permission === "granted"
-          ? "Notifications push activées ✅"
+          ? "Notifications push activées."
           : "Permission refusée. Vous pouvez la réactiver dans les réglages du navigateur.",
       permission,
     };
@@ -157,13 +157,13 @@ export const sendAdminEmail = async ({
   const adminEmail = getAdminEmail();
   const fullSubject = `${subject}${extra.order_reference ? ` · ${extra.order_reference}` : ""}`;
 
-    // Construction unique du corps email : infos client + détails commande.
+  // Construction unique du corps email : infos client + détails commande.
   // Ne répète pas les informations client dans deux blocs séparés.
-    const customerLines = [
-    `👤 Nom : ${customer.name || "—"}`,
-    `📞 Téléphone : ${customer.phone || "—"}`,
-    `🏘️ Quartier / adresse : ${customer.address || "—"}`,
-    `✉️ Email : ${customer.email || "non fourni"}`,
+  const customerLines = [
+    `Nom : ${customer.name || "—"}`,
+    `Téléphone : ${customer.phone || "—"}`,
+    `Quartier / adresse : ${customer.address || "—"}`,
+    `Email : ${customer.email || "non fourni"}`,
   ].filter(Boolean).join("\n");
 
   const itemsLines =
@@ -210,8 +210,8 @@ export const sendAdminEmail = async ({
     html: buildAdminAlertEmail({ siteName, subject, message: messageBody, items: itemsWithImages }),
   });
   if (res.ok) {
-    console.log(`[Notif] Email admin envoyé à ${adminEmail} ✅`);
-    return { ok: true, message: `Email envoyé à ${adminEmail} ✅` };
+    console.log(`[Notif] Email admin envoyé à ${adminEmail}.`);
+    return { ok: true, message: `Email envoyé à ${adminEmail}.` };
   }
   console.error(`[Notif] Échec email admin:`, res.message);
   return {
@@ -248,7 +248,7 @@ export const notifyNewOrder = (order) => {
   // 2) Push navigateur (si activé dans Paramètres)
   if (isChannelEnabled("push", false)) {
     sendBrowserPush(
-      `🛒 Nouvelle commande #${orderRef}`,
+      `Nouvelle commande #${orderRef}`,
       `${customerName} · ${total.toLocaleString()} GNF — ouvrez l'admin pour la traiter.`
     );
   }
@@ -279,19 +279,18 @@ export const sendTestNotification = async () => {
   addAdminAlert({
     type: "success",
     title: "Test de notification",
-    message: "Les alertes in-app fonctionnent correctement ✅",
+    message: "Les alertes in-app fonctionnent correctement.",
     link: "/admin",
-  });
-  results.push({ ok: true, message: "Alerte in-app affichée dans la cloche ✅" });
+  });      results.push({ ok: true, message: "Alerte in-app affichée dans la cloche." });
 
   // Test push (selon permission)
   const permission = getPushPermission();
   if (permission === "granted") {
     sendBrowserPush(
-      `🔔 Test ${getSiteName()}`,
-      "Les notifications push fonctionnent correctement ✅"
+      `Test ${getSiteName()}`,
+      "Les notifications push fonctionnent correctement."
     );
-    results.push({ ok: true, message: "Notification push affichée ✅" });
+    results.push({ ok: true, message: "Notification push affichée." });
   } else if (permission === "denied") {
     results.push({
       ok: false,
@@ -320,7 +319,7 @@ export const sendTestNotification = async () => {
     });
     // La fonction sendAdminEmail construit désormais le corps avec les informations
     // client et détails commande, même lors d'un test.
-    results.push({ ok: res.ok, message: res.ok ? "Email de test envoyé ✅" : res.message });
+    results.push({ ok: res.ok, message: res.ok ? "Email de test envoyé." : res.message });
   } else {
     results.push({ ok: true, message: "Email désactivé dans les paramètres (canal ignoré)." });
   }

@@ -16,6 +16,7 @@ import {
 } from "../utils/reviews";
 import { getAllProducts } from "../core/products";
 import { logActivity } from "../utils/history";
+import { DEFAULT_SITE_LOGO_URL } from "../utils/siteConfig";
 
 const AVATAR_COLORS = [
   "bg-pink-500",
@@ -409,7 +410,7 @@ const Notes = () => {
                           alt={product.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           onError={(e) => {
-                            e.target.src = "https://kabaryshop.vercel.app/logo2.png";
+                            e.target.src = DEFAULT_SITE_LOGO_URL;
                           }}
                         />
                       </div>

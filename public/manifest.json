@@ -32,7 +32,7 @@
   "shortcuts": [
     {
       "name": "Commandes",
-      "url": "/track?ref=",
+      "url": "/track-order",
       "description": "Suivre votre commande"
     }
   ],

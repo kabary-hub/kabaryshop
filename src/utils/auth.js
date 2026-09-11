@@ -1,6 +1,6 @@
 // src/utils/auth.js
 // Gestion centralisée des sessions (admin + staff livreur/préparateur).
-import { signOutSupabase } from '../services/db';
+import { signOutSupabase, getSupabase } from '../services/db';
 //
 // Problème corrigé : la déconnexion ne supprimait que quelques clés
 // localStorage ; la session sessionStorage.adminLoggedIn restait présente,
@@ -10,7 +10,13 @@ import { signOutSupabase } from '../services/db';
 
 // Supprime TOUTES les clés de session (connexion admin + staff + 2FA)
 export const logoutComplete = () => {
-  // Clés localStorage liées à la session
+  // 1) Déconnexion cloud en premier (Supabase Auth).
+  //    Cela invalide le jeton côté serveur et sur tous les appareils si
+  //    la session est active. Les vérifications locales suivantes sont
+  //    ensuite incontournables.
+  signOutSupabase();
+
+  // 2) Nettoyage local (localStorage) de toutes les clés de session.
   const localKeys = [
     "adminToken",
     "isAuthenticated",
@@ -30,7 +36,7 @@ export const logoutComplete = () => {
     }
   });
 
-  // Clés sessionStorage liées à la session
+  // 3) Nettoyage local (sessionStorage) de toutes les clés de session.
   const sessionKeys = [
     "adminLoggedIn",
     "admin_2fa_verified",
@@ -45,13 +51,24 @@ export const logoutComplete = () => {
       // stockage indisponible
     }
   });
-
-  // Déconnexion de la session cloud (Supabase Auth) si elle existe
-  signOutSupabase();
 };
 
 // Vrai si une session admin est active
 export const isAdminLoggedIn = () => {
+  // 1) Session Supabase Auth active (priorité : c'est la source de vérité).
+  //    Si l'admin est connecté côté cloud, la session est valide même si les
+  //    indicateurs locaux sessionStorage ont été partiellement nettoyés.
+  try {
+    const sb = typeof getSupabase === "function" ? getSupabase() : null;
+    if (sb) {
+      const { data } = sb.auth.getSession();
+      if (data?.session?.user) return true;
+    }
+  } catch {
+    // pas de session cloud : on garde les vérifications locales
+  }
+
+  // 2) Fallback local : indicateurs de session (compatibilité sans Supabase).
   try {
     return (
       localStorage.getItem("adminToken") ||
@@ -65,6 +82,18 @@ export const isAdminLoggedIn = () => {
 
 // Vrai si une session staff (livreur/préparateur) est active
 export const isStaffLoggedIn = () => {
+  // 1) Session Supabase Auth active (priorité).
+  try {
+    const sb = typeof getSupabase === "function" ? getSupabase() : null;
+    if (sb) {
+      const { data } = sb.auth.getSession();
+      if (data?.session?.user) return true;
+    }
+  } catch {
+    // pas de session cloud : on garde les vérifications locales
+  }
+
+  // 2) Fallback local.
   try {
     return sessionStorage.getItem("staffLoggedIn") === "true";
   } catch {

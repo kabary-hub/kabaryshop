@@ -17,7 +17,7 @@ import { ensureSupabaseAuth } from '../services/db';
 import { useSettings } from '../context/SettingsContext';
 
 // Nombre d'utilisateurs affichés par page
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 // Devine approximativement la civilité (M./Mme) à partir du prénom
 // pour rendre le toast d'ajout plus explicite.
@@ -114,9 +114,16 @@ const Users = () => {
     return matchesSearch && matchesRole;
   });
 
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const currentPageUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Tri : plus récent en premier (date de création décroissante)
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime() || 0;
+    const dateB = new Date(b.createdAt).getTime() || 0;
+    return dateB - dateA;
+  });
+
+  // Pagination sur la liste triée
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / PAGE_SIZE));
+  const currentPageUsers = sortedUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // ==================== FONCTIONS D'AFFICHAGE ====================
   const getRoleBadge = (role) => {

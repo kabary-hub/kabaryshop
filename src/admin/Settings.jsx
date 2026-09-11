@@ -510,10 +510,10 @@ const Settings = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-3 font-medium transition ${
+                className={`flex items-center gap-2 px-6 py-3 font-medium text-left transition rounded-tl-lg border-b-2 ${
                   activeTab === tab.id
-                    ? 'text-secondary border-b-2 border-primary'
-                    : 'text-gray-500 hover:text-black dark:hover:text-white'
+                    ? 'text-secondary border-primary bg-blue-50/40 dark:bg-blue-900/10'
+                    : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
                 }`}
               >
                 <tab.icon size={18} />
@@ -1205,7 +1205,7 @@ const Settings = () => {
               </div>
             )}              {/* ONGLET SAUVEGARDE */}
             {activeTab === 'backup' && (
-              <div className="space-y-4">
+              <div className="space-y-4 pt-2">
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                   <p className="text-sm text-gray-500">
                     Les sauvegardes manuelles et automatiques des donn\u00e9es critiques
@@ -1219,6 +1219,11 @@ const Settings = () => {
                     <Database size={17} />
                     Ouvrir la page de sauvegarde
                   </button>
+                </div>
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-blue-50/40 dark:bg-blue-900/10">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Les onglets G\u00e9n\u00e9ral, Notifications et S\u00e9curit\u00e9 restent visibles en permanence.
+                  </p>
                 </div>
               </div>
             )}

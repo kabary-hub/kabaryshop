@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from "react";
 import { Package, Search } from "lucide-react";
 import { getAllProducts } from "../core/products";
+import { DEFAULT_SITE_LOGO_URL } from "../utils/siteConfig";
 
 const StaffProducts = () => {
   // Produits chargés de façon synchrone (initialisation paresseuse, tri par date)
@@ -99,11 +100,11 @@ const StaffProducts = () => {
             >
               <div className="w-full aspect-[4/3] overflow-hidden">
                 <img
-                  src={product.img || product.image || "https://kabaryshop.vercel.app/logo2.png"}
+                  src={product.img || product.image || DEFAULT_SITE_LOGO_URL}
                   alt={product.title || product.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.src = "https://kabaryshop.vercel.app/logo2.png";
+                    e.target.src = DEFAULT_SITE_LOGO_URL;
                   }}
                 />
               </div>

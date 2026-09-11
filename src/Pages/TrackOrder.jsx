@@ -1,43 +1,58 @@
 // src/pages/TrackOrder.jsx
 // Page de suivi de commande public - Kabary Shop
-// Lecture privilégiée depuis l'API publique (api/order.js) quand elle est
-// disponible (environnement Vercel). Fallback localStorage côté client.
+// Lecture privilégiée depuis Supabase (orders), fallback localStorage.
+// Le paramètre ?ref= est lu depuis l'URL et les liens externes sont
+// construits dynamiquement à partir de l'origine publique du site
+// (VITE_BASE_URL ou fallback par défaut).
 
-import React, { useState } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getPublicOrderByReference } from '../services/supabase.js';
+import { getSupabase } from '../services/db.js';
 import { formatPrice } from '../utils/currencyUtils';
+import { ORDER_REFERENCE_BRAND_ID } from '../utils/siteConfig';
 import { useSettings } from '../context/SettingsContext';
 import { logActivity } from '../utils/history';
 import { showToast } from '../utils/toast';
 
-const API_BASE =
-  typeof window !== 'undefined' && window.location.origin
-    ? window.location.origin
-    : '';
-
 const fetchPublicOrder = async (reference) => {
-  // 1) Essayer d'abord la lecture locale (localStorage) : c'est la source
-  //    la plus rapide et elle fonctionne même sans API ni Supabase.
-  const localOrder = await getPublicOrderByReference(reference);
+  // 1) Essayer d'abord Supabase (lecture cloud) : la commande peut avoir
+  //    été créée sur un autre appareil et synchronisée.
+  const cloudOrder = await getPublicOrderByReference(reference);
+  if (cloudOrder) {
+    return sanitizePublicOrder(cloudOrder);
+  }
+
+  // 2) Fallback localStorage (lecture locale) : fonctionne même sans API
+  //    ni Supabase, mais uniquement pour les commandes créées sur cet appareil.
+  const localOrders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
+  const localOrder = localOrders.find((o) => o.reference === reference);
   if (localOrder) {
     return sanitizePublicOrder(localOrder);
   }
 
-  // 2) Si non trouvée localement, essayer l'API publique (Vercel) si
-  //    disponible. Utile quand la commande a été créée sur un autre appareil
-  //    et synchronisée vers le serveur.
-  if (API_BASE) {
-    try {
-      const res = await fetch(`${API_BASE}/api/order?ref=${encodeURIComponent(reference)}`);
-      if (res.ok) {
-        return await res.json();
+  // 3) Si la commande n'est toujours pas trouvée, on peut tenter une autre
+  //    passerelle : si Supabase est configuré et qu'une session admin/staff
+  //    est active, on peut interroger orders en lecture privilégiée. Ce cas
+  //    est déjà couvert par getPublicOrderByReference en 1), mais on reste
+  //    explicite ici pour faciliter la maintenance.
+  try {
+    const sb = typeof getSupabase === 'function' ? getSupabase() : null;
+    if (sb && sb.auth.getSession) {
+      const { data: sessionData } = await sb.auth.getSession();
+      if (sessionData?.session?.user) {
+        const { data, error } = await sb
+          .from('orders')
+          .select('*')
+          .eq('reference', reference)
+          .single();
+        if (!error && data) {
+          return sanitizePublicOrder(data);
+        }
       }
-      // La commande n'existe pas sur le serveur non plus : on garde le
-      // résultat local (null) pour afficher le message d'erreur.
-    } catch {
-      // L'API publique indisponible : on conserve le résultat local.
     }
+  } catch {
+    // lecture privilégiée indisponible : on conserve le résultat précédent
   }
 
   return null;
@@ -76,9 +91,10 @@ const sanitizePublicOrder = (order) => {
 const TrackOrder = () => {
   const { settings } = useSettings();
   const [searchParams] = useSearchParams();
-  const { ref } = useParams();
-  const initialRef = ref || searchParams.get('ref') || '';
-  const [reference, setReference] = useState(initialRef);
+  // ref peut arriver soit en paramètre de requête (?ref=...), soit dans la
+  // partie path (/track-order/CMD-123). On privilégie le query param.
+  const queryRef = searchParams.get('ref') || '';
+  const [reference, setReference] = useState(queryRef);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -108,7 +124,7 @@ const TrackOrder = () => {
           actor: { name: 'Client', role: 'visitor' },
         });
       } else {
-        setError('Commande non trouvée. Vérifiez le numéro de référence.');
+        setError("Aucune commande trouvée pour cette référence.");
       }
     } catch (err) {
       setError(err.message || 'Impossible de rechercher la commande. Réessayez plus tard.');
@@ -118,12 +134,13 @@ const TrackOrder = () => {
     setLoading(false);
   };
 
-  // Auto-track si la référence est dans l'URL
-  React.useEffect(() => {
-    if (initialRef && !tracked) {
+  // Auto-track quand une référence est présente dans l'URL
+  useEffect(() => {
+    if (searchParams.get('ref') && !tracked) {
       trackOrder();
     }
-  }, [initialRef, tracked]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- trackOrder est recréée à chaque rendu
+  }, [searchParams, tracked]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -179,7 +196,7 @@ const TrackOrder = () => {
           type="text"
           value={reference}
           onChange={(e) => setReference(e.target.value)}
-          placeholder="CMD-260908-2401940001-1430"
+          placeholder={`CMD-260908-${ORDER_REFERENCE_BRAND_ID}-1430`}
           className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {

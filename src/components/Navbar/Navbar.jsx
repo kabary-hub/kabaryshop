@@ -10,6 +10,7 @@ import { useSettings } from "../../context/SettingsContext";
 import { useCart } from "../../context/CartContext";
 import SearchBar from "../SearchBar/SearchBar";
 import { getCategories } from "../../utils/categories";
+import { DEFAULT_SITE_LOGO_URL } from "../../utils/siteConfig";
 
 const DropdownLinks = [
   { id: 1, name: "Nouvelles - Tendances ", link: "/tendances" },
@@ -109,10 +110,10 @@ const Navbar = ({ setSearchTerm, searchTerm = "" }) => {
           >
             {/* Logo : celui des paramètres admin s'il existe, sinon le logo par défaut public */}
             <img
-              src={settings.siteLogo || "https://kabaryshop.vercel.app/logo2.png"}
+              src={settings.siteLogo || DEFAULT_SITE_LOGO_URL}
               alt="Logo"
               className="w-8 sm:w-9 rounded-full object-cover"
-              onError={(e) => { e.target.src = "https://kabaryshop.vercel.app/logo2.png"; }}
+              onError={(e) => { e.target.src = DEFAULT_SITE_LOGO_URL; }}
             />
             <span className="truncate">{settings.siteName}</span>
           </Link>

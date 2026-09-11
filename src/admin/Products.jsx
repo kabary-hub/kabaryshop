@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Edit, Trash2, Plus, Search, Calendar, ArrowUpDown, X, ChevronLeft, ChevronRight, Eye, Tag, Palette, Download } from 'lucide-react';
 import { getAllProducts, saveProduct, deleteProduct } from '../core/products';
+import { DEFAULT_SITE_LOGO_URL } from '../utils/siteConfig';
 import { getReviewStats } from '../utils/reviews';
 import {
   exportProductsCSV,
@@ -43,8 +44,6 @@ const Products = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   // Produit en attente de confirmation de suppression
   const [productToDelete, setProductToDelete] = useState(null);
-  // Menu d'actions (trois points) : identifiant du produit ouvert
-  const [actionMenuProductId, setActionMenuProductId] = useState(null);
   // Pagination
   const [page, setPage] = useState(1);
   const [formData, setFormData] = useState({
@@ -529,7 +528,7 @@ const Products = () => {
                           alt={product.title} 
                           className="w-16 h-16 object-cover rounded"
                           onError={(e) => {
-                            e.target.src = 'https://kabaryshop.vercel.app/logo2.png';
+                            e.target.src = DEFAULT_SITE_LOGO_URL;
                           }}
                         />
                         {/* Badge : nombre d'images du produit */}
@@ -574,14 +573,16 @@ const Products = () => {
                       {formatDate(product.createdAt)}
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <ActionsMenu
-                        triggers={['Voir', 'Modifier', 'Supprimer']}
-                        onAction={(label) => {
-                          if (label === 'Voir') viewProductDetails(product);
-                          else if (label === 'Modifier') handleEdit(product);
-                          else if (label === 'Supprimer') handleDelete(product);
-                        }}
-                      />
+                      <div className="relative inline-block">
+                        <ActionsMenu
+                          triggers={['Voir', 'Modifier', 'Supprimer']}
+                          onAction={(label) => {
+                            if (label === 'Voir') viewProductDetails(product);
+                            else if (label === 'Modifier') handleEdit(product);
+                            else if (label === 'Supprimer') handleDelete(product);
+                          }}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -815,7 +816,7 @@ const Products = () => {
                   src={selectedProduct.img || selectedProduct.images?.[0]}
                   alt={selectedProduct.title}
                   className="w-full sm:w-40 h-40 object-cover rounded-lg border shrink-0"
-                  onError={(e) => { e.target.src = 'https://kabaryshop.vercel.app/logo2.png'; }}
+                  onError={(e) => { e.target.src = DEFAULT_SITE_LOGO_URL; }}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-lg font-bold">{selectedProduct.title}</p>

@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getAllProducts } from '../admin/services/productService';
 import { filterProductsByTerm } from '../core/products';
+import { DEFAULT_SITE_LOGO_URL } from '../utils/siteConfig';
 import ShareButton from '../components/ShareButton/ShareButton';
 import { getReviewStats } from '../utils/reviews';
 
@@ -121,11 +122,11 @@ const CategoryProducts = ({ handleOrder, searchTerm = "" }) => {
               className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 cursor-pointer"
             >
               <img 
-                src={product.img || product.image || 'https://kabaryshop.vercel.app/logo2.png'} 
+                src={product.img || product.image || DEFAULT_SITE_LOGO_URL} 
                 alt={product.title || product.name}
                 className="w-full h-48 object-cover rounded-t-lg"
                 onError={(e) => {
-                  e.target.src = 'https://kabaryshop.vercel.app/logo2.png';
+                  e.target.src = DEFAULT_SITE_LOGO_URL;
                 }}
               />
               <ShareButton

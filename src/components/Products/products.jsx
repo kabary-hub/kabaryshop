@@ -16,14 +16,12 @@ import { getReviewStats } from "../../utils/reviews";
 // maintenant alignés sur la même source unique.
 import {
   DEFAULT_PRODUCTS,
-  defaultProducts,
   getCustomProducts,
   saveCustomProducts,
   getAllProducts,
-  getDefaultProducts,
   getDeletedProductIds,
-  filterProductsByTerm,
 } from '../../core/products';
+import { DEFAULT_SITE_LOGO_URL } from '../../utils/siteConfig';
 
 // Québec nommé localement pour la grille de la page d'accueil.
 const productsData = DEFAULT_PRODUCTS;
@@ -60,7 +58,7 @@ const Products = ({ data, searchTerm = "" }) => {
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
     addToCart(product);
-    showNotification(`✅ ${product.title} ajouté au panier !`);
+    showNotification(`${product.title} ajouté au panier.`);
   };
 
   // Liste des produits TRIÉS, calculée de façon synchrone (données + localStorage)
@@ -110,7 +108,7 @@ const Products = ({ data, searchTerm = "" }) => {
   };
 
   const handleImageError = (e) => {
-    e.target.src = 'https://kabaryshop.vercel.app/logo2.png';
+    e.target.src = DEFAULT_SITE_LOGO_URL;
   };
 
   return (
@@ -211,7 +209,7 @@ const Products = ({ data, searchTerm = "" }) => {
                         onClick={(e) => handleAddToCart(e, item)}
                         className="bg-primary text-white text-xs font-bold py-2 px-2.5 rounded-md hover:scale-105 duration-300 shrink-0"
                       >
-                        🛒 Ajouter
+                        Ajouter
                       </button>
                     </div>
                   </div>

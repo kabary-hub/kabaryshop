@@ -25,10 +25,10 @@ const getContainer = () => {
 
 // Couleurs par type (classes Tailwind)
 const STYLES = {
-  success: { bg: "bg-green-600", icon: "✅" },
-  error: { bg: "bg-red-600", icon: "❌" },
-  warning: { bg: "bg-amber-500", icon: "⚠️" },
-  info: { bg: "bg-blue-600", icon: "ℹ️" },
+  success: { bg: "bg-green-600", icon: "<svg class=\"inline-block w-4 h-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M5 13l4 4L19 7\"/></svg>" },
+  error: { bg: "bg-red-600", icon: "<svg class=\"inline-block w-4 h-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M6 18L18 6M6 6l12 12\"/></svg>" },
+  warning: { bg: "bg-amber-500", icon: "<svg class=\"inline-block w-4 h-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 9v2m0 4h.01M12 3l9.5 16h-19L12 3z\"/></svg>" },
+  info: { bg: "bg-blue-600", icon: "<svg class=\"inline-block w-4 h-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"/></svg>" },
 };
 
 // Affiche un toast pendant « duration » millisecondes
@@ -41,7 +41,7 @@ export const showToast = (message, type = "success", duration = 3000) => {
     " text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2 text-sm font-medium transform transition-all duration-300 opacity-0 translate-y-2";
 
   const iconSpan = document.createElement("span");
-  iconSpan.textContent = style.icon;
+  iconSpan.innerHTML = style.icon;
   iconSpan.className = "shrink-0 text-base";
 
   const msgSpan = document.createElement("span");

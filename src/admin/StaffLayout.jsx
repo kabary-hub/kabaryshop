@@ -13,9 +13,12 @@ import { ShoppingCart, Package, Settings, LogOut, UserRound } from "lucide-react
 import Navbar from "../components/Navbar/Navbar";
 import { getStaffUser, logoutComplete } from "../utils/auth";
 import { logActivity } from "../utils/history";
+import { showToast } from "../utils/toast";
+import LogoutConfirmModal from "../components/ConfirmModal/LogoutConfirmModal";
 
 const StaffLayout = () => {
   const [staffUser, setStaffUser] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Charger l'utilisateur staff connecté (session)
   useEffect(() => {
@@ -43,7 +46,17 @@ const StaffLayout = () => {
         : { name: "Staff", role: "staff" },
     });
     logoutComplete();
+    showToast('Vous avez été déconnecté.', 'success');
     window.location.href = "/admin/login";
+  };
+
+  const openLogoutConfirm = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    handleLogout();
   };
 
   // Onglets principaux de la navbar staff (noms compatibles avec l'interface public).
@@ -120,14 +133,22 @@ const StaffLayout = () => {
               </NavLink>
             ))}
             <button
-              onClick={handleLogout}
+              onClick={openLogoutConfirm}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-red-600 hover:text-white transition ml-1"
             >
               <LogOut size={16} />
               Déconnexion
             </button>
-          </nav>
-        </div>
+      </nav>
+
+      {/* Modale de confirmation de déconnexion */}
+      <LogoutConfirmModal
+        open={showLogoutConfirm}
+        user={staffUser}
+        onConfirmLogout={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
+    </div>
       </div>
 
       {/* 3. Contenu */}

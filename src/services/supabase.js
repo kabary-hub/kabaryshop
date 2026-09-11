@@ -6,11 +6,16 @@
 // (products, orders, users, reviews, admin_alerts) pour les opérations
 // qui ont besoin de relations, d'indexation ou de RLS fine.
 //
-// COMPATIBILITÉ : ce service est optionnel. Si Supabase n'est pas configuré
-// ou si une fonction échoue, on retourne des résultats compatibles avec le
-// comportement localStorage existant (voir les fallback dans chaque fonction).
+// IMPORTANT : Supabase est actuellement la couche de synchronisation et
+// d'authentification recommandée pour les données persistantes. Si la
+// configuration Supabase est manquante ou non opérationnelle, le site
+// continue de fonctionner en local (localStorage) mais certaines données
+// (commandes, utilisateurs, historique, etc.) ne seront pas partagées
+// entre les appareils. Le service doit donc être déployé avec les bonnes
+// variables d'environnement (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).
 
 import { getSupabase, isSyncConfigured, hasSupabaseSession } from './db';
+import { ORDER_REFERENCE_BRAND_ID } from './../utils/siteConfig';
 
 // ============================================================================
 // PRODUITS
@@ -283,15 +288,14 @@ export const updateOrderStatus = async (id, status, shipping = null) => {
 };
 
 export const getPublicOrderByReference = async (reference) => {
-  // 1) Essayer d'abord le localStorage (lecture locale, rapide, fonctionne
-  //    même sans Supabase). C'est la source privilégiée pour le suivi public.
-  const localOrders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
-  const localOrder = localOrders.find(o => o.reference === reference);
-  if (localOrder) return localOrder;
-
-  // 2) Si non trouvée localement et que Supabase est disponible, essayer la
-  //    table orders de Supabase (utile quand la commande a été créée sur un
-  //    autre appareil et synchronisée).
+  // Lecture publique d'une commande par référence.
+  // Priorité 1 : la commande peut être lue depuis Supabase si la fonction
+  // est configurée et si la référence existe dans la table orders.
+  // Priorité 2 : fallback localStorage pour compatibilité locale.
+  //
+  // Ce comportement est fait pour que le suivi public fonctionne même si
+  // Supabase n'est pas encore opérationnel, tout en restant compatible
+  // avec la synchronisation cloud dès que Supabase est actif.
   const sb = getSupabase();
   if (sb && isSyncConfigured()) {
     try {
@@ -303,12 +307,13 @@ export const getPublicOrderByReference = async (reference) => {
 
       if (!error && data) return data;
     } catch {
-      // Supabase indisponible : on conserve le résultat local (null).
+      // Supabase indisponible : on continue avec le fallback local.
     }
   }
 
-  // 3) Non trouvée ni localement ni sur Supabase.
-  return null;
+  // Fallback localStorage (lecture locale).
+  const localOrders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
+  return localOrders.find(o => o.reference === reference) || null;
 };
 
 // ============================================================================
@@ -316,23 +321,24 @@ export const getPublicOrderByReference = async (reference) => {
 // ============================================================================
 
 export const getUsers = async () => {
+  // Liste des utilisateurs (admin/staff).
+  // Si Supabase est configuré et qu'une session est active, on privilégie
+  // la lecture depuis Supabase (données partagées). Sinon, fallback local.
   const sb = getSupabase();
-  if (!sb || !hasSupabaseSession()) {
-    // Fallback localStorage
-    return JSON.parse(localStorage.getItem('app_users') || '[]');
+  if (sb && isSyncConfigured() && hasSupabaseSession()) {
+    try {
+      const { data, error } = await sb
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) return data;
+    } catch {
+      // Supabase indisponible : on conserve le fallback local.
+    }
   }
 
-  try {
-    const { data, error } = await sb
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  } catch {
-    return JSON.parse(localStorage.getItem('app_users') || '[]');
-  }
+  return JSON.parse(localStorage.getItem('app_users') || '[]');
 };
 
 export const getUserByEmail = async (email) => {
@@ -359,79 +365,67 @@ export const getUserByEmail = async (email) => {
 };
 
 export const createUser = async (userData) => {
+  // Création d'un utilisateur (admin/staff).
+  // Si Supabase est configuré et qu'une session est active, la création est
+  // faite dans Supabase (table users) pour persistancer les données.
+  // Sinon, création locale dans localStorage.
   const sb = getSupabase();
-  if (!sb || !hasSupabaseSession()) {
-    // Fallback localStorage
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-    const newUser = {
-      ...userData,
-      id: userData.id || crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    users.push(newUser);
-    localStorage.setItem('app_users', JSON.stringify(users));
-    return { success: true, user: newUser };
+  if (sb && isSyncConfigured() && hasSupabaseSession()) {
+    try {
+      const { data, error } = await sb
+        .from('users')
+        .insert({
+          ...userData,
+          id: userData.id || crypto.randomUUID(),
+        })
+        .select()
+        .single();
+
+      if (!error && data) return { success: true, user: data };
+    } catch {
+      // Supabase indisponible : on passe au fallback local.
+    }
   }
 
-  try {
-    const { data, error } = await sb
-      .from('users')
-      .insert({
-        ...userData,
-        id: userData.id || crypto.randomUUID(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { success: true, user: data };
-  } catch {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-    const newUser = {
-      ...userData,
-      id: userData.id || crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    users.push(newUser);
-    localStorage.setItem('app_users', JSON.stringify(users));
-    return { success: true, user: newUser };
-  }
+  const users = JSON.parse(localStorage.getItem('app_users') || '[]');
+  const newUser = {
+    ...userData,
+    id: userData.id || crypto.randomUUID(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  users.push(newUser);
+  localStorage.setItem('app_users', JSON.stringify(users));
+  return { success: true, user: newUser };
 };
 
 export const updateUser = async (id, updates) => {
+  // Mise à jour d'un utilisateur (admin/staff).
+  // Si Supabase est configuré et qu'une session est active, on met à jour
+  // Supabase (table users). Sinon, mise à jour locale dans localStorage.
   const sb = getSupabase();
-  if (!sb || !hasSupabaseSession()) {
-    // Fallback localStorage
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-    const index = users.findIndex(u => String(u.id) === String(id));
-    if (index !== -1) {
-      users[index] = { ...users[index], ...updates, updated_at: new Date().toISOString() };
-      localStorage.setItem('app_users', JSON.stringify(users));
+  if (sb && isSyncConfigured() && hasSupabaseSession()) {
+    try {
+      const { data, error } = await sb
+        .from('users')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (!error && data) return { success: true, user: data };
+    } catch {
+      // Supabase indisponible : on passe au fallback local.
     }
-    return { success: true, user: users.find(u => String(u.id) === String(id)) };
   }
 
-  try {
-    const { data, error } = await sb
-      .from('users')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { success: true, user: data };
-  } catch {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-    const index = users.findIndex(u => String(u.id) === String(id));
-    if (index !== -1) {
-      users[index] = { ...users[index], ...updates, updated_at: new Date().toISOString() };
-      localStorage.setItem('app_users', JSON.stringify(users));
-    }
-    return { success: true, user: users.find(u => String(u.id) === String(id)) };
+  const users = JSON.parse(localStorage.getItem('app_users') || '[]');
+  const index = users.findIndex(u => String(u.id) === String(id));
+  if (index !== -1) {
+    users[index] = { ...users[index], ...updates, updated_at: new Date().toISOString() };
+    localStorage.setItem('app_users', JSON.stringify(users));
   }
+  return { success: true, user: users.find(u => String(u.id) === String(id)) };
 };
 
 // ============================================================================
@@ -494,57 +488,45 @@ export const getPendingReviews = async () => {
 };
 
 export const createReview = async (reviewData) => {
+  // Création d'un avis produit.
+  // Si Supabase est configuré, on essaie d'abord de créer l'avis côté cloud
+  // pour le rendre disponible partout. Sinon, création locale.
   const sb = getSupabase();
-  if (!sb || !isSyncConfigured()) {
-    // Fallback localStorage
-    const reviews = JSON.parse(localStorage.getItem('product_reviews') || '{}');
-    const productId = reviewData.product_id || reviewData.productId;
-    if (!reviews[productId]) reviews[productId] = [];
-    const newReview = {
-      ...reviewData,
-      id: reviewData.id || crypto.randomUUID(),
-      product_id: productId,
-      status: 'pending', // Moderation par défaut
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    reviews[productId].push(newReview);
-    localStorage.setItem('product_reviews', JSON.stringify(reviews));
-    return { success: true, review: newReview };
+  if (sb && isSyncConfigured()) {
+    try {
+      const { data, error } = await sb
+        .from('reviews')
+        .insert({
+          ...reviewData,
+          id: reviewData.id || crypto.randomUUID(),
+          product_id: reviewData.product_id || reviewData.productId,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (!error && data) return { success: true, review: data };
+    } catch {
+      // Supabase indisponible : on passe au fallback local.
+    }
   }
 
-  try {
-    const { data, error } = await sb
-      .from('reviews')
-      .insert({
-        ...reviewData,
-        id: reviewData.id || crypto.randomUUID(),
-        product_id: reviewData.product_id || reviewData.productId,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { success: true, review: data };
-  } catch {
-    const reviews = JSON.parse(localStorage.getItem('product_reviews') || '{}');
-    const productId = reviewData.product_id || reviewData.productId;
-    if (!reviews[productId]) reviews[productId] = [];
-    const newReview = {
-      ...reviewData,
-      id: reviewData.id || crypto.randomUUID(),
-      product_id: productId,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    reviews[productId].push(newReview);
-    localStorage.setItem('product_reviews', JSON.stringify(reviews));
-    return { success: true, review: newReview };
-  }
+  const reviews = JSON.parse(localStorage.getItem('product_reviews') || '{}');
+  const productId = reviewData.product_id || reviewData.productId;
+  if (!reviews[productId]) reviews[productId] = [];
+  const newReview = {
+    ...reviewData,
+    id: reviewData.id || crypto.randomUUID(),
+    product_id: productId,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  reviews[productId].push(newReview);
+  localStorage.setItem('product_reviews', JSON.stringify(reviews));
+  return { success: true, review: newReview };
 };
 
 export const updateReviewStatus = async (id, status) => {
@@ -552,7 +534,7 @@ export const updateReviewStatus = async (id, status) => {
   if (!sb || !hasSupabaseSession()) {
     // Fallback localStorage
     const reviews = JSON.parse(localStorage.getItem('product_reviews') || '{}');
-    for (const [productId, revs] of Object.entries(reviews)) {
+    for (const [_productId, revs] of Object.entries(reviews)) {
       const index = revs.findIndex(r => String(r.id) === String(id));
       if (index !== -1) {
         revs[index].status = status;
@@ -576,7 +558,7 @@ export const updateReviewStatus = async (id, status) => {
     return { success: true, review: data };
   } catch {
     const reviews = JSON.parse(localStorage.getItem('product_reviews') || '{}');
-    for (const [productId, revs] of Object.entries(reviews)) {
+    for (const [_productId, revs] of Object.entries(reviews)) {
       const index = revs.findIndex(r => String(r.id) === String(id));
       if (index !== -1) {
         revs[index].status = status;
@@ -594,69 +576,62 @@ export const updateReviewStatus = async (id, status) => {
 // ============================================================================
 
 export const getAdminAlerts = async () => {
+  // Liste des alertes admin.
+  // Si Supabase est configuré et qu'une session est active, on privilégie la
+  // lecture depuis Supabase (table admin_alerts). Sinon, fallback local.
   const sb = getSupabase();
-  if (!sb || !hasSupabaseSession()) {
-    // Fallback localStorage
-    return JSON.parse(localStorage.getItem('admin_alerts') || '[]');
+  if (sb && isSyncConfigured() && hasSupabaseSession()) {
+    try {
+      const { data, error } = await sb
+        .from('admin_alerts')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(50);
+
+      if (!error && data) return data;
+    } catch {
+      // Supabase indisponible : on passe au fallback local.
+    }
   }
 
-  try {
-    const { data, error } = await sb
-      .from('admin_alerts')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(50);
-
-    if (error) throw error;
-    return data || [];
-  } catch {
-    return JSON.parse(localStorage.getItem('admin_alerts') || '[]');
-  }
+  return JSON.parse(localStorage.getItem('admin_alerts') || '[]');
 };
 
 export const createAdminAlert = async (alertData) => {
+  // Création d'une alerte admin.
+  // Si Supabase est configuré et qu'une session est active, l'alerte est créée
+  // côté cloud pour être visible sur plusieurs appareils. Sinon, création locale.
   const sb = getSupabase();
-  if (!sb || !hasSupabaseSession()) {
-    // Fallback localStorage
-    const alerts = JSON.parse(localStorage.getItem('admin_alerts') || '[]');
-    const newAlert = {
-      ...alertData,
-      id: alertData.id || crypto.randomUUID(),
-      date: alertData.date || new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    };
-    alerts.unshift(newAlert);
-    localStorage.setItem('admin_alerts', JSON.stringify(alerts.slice(0, 100)));
-    return { success: true, alert: newAlert };
+  if (sb && isSyncConfigured() && hasSupabaseSession()) {
+    try {
+      const { data, error } = await sb
+        .from('admin_alerts')
+        .insert({
+          ...alertData,
+          id: alertData.id || crypto.randomUUID(),
+          date: alertData.date || new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (!error && data) return { success: true, alert: data };
+    } catch {
+      // Supabase indisponible : on passe au fallback local.
+    }
   }
 
-  try {
-    const { data, error } = await sb
-      .from('admin_alerts')
-      .insert({
-        ...alertData,
-        id: alertData.id || crypto.randomUUID(),
-        date: alertData.date || new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { success: true, alert: data };
-  } catch {
-    const alerts = JSON.parse(localStorage.getItem('admin_alerts') || '[]');
-    const newAlert = {
-      ...alertData,
-      id: alertData.id || crypto.randomUUID(),
-      date: alertData.date || new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    };
-    alerts.unshift(newAlert);
-    localStorage.setItem('admin_alerts', JSON.stringify(alerts.slice(0, 100)));
-    return { success: true, alert: newAlert };
-  }
-};
+  const alerts = JSON.parse(localStorage.getItem('admin_alerts') || '[]');
+  const newAlert = {
+    ...alertData,
+    id: alertData.id || crypto.randomUUID(),
+    date: alertData.date || new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  };
+  alerts.unshift(newAlert);
+  localStorage.setItem('admin_alerts', JSON.stringify(alerts.slice(0, 100)));
+  return { success: true, alert: newAlert };
+}
 
 export const markAlertAsRead = async (id) => {
   const sb = getSupabase();
@@ -674,7 +649,7 @@ export const markAlertAsRead = async (id) => {
   try {
     const { error } = await sb
       .from('admin_alerts')
-      .update({ read: true })
+      .update({ read: true, updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) throw error;
@@ -694,9 +669,14 @@ export const markAlertAsRead = async (id) => {
 // UTILITAIRES
 // ============================================================================
 
-// Génère une référence de commande au format : CMD-YYMMDD-240194XXXX-HHMM
-// Utilisé comme fallback si aucune référence n'est fournie lors de la création
-// d'une commande (comportement de sécurité).
+// Génère une référence de commande au format :
+//   CMD-YYMMDD-2401940001-HHMM
+//
+// Ce format est utilisé comme fallback quand aucune référence n'est fournie
+// lors de la création d'une commande. Le suffixe fixe est
+// ORDER_REFERENCE_BRAND_ID (= "2401940001") depuis siteConfig.
+// Si tu changes ce format, pense à reporter le changement partout où la
+// référence est générée ou affichée (Popup, commandes, emails, suivi, etc.).
 const generateReference = () => {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(2);
@@ -706,19 +686,23 @@ const generateReference = () => {
   const hh = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
   const timePart = `${hh}${min}`;
-  return `CMD-${datePart}-2401940001-${timePart}`;
+  return `CMD-${datePart}-${ORDER_REFERENCE_BRAND_ID}-${timePart}`;
 };
 
 // Synchronisation : copier les données locales vers les tables normalisées
-// (à appeler une fois lors de la migration)
+// (à appeler une fois lors de la migration, si les tables existent déjà)
 export const syncLocalDataToNormalizedTables = async () => {
   const sb = getSupabase();
   if (!sb || !hasSupabaseSession()) {
     return { success: false, reason: 'Pas de session admin' };
   }
 
-  // Synchroniser les commandes
+  // Synchroniser les commandes déjà présentes en localStorage vers Supabase.
+  // Si une commande existe déjà côté cloud (même id), elle est mise à jour.
+  // Les erreurs individuelles sont ignorées pour ne pas bloquer toute la
+  // synchronisation à cause d'une seule commande problématique.
   const localOrders = JSON.parse(localStorage.getItem('shop_orders') || '[]');
+  let syncedOrders = 0;
   for (const order of localOrders) {
     try {
       await sb.from('orders').upsert({
@@ -737,14 +721,15 @@ export const syncLocalDataToNormalizedTables = async () => {
         cancelled_at: order.cancelled_at || null,
         notes: order.notes || null,
       }, { onConflict: 'id' });
+      syncedOrders += 1;
     } catch {
       // Ignorer les erreurs de migration individuelle
     }
   }
 
-  // Synchroniser les paramètres (déjà dans sync_store, mais on peut aussi les
-  // copier vers une table settings si on en crée une)
-  // Pour l'instant, on garde sync_store comme source de vérité pour settings
+  // Les paramètres sont déjà gérés via sync_store (table clé/valeur).
+  // Si une table dédiée settings est créée plus tard, il faudra la
+  // synchroniser ici aussi.
 
-  return { success: true, syncedOrders: localOrders.length };
+  return { success: true, syncedOrders };
 };

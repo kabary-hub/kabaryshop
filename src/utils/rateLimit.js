@@ -1,4 +1,5 @@
 // src/utils/rateLimit.js
+import React from 'react';
 // Rate limiting simple basé sur localStorage pour prévenir le spam
 
 const RATE_LIMITS = {

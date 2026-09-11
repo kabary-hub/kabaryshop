@@ -1,3 +1,8 @@
+node_modules
+dist
+dist-ssr
+*.local
+
 # Logs
 logs
 *.log
@@ -6,11 +11,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
 
 # Variables d'environnement locales (clés privées) — jamais commitées
 .env
@@ -30,3 +30,7 @@ dev-emails/
 *.njsproj
 *.sln
 *.sw?
+
+# Artefacts opérationnels temporaires (non livrés avec le site)
+scripts/upload-log.txt
+scripts/.imgbb-upload-state.json

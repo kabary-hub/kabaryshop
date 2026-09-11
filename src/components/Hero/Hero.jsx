@@ -169,8 +169,7 @@ const Hero = ({ handleOrder }) => {
   }, [currentIndex, extendeList.length]);
   return (
     <div className="relative overflow-hidden bg-gray-100 flex min-h-[480px] sm:min-h-[650px] items-center justify-center dark:bg-gray-950 dark:text-white duration-200">
-      {/* background pattern inclinaison du carré*/}
-      <div className="bg-linear-to-r from-primary/20 to-secondary h-175 w-225 absolute -top-1/2 right-10 rounded-3xl rotate-25 hidden md:block"></div>
+      <div className="bg-linear-to-r from-primary/20 to-secondary h-175 w-225 absolute -top-1/2 right-10 rounded-3xl rotate-25"></div>
 
       {/* grand container section hero */}
       <div className="w-full pb-8 px-4 sm:px-5 sm:pb-0">

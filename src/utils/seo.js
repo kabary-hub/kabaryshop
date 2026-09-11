@@ -4,9 +4,9 @@
 // apparaître dans les résultats de recherche Google/Bing).
 
 // URL de base du site (configurable via VITE_BASE_URL dans .env).
-// Fallback : le domaine actuel sur Vercel.
+// Fallback : l'origine actuelle du site (production = domaine réel, pas de dev).
 const getBaseUrl = () =>
-  import.meta.env?.VITE_BASE_URL || "https://kabaryshop.vercel.app";
+  import.meta.env?.VITE_BASE_URL || window.location.origin.replace(/\/+$/, "");
 
 // Met à jour le <title> du document.
 export const setPageTitle = (title) => {
@@ -32,6 +32,7 @@ export const setCanonical = (path) => {
     link.rel = "canonical";
     document.head.appendChild(link);
   }
+  // La canonical utilise l'URL de base (déployée) et non un chemin relatif.
   const url = `${getBaseUrl()}${path === "/" ? "/" : path}`;
   link.href = url;
 };

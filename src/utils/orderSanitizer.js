@@ -27,6 +27,8 @@ export const VALID_ORDER_STATUSES = new Set([
   "cancelled",
 ]);
 
+import { ORDER_REFERENCE_STORE_PREFIX } from './siteConfig';
+
 const DEFAULT_CUSTOMER = {
   name: "Client inconnu",
   email: "",
@@ -91,29 +93,31 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 // Génère une référence unique au nouveau format :
 // CMD-AAMMJJ-240194XXXX-HHMM (ex. CMD-260908-2401940001-1430).
+// Le préfixe magasin est ORDER_REFERENCE_STORE_PREFIX (= "240194").
 const generateReference = (existingRefs) => {
   const now = new Date();
   const datePart = `${String(now.getFullYear()).slice(2)}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
   const timePart = `${pad2(now.getHours())}${pad2(now.getMinutes())}`;
   // Trouver le max séquentiel pour aujourd'hui parmi les références existantes
-  const todayPrefix = `CMD-${datePart}-240194`;
+  const todayPrefix = `CMD-${datePart}-${ORDER_REFERENCE_STORE_PREFIX}`;
   let maxSeq = 0;
   for (const ref of existingRefs) {
     const refStr = String(ref || "");
     // Nouveau format : CMD-YYMMDD-240194XXXX-HHMM
-    const m = refStr.match(/^CMD-\d{6}-240194(\d{4})-\d{4}$/);
+    const m = refStr.match(new RegExp(`^CMD-\\d{6}-${ORDER_REFERENCE_STORE_PREFIX}(\\d{4})-\\d{4}$`));
     if (m && refStr.startsWith(todayPrefix)) {
       maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
     }
   }
-  return `CMD-${datePart}-240194${String(maxSeq + 1).padStart(4, "0")}-${timePart}`;
+  return `CMD-${datePart}-${ORDER_REFERENCE_STORE_PREFIX}${String(maxSeq + 1).padStart(4, "0")}-${timePart}`;
 };
 
 // Regex pour valider les références (accepte l'ancien et le nouveau format)
 // Ancien : CMD-YYMMDD-NNNN (16 caractères)
 // Nouveau : CMD-YYMMDD-240194XXXX-HHMM (27 caractères)
+// Le préfixe magasin est ORDER_REFERENCE_STORE_PREFIX (= "240194").
 export const REFERENCE_REGEX_OLD = /^CMD-(\d{6})-(\d{4})$/;
-export const REFERENCE_REGEX_NEW = /^CMD-(\d{6})-240194(\d{4})-(\d{4})$/;
+export const REFERENCE_REGEX_NEW = new RegExp(`^CMD-(\\d{6})-${ORDER_REFERENCE_STORE_PREFIX}(\\d{4})-(\\d{4})$`);
 
 // ============================================================
 // sanitizeShopOrders(orders) → { orders, report }

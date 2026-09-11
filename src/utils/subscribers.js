@@ -137,7 +137,6 @@ const sendToEachSubscriber = async (baseParams, subscribers) => {
   }
   return { sent, failed };
 };
-
 // Envoie un email à CHAQUE abonné pour annoncer un nouveau produit.
 // Le contenu est construit en français par emailService (aucun template
 // externe à configurer).
@@ -150,22 +149,24 @@ export const notifySubscribersNewProduct = async (product) => {
   const productUrl = `${window.location.origin}/produit/${product.id}`;
   const baseParams = {
     fromName: siteName,
-    subject: `🛍️ Nouveau produit : ${product.title || "Nouveauté"}`,
+    subject: `Nouveau produit : ${product.title || "Nouveauté"}`,
     html: buildNewArrivalEmail({ siteName, product, productUrl }),
   };
-  if (false && typeof window !== "undefined") {
+  const _preview = false;
+  const _productImageLabel = '(vide)';
+  if (_preview && typeof window !== 'undefined') {
     console.info(
-      "[subscribers] buildNewArrivalEmail preview URLs:",
-      "siteLogo:",
+      '[subscribers] buildNewArrivalEmail preview URLs:',
+      'siteLogo:',
       (() => {
         try {
           return JSON.parse(localStorage.getItem('kabary_settings') || '{}');
         } catch {
           return {};
         }
-      })().siteLogo || "(vide)",
-      "productImage:",
-      getProductImageUrl(product) || "(vide)"
+      })().siteLogo || '(vide)',
+      'productImage:',
+      _productImageLabel
     );
   }
 
@@ -210,14 +211,14 @@ export const sendShippingAssignmentEmail = async ({
     to: toEmail,
     toName: toName || toEmail.split("@")[0] || toEmail,
     fromName: siteName,
-    subject: `📦 Commande ${order.reference || `CMD-${order.id}`} assignée`,
+    subject: `Commande ${order.reference || `CMD-${order.id}`} assignée`,
     html,
   });
 
   if (res.ok) {
     return {
       ok: true,
-      message: `Commande envoyée par email à ${toName || toEmail} ✅`,
+      message: `Commande envoyée par email à ${toName || toEmail}.`,
     };
   }
   return {
@@ -236,12 +237,13 @@ export const sendTestNewArrivalsEmail = async ({
   toEmail = "",
   toAll = false,
 } = {}) => {
-  // Produit fictif pour simuler une publication
+  // Produit fictif pour simuler une publication.
+  // L'image du produit est volontairement absente ici car le template email
+  // utilise déjà un fallback par défaut pour les produits sans image.
   const sampleProduct = {
     title: "Produit de démonstration",
     prix: "150 000 GNF",
     category: "Femmes",
-    img: "https://kabaryshop.vercel.app/logo2.png",
     id: "test-demo",
   };
 
@@ -263,7 +265,7 @@ export const sendTestNewArrivalsEmail = async ({
       ok: failed === 0,
       message:
         failed === 0
-          ? `Test envoyé à ${sent} abonné(s). ✅`
+          ? `Test envoyé à ${sent} abonné(s).`
           : `Échec partiel : ${failed}/${sent + failed} abonné(s) n'ont pas reçu le test.`,
     };
   }
@@ -276,7 +278,10 @@ export const sendTestNewArrivalsEmail = async ({
   return {
     ok: res.ok,
     message: res.ok
-      ? `Email de test envoyé à ${email} ✅`
+      ? `Email de test envoyé à ${email}.`
       : `Échec de l'envoi à ${email}. ${res.message}`,
   };
 };
+
+// NOTE : ce fichier n'expose pas getProductImageUrl.
+// Elle est importée depuis emailService quand elle est nécessaire.

@@ -11,6 +11,7 @@
 //   <UserAvatar user={user} className="w-10 h-10 text-sm" />
 import React from "react";
 import { useSettings } from "../../context/SettingsContext";
+import { DEFAULT_SITE_LOGO_URL } from "../../utils/siteConfig";
 
 // Initiales d'un utilisateur : première lettre du prénom + première lettre du
 // nom (ex. « Admin Principal » → « AP »). Utilisées en l'absence de photo et
@@ -45,7 +46,7 @@ const UserAvatar = ({
 
   // 2) Logo du site (configuré dans les paramètres ou logo par défaut public)
   if (showSiteLogo) {
-    const logoUrl = settings.siteLogo || "https://kabaryshop.vercel.app/logo2.png";
+    const logoUrl = settings.siteLogo || DEFAULT_SITE_LOGO_URL;
     return (
       <img
         src={logoUrl}

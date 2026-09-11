@@ -14,6 +14,7 @@ import {
   buildOrderConfirmationEmail,
   buildOrderItemsHtml,
 } from "../../utils/emailService";
+import { ORDER_REFERENCE_STORE_PREFIX } from "../../utils/siteConfig";
 
 const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
   const form = useRef();
@@ -75,7 +76,8 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
   // Générer une référence de commande au format : CMD-YYMMDD-240194XXXX-HHMM
   // Exemple : CMD-260908-2401940001-1430
   // - YYMMDD : date (année sur 2 chiffres, mois, jour)
-  // - 240194 : préfixe fixe identifiant les commandes du site
+  // - préfixe magasin : ORDER_REFERENCE_STORE_PREFIX (= "240194"),
+  //   partagé avec orderSanitizer et siteConfig
   // - XXXX   : numéro incrémental pour la journée (0001, 0002, …)
   // - HHMM   : heure au format 24h (heures + minutes)
   const generateOrderReference = (existingOrders) => {
@@ -89,11 +91,11 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
     const min = String(now.getMinutes()).padStart(2, '0');
     const timePart = `${hh}${min}`;
     // Trouver le numéro séquentiel le plus élevé pour aujourd'hui
-    const todayPrefix = `CMD-${datePart}-240194`;
+    const todayPrefix = `CMD-${datePart}-${ORDER_REFERENCE_STORE_PREFIX}`;
     const maxSeq = existingOrders.reduce((max, order) => {
       const ref = String(order.reference || '');
       // Correspond au format CMD-YYMMDD-240194XXXX-HHMM
-      const match = ref.match(/^CMD-\d{6}-240194(\d{4})-\d{4}$/);
+      const match = ref.match(new RegExp(`^CMD-\\d{6}-${ORDER_REFERENCE_STORE_PREFIX}(\\d{4})-\\d{4}$`));
       // Vérifier aussi que c'est pour aujourd'hui (même préfixe date)
       if (match && ref.startsWith(todayPrefix)) {
         return Math.max(max, parseInt(match[1], 10));
@@ -101,7 +103,7 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
       return max;
     }, 0);
     const seq = String(maxSeq + 1).padStart(4, '0');
-    return `CMD-${datePart}-240194${seq}-${timePart}`;
+    return `CMD-${datePart}-${ORDER_REFERENCE_STORE_PREFIX}${seq}-${timePart}`;
   };
 
   // Sauvegarder la commande dans localStorage
@@ -239,7 +241,7 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
           to: customerEmail,
           toName: customerName,
           fromName: siteName,
-          subject: `✅ Commande ${orderRef} confirmée`,
+          subject: `Commande ${orderRef} confirmée`,
           html: buildOrderConfirmationEmail({
             siteName,
             customerName,
@@ -301,7 +303,8 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
       window.addEventListener('openCartCheckout', onCartCheckout);
       return () => window.removeEventListener('openCartCheckout', onCartCheckout);
     }
-  }, [orderPopup, cartItems.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- orderPopup est stable ici
+  }, [cartItems.length]);
 
   return (
     <>
@@ -344,7 +347,7 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
                   </p>
                   <h1 className="text-xl font-semibold">
                     {orderSuccess
-                      ? "Commande validée ✅"
+                      ? "Commande validée"
                       : isCartOrder
                         ? `Votre commande (${cartItemsCount} articles)`
                         : "Votre adresse"}
@@ -382,7 +385,7 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
 
                   {/* Récapitulatif des articles */}
                   <div className="text-left rounded-lg bg-gray-100 dark:bg-gray-800 p-3 mb-4 max-h-52 overflow-y-auto">
-                    <p className="font-semibold text-sm mb-2">🛒 Votre commande :</p>
+                    <p className="font-semibold text-sm mb-2">Votre commande :</p>
                     {orderSuccess.items.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 py-2 border-b dark:border-gray-700 text-sm">
                         {item.image && (
@@ -411,16 +414,13 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
                   {/* Livraison & paiement */}
                   <div className="text-left rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 mb-4">
                     <p className="text-sm mb-1">
-                      <span className="font-semibold">📍
-                        
-                        
-                         Livraison :</span>{" "}
+                      <span className="font-semibold">Livraison :</span>{" "}
                       <span className="text-gray-600 dark:text-gray-300">{orderSuccess.quartier}</span>
                     </p>
-                    <p className="text-xs text-gray-500">💳 Paiement à la livraison </p>
+                    <p className="text-xs text-gray-500">Paiement à la livraison </p>
                     {orderSuccess.email && orderSuccess.emailSent && (
                       <p className="text-xs text-green-600 mt-1">
-                        ✉️ Email de confirmation envoyé à {orderSuccess.email}
+                        Email de confirmation envoyé à {orderSuccess.email}
                       </p>
                     )}
                     {orderSuccess.email && !orderSuccess.emailSent && (
@@ -448,7 +448,7 @@ const Popup = memo(({ orderPopup, setOrderPopup, selectedProduct }) => {
               {/* Récapitulatif du panier */}
               {isCartOrder && cartItems.length > 0 && (
                 <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg max-h-60 overflow-y-auto">
-                  <h3 className="font-semibold text-sm mb-2">🛒 Votre panier :</h3>
+                  <h3 className="font-semibold text-sm mb-2">Votre panier :</h3>
                   {cartItems.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-2 py-2 border-b dark:border-gray-700 text-sm">
                       <img src={item.img} alt={item.title} className="w-10 h-10 object-cover rounded" />

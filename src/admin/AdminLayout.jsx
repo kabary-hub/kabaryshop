@@ -21,6 +21,7 @@ import {
   History as HistoryIcon,
   Wrench
 } from 'lucide-react';
+import LogoutConfirmModal from '../components/ConfirmModal/LogoutConfirmModal';
 import {
   getAdminAlerts,
   markAllAlertsRead,
@@ -28,6 +29,7 @@ import {
 } from '../utils/notifications';
 import { logActivity } from '../utils/history';
 import { logoutComplete } from '../utils/auth';
+import { showToast } from '../utils/toast';
 import { useSettings } from '../context/SettingsContext';
 import {
   getShopOrdersMigrationReport,
@@ -42,6 +44,7 @@ const AdminLayout = () => {
   // Bandeau « commandes réparées par la migration » (présent uniquement si la
   // migration shop_orders a réellement corrigé des données sur cet appareil)
   const [migrationReport, setMigrationReport] = useState(() => getShopOrdersMigrationReport());
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
   // Rafraîchir les alertes quand une nouvelle arrive (cloche admin)
@@ -148,7 +151,17 @@ const AdminLayout = () => {
     // Déconnexion COMPLÈTE : supprime toutes les clés de session
     // (localStorage + sessionStorage) pour que la reconnexion soit obligatoire
     logoutComplete();
+    showToast('Vous avez été déconnecté.', 'success');
     window.location.href = '/admin/login';
+  };
+
+  const openLogoutConfirm = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    handleLogout();
   };
 
   return (
@@ -188,9 +201,12 @@ const AdminLayout = () => {
                 )}
               </button>
               {alertsOpen && (
-                <div className="admin-alerts-panel absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden">
+                <div className="admin-alerts-panel absolute right-0 top-full z-50 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700"
+                  style={{ maxHeight: 'calc(100vh - 2rem)', overflow: 'auto' }}>
                   <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                    <p className="font-semibold text-sm text-gray-800 dark:text-white">Notifications</p>
+                    <p className="font-semibold text-sm text-gray-800 dark:text-white">Notifications
+                      {alerts.length > 5 && ` (${alerts.length})`}
+                    </p>
                     {unreadCount > 0 && (
                       <button
                         onClick={() => { markAllAlertsRead(); setAlerts(getAdminAlerts()); }}
@@ -200,11 +216,11 @@ const AdminLayout = () => {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-[calc(100vh - 12rem)] overflow-y-auto">
                     {alerts.length === 0 ? (
                       <p className="text-center text-gray-400 text-sm py-8">Aucune notification</p>
                     ) : (
-                      alerts.map((alert) => (
+                      alerts.slice(0, 5).map((alert) => (
                         <button
                           key={alert.id}
                           onClick={() => handleAlertClick(alert)}
@@ -221,6 +237,17 @@ const AdminLayout = () => {
                       ))
                     )}
                   </div>
+                  {alerts.length > 5 && (
+                    <div className="border-t dark:border-gray-700 px-4 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setAlerts(getAdminAlerts())}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Voir toutes les notifications ({alerts.length})
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -274,14 +301,22 @@ const AdminLayout = () => {
               </NavLink>
             ))}
             <button
-              onClick={handleLogout}
+              onClick={openLogoutConfirm}
               className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition"
             >
               <LogOut size={18} />
               Déconnexion
             </button>
-          </div>
-        </nav>
+          </div>          </nav
+        >
+
+        {/* Modale de confirmation de déconnexion */}
+        <LogoutConfirmModal
+          open={showLogoutConfirm}
+          user={JSON.parse(localStorage.getItem('current_admin_user') || 'null')}
+          onConfirmLogout={confirmLogout}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
       </aside>
 
       {/* Contenu principal */}
@@ -309,11 +344,13 @@ const AdminLayout = () => {
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
-              </button>
-              {alertsOpen && (
-                <div className="admin-alerts-panel absolute right-0 top-10 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden">
+              </button>                {alertsOpen && (
+                <div className="admin-alerts-panel absolute right-0 top-full z-50 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700"
+                  style={{ maxHeight: 'calc(100vh - 2rem)', overflow: 'auto' }}>
                   <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                    <p className="font-semibold text-sm">Notifications</p>
+                    <p className="font-semibold text-sm">Notifications
+                      {alerts.length > 5 && ` (${alerts.length})`}
+                    </p>
                     {unreadCount > 0 && (
                       <button
                         onClick={() => { markAllAlertsRead(); setAlerts(getAdminAlerts()); }}
@@ -323,11 +360,11 @@ const AdminLayout = () => {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-[calc(100vh - 12rem)] overflow-y-auto">
                     {alerts.length === 0 ? (
                       <p className="text-center text-gray-400 text-sm py-8">Aucune notification</p>
                     ) : (
-                      alerts.map((alert) => (
+                      alerts.slice(0, 5).map((alert) => (
                         <button
                           key={alert.id}
                           onClick={() => handleAlertClick(alert)}
@@ -344,6 +381,17 @@ const AdminLayout = () => {
                       ))
                     )}
                   </div>
+                  {alerts.length > 5 && (
+                    <div className="border-t dark:border-gray-700 px-4 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setAlerts(getAdminAlerts())}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Voir toutes les notifications ({alerts.length})
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

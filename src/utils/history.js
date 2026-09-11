@@ -8,16 +8,18 @@ const HISTORY_KEY = "site_history";
 const MAX_ENTRIES = 2000;
 
 // Types d'activité enregistrés
+// Les icônes sont exprimées sous forme de nom Lucide pour éviter les
+// stickers emoji dans le code et les templates d'administration.
 export const HISTORY_TYPES = {
-  page: { label: "Pages", icon: "👁️", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-  auth: { label: "Connexions", icon: "🔐", color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-  user: { label: "Utilisateurs & rôles", icon: "👥", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
-  order: { label: "Commandes", icon: "🛒", color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
-  product: { label: "Produits", icon: "📦", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
-  review: { label: "Avis", icon: "⭐", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-  category: { label: "Catégories", icon: "🗂️", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" },
-  subscriber: { label: "Abonnés", icon: "📧", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" },
-  settings: { label: "Paramètres", icon: "⚙️", color: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" },
+  page: { label: "Pages", icon: "Eye", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  auth: { label: "Connexions", icon: "ShieldCheck", color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  user: { label: "Utilisateurs & rôles", icon: "Users", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+  order: { label: "Commandes", icon: "ShoppingCart", color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  product: { label: "Produits", icon: "Package", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
+  review: { label: "Avis", icon: "Star", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+  category: { label: "Catégories", icon: "Tags", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" },
+  subscriber: { label: "Abonnés", icon: "Mail", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" },
+  settings: { label: "Paramètres", icon: "Settings", color: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" },
 };
 
 // Lis les paramètres sans dépendre du contexte React (pour l'acteur par défaut)
@@ -69,23 +71,18 @@ export const logActivity = ({
     localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_ENTRIES)));
     window.dispatchEvent(new Event("historyUpdated"));
     window.dispatchEvent(new Event("storage"));
-    // Journal distant (append-only) : les activités des visiteurs/clients
-    // (visites de pages, abonnements, commandes…) sont ajoutées pour que
-    // l'admin les retrouve dans Historiques, même si elles proviennent d'un
-    // autre appareil. Les actions admin/staff, elles, continuent de se
-    // synchroniser via la clé « site_history » (compte connecté requis).
-    const role = String(entry.actor?.role || "");
-    const isVisitorActivity =
-      role === "public" || role === "Client" || entry.actor?.name === "Visiteur";
-    if (isVisitorActivity) {
-      // Import dynamique : évite de charger supabase-js dans le bundle initial
-      // (la synchronisation reste lazy, cf. SyncProvider).
-      import("../services/db")
-        .then(({ appendActivity }) => appendActivity(entry))
-        .catch(() => {
-          // journal distant indisponible : l'activité reste dans le localStorage
-        });
-    }
+    // Journal distant (append-only) : toutes les activités sont envoyées
+    // vers Supabase site_activity afin qu'elles soient disponibles depuis
+    // n'importe quel appareil connecté (admin/staff). Les activités des
+    // visiteurs/clients ainsi que celles des admin/staff passent par le
+    // même canal ; seules les données locales diffèrent.
+    // Import dynamique : évite de charger supabase-js dans le bundle initial
+    // (la synchronisation reste lazy, cf. SyncProvider).
+    import("../services/db")
+      .then(({ appendActivity }) => appendActivity(entry))
+      .catch(() => {
+        // journal distant indisponible : l'activité reste dans le localStorage
+      });
     return entry;
   } catch {
     // stockage indisponible : on ignore (le journal ne doit jamais faire planter le site)

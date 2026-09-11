@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, CheckCircle, XCircle, Clock, MoreVertical, Package, Truck, AlertCircle, User, Calendar, CreditCard, MapPin, Phone, Mail, Search, Users, UserCheck, LogOut, Filter, ChevronDown, ArrowUpDown, Camera, Banknote, Shield, StickyNote, Lightbulb, Archive, Hourglass, Download } from 'lucide-react';
 import { logActivity } from '../utils/history';
@@ -191,8 +191,8 @@ const Orders = () => {
       // Nettoyer l'URL pour ne pas rouvrir la modale à chaque re-rendu
       setSearchParams({}, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit s'exécuter qu'à l'arrivée sur la page
-  }, [orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit s'exécuter qu'une fois à l'arrivée
+  }, [orders, searchParams]);
 
   // ==================== LOG DES ACTIONS ====================
   const addActionLog = (orderId, action, details) => {
@@ -228,6 +228,7 @@ const Orders = () => {
   // ==================== CHARGEMENT DES COMMANDES ====================
   useEffect(() => {
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadOrders est stable à l'initialisation
   }, []);
 
 

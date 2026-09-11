@@ -25,7 +25,13 @@ import {
   Mail,
   RefreshCw,
   AlertCircle,
+  ShoppingCart,
+  Package,
+  Star,
+  Tags,
+  Settings,
 } from "lucide-react";
+
 import {
   getHistory,
   clearHistory,
@@ -42,15 +48,24 @@ import {
 } from "../services/db";
 import {
   getLogsFiltered,
-  getLogEntry,
   clearLogs,
   EMAIL_TYPES,
   EMAIL_LOG_MAX_ENTRIES,
 } from "../services/emailLogService";
-import {
-  exportEmailsCSV,
-  BOM,
-} from "../utils/exportUtils";
+import { BOM } from "../utils/exportUtils";
+
+const LucideIconMap = {
+  ShieldCheck,
+  Users,
+  ShoppingCart,
+  Package,
+  Star,
+  Tags,
+  Mail,
+  Settings,
+  Eye,
+  default: HistoryIcon,
+};
 
 const PERIODS = [
   { key: "all", label: "Tout" },
@@ -77,11 +92,12 @@ const inPeriod = (iso, period) => {
 // Badge d'un type d'activité
 const TypeBadge = ({ type }) => {
   const meta = HISTORY_TYPES[type] || HISTORY_TYPES.page;
+  const LucideIcon = LucideIconMap[meta.icon] || HistoryIcon;
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${meta.color}`}
     >
-      <span>{meta.icon}</span>
+      <LucideIcon size={12} />
       {meta.label}
     </span>
   );
@@ -435,11 +451,14 @@ const History = () => {
                 className="px-3 py-2 border rounded-lg dark:bg-gray-900 text-sm"
               >
                 <option value="all">Tous les types</option>
-                {Object.entries(HISTORY_TYPES).map(([key, meta]) => (
-                  <option key={key} value={key}>
-                    {meta.icon} {meta.label}
-                  </option>
-                ))}
+                {Object.entries(HISTORY_TYPES).map(([key, meta]) => {
+                  const Icon = LucideIconMap[meta.icon] || LucideIconMap.default;
+                  return (
+                    <option key={key} value={key}>
+                      {meta.label}
+                    </option>
+                  );
+                })}
               </select>
               <select
                 value={actorFilter}

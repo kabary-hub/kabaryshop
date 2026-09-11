@@ -46,12 +46,12 @@ const HeroCard = ({ hero, title, description, handleOrder, priority = false }) =
               decoding="async"
               fetchPriority={priority ? "high" : "auto"}
               onError={(e) => { e.target.style.display = "none"; }}
-              className="w-44 h-44 sm:w-112.5 sm:h-112.5 sm:scale-125 lg:scale-120 object-contain mx-auto"
+              className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 object-contain mx-auto"
             />
           ) : (
             /* Aucune image fournie (publication personnalisée sans image) :
                pastille décorative pour garder une mise en page équilibrée */
-            <div className="w-44 h-44 sm:w-112.5 sm:h-112.5 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 mx-auto" />
+            <div className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 mx-auto" />
           )}
         </div>
       </div>

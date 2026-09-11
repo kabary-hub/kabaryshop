@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { normalizePhone, formatPhone, toWhatsAppNumber } from "../utils/phone";
 import { getSiteName, getSiteLogo, getSiteContacts } from "../utils/emailService";
+import { DEFAULT_SITE_LOGO_URL } from "../utils/siteConfig";
 
 // État lisible d'un statut de commande (cohérent avec Orders.jsx)
 const STATUS_META = {
@@ -140,15 +141,15 @@ const CustomerHistory = ({ customer, orders = [], archivedOrders = [], onClose }
     // document imprimé (un chemin relatif ne se charge pas à l'impression).
     const siteLogo = getSiteLogo();
     // getSiteLogo() retourne déjà une URL absolue depuis emailService.js
-    const logoUrl = siteLogo || "https://kabaryshop.vercel.app/logo2.png";
+    const logoUrl = siteLogo || DEFAULT_SITE_LOGO_URL;
     const siteName = getSiteName();
     const contacts = getSiteContacts();
 
     // Lignes de contact du site (seulement si renseignées)
     const siteContactLines = [
-      contacts.phone && `📞 ${escapeHtml(contacts.phone)}`,
-      contacts.email && `✉️ ${escapeHtml(contacts.email)}`,
-      contacts.address && `📍 ${escapeHtml(contacts.address)}`,
+      contacts.phone && `Téléphone : ${escapeHtml(contacts.phone)}`,
+      contacts.email && `Email : ${escapeHtml(contacts.email)}`,
+      contacts.address && `Adresse : ${escapeHtml(contacts.address)}`,
     ].filter(Boolean);
 
     // Génère un document propre dans une fenêtre dédiée → impression
@@ -201,9 +202,9 @@ const CustomerHistory = ({ customer, orders = [], archivedOrders = [], onClose }
     <h2>Fiche client</h2>
     <div class="infos">
       <strong>${escapeHtml(contact.name || "—")}</strong><br/>
-      📞 ${escapeHtml(formatPhone(contact.phone) || "—")}${
-      contact.email ? `<br/>✉️ ${escapeHtml(contact.email)}` : ""
-    }${contact.address ? `<br/>📍 ${escapeHtml(contact.address)}` : ""}
+      ${escapeHtml(formatPhone(contact.phone) || "—")}${
+      contact.email ? `<br/>Email : ${escapeHtml(contact.email)}` : ""
+    }${contact.address ? `<br/>Adresse : ${escapeHtml(contact.address)}` : ""}
     </div>
     <h2>Historique des achats (${customerOrders.length} commande(s))</h2>
     <table>

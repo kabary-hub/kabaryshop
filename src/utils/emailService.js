@@ -16,18 +16,46 @@
 //   VITE_SEND_KEY      : clé partagée (optionnelle, si SEND_API_KEY est
 //                        configurée côté Vercel)
 
+// Mapping catalogue → URL publique ImgBB.
+// Ce fichier est généré par le script d'upload.
+// S'il n'existe pas encore, on utilise un mapping vide pour que le module
+// ne plante pas à l'initialisation.
 import { PUBLIC_PRODUCT_IMAGES } from "./productPublicImages.js";
+
+const safePublicProductImages =
+  typeof PUBLIC_PRODUCT_IMAGES === "object" && PUBLIC_PRODUCT_IMAGES !== null
+    ? PUBLIC_PRODUCT_IMAGES
+    : {};
+
+// Origine PUBLIQUE du site, utilisée pour rendre les URLs absolues dans les
+// emails et les liens envoyés hors du navigateur (emails, rapports, etc.).
+// On n'utilise JAMAIS window.location.origin pour les emails envoyés côté
+// client si le site n'est pas encore déployé : dans ce cas là on retombe sur
+// une origine par défaut explicite, sinon les chemins d'images/logos sont morts.
+// VITE_BASE_URL (optionnel) permet de pointer vers le domaine final de production.
+const getPublicOrigin = () => {
+  const env = import.meta.env?.VITE_BASE_URL;
+  if (env && env.trim()) return env.trim().replace(/\/+$/, "");
+  // Fallback par défaut : précise bien que c'est un fallback et non l'URL finale.
+  return "https://kabaryshop.vercel.app";
+};
+
+// Transforme une URL éventuellement relative (« /logo2.png ») en URL absolue
+// : indispensable dans les emails, car les messageries (Gmail, Outlook…) ne
+// peuvent pas résoudre un chemin relatif.
+const toAbsoluteUrl = (url) => {
+  if (!url) return "";
+  if (/^(https?:)?\/\//i.test(url)) return url; // déjà absolue
+  if (url.startsWith("/")) {
+    return `${getPublicOrigin().replace(/\/$/, "")}${url}`;
+  }
+  return url;
+};
 
 // Fallback publique garanti pour les images envoyées par email.
 // Logo du site, utilisable aussi comme fallback produit quand l'image est absente.
-const DEFAULT_SITE_LOGO = "https://kabaryshop.vercel.app/logo2.png";
-const DEFAULT_PRODUCT_IMAGE = "https://kabaryshop.vercel.app/logo2.png";
-
-// Table de correspondance « categorie/fichier » → URL publique (ImgBB) pour
-// les images du catalogue par défaut. Généré par scripts/upload-catalog-images.mjs.
-// En développement, les produits portent un chemin local (« /src/assets/… »)
-// que Gmail/Outlook ne peuvent pas charger : on substitue ici l'URL publique
-// équivalente pour que les VRAIES photos produit apparaissent dans les emails.
+const DEFAULT_SITE_LOGO = getPublicOrigin() + "/logo2.png";
+const DEFAULT_PRODUCT_IMAGE = getPublicOrigin() + "/logo2.png";
 
 // Retrouve l'URL publique d'une image catalogue à partir de son chemin.
 // Accepte « /src/assets/<cat>/<fichier> », « <cat>/<fichier> » et les
@@ -39,7 +67,7 @@ const toPublicProductImageUrl = (url) => {
   const folder = decodeURIComponent(m[1]).toLowerCase();
   const file = decodeURIComponent(m[2]).toLowerCase();
   const base = file.replace(/\.[a-z0-9]+$/i, "");
-  const keys = Object.keys(PUBLIC_PRODUCT_IMAGES);
+  const keys = Object.keys(safePublicProductImages);
   // 1) clé exacte « cat/fichier.ext » (casse ignorée)
   let hit = keys.find((k) => {
     const i = k.toLowerCase().indexOf("/");
@@ -50,8 +78,8 @@ const toPublicProductImageUrl = (url) => {
     );
   });
   // 2) même base de nom avec une autre extension (jpg ↔ webp…)
-  if (!hit) {
-    hit = keys.find((k) => {
+  if (!hitA) {
+    hitA = keys.find((k) => {
       const i = k.toLowerCase().indexOf("/");
       return (
         i > 0 &&
@@ -60,7 +88,7 @@ const toPublicProductImageUrl = (url) => {
       );
     });
   }
-  return hit ? PUBLIC_PRODUCT_IMAGES[hit] : url;
+  return hitA ? (safePublicProductImages[hitA] || hitA) : url;
 };
 
 // ---------------------------------------------------------------------------
@@ -86,15 +114,16 @@ export const getSiteName = () => {
 
 // Logo du site (URL d'image, lu depuis les paramètres stockés).
 // Utilisé dans le bandeau de TOUS les emails envoyés par le site.
+// Si le paramètre est vide/relatif, on retourne l'URL absolue correspondante.
 export const getSiteLogo = () => {
   try {
     const s = JSON.parse(localStorage.getItem("kabary_settings") || "{}");
     const raw = s.siteLogo || "";
     // Les emails ont besoin d'une URL absolue ; on résout les chemins relatifs
     // (ex : "/logo2.png") vers l'origine du site déployé.
-    return toAbsoluteUrl(raw);
+    return toAbsoluteUrl(raw || "/logo2.png");
   } catch {
-    return "";
+    return toAbsoluteUrl("/logo2.png");
   }
 };
 
@@ -113,26 +142,6 @@ export const getSiteContacts = () => {
   }
 };
 
-// Origine PUBLIQUE du site, utilisée pour rendre les URLs absolues dans les
-// emails. On n'utilise JAMAIS window.location.origin : une commande passée
-// depuis le serveur de dev (http://localhost:5173) produirait des URLs
-// d'images inchargeables par Gmail/Outlook. VITE_BASE_URL (optionnel) permet
-// de pointer vers le domaine final (ex. https://kabaryshop.com).
-const getPublicOrigin = () =>
-  import.meta.env?.VITE_BASE_URL || "https://kabaryshop.vercel.app";
-
-// Transforme une URL éventuellement relative (« /logo2.png ») en URL absolue
-// : indispensable dans les emails, car les messageries (Gmail, Outlook…) ne
-// peuvent pas résoudre un chemin relatif.
-const toAbsoluteUrl = (url) => {
-  if (!url) return "";
-  if (/^(https?:)?\/\//i.test(url)) return url; // déjà absolue
-  if (url.startsWith("/")) {
-    return `${getPublicOrigin().replace(/\/$/, "")}${url}`;
-  }
-  return url;
-};
-
 // Produit à son URL d’image absolue, en acceptant plusieurs formes de stockage
 // (principal : img, champs historiques : url/image, ou première image de galerie).
 export const getProductImageUrl = (product) => {
@@ -143,7 +152,9 @@ export const getProductImageUrl = (product) => {
     product.image ||
     (Array.isArray(product.images) ? product.images[0] : "") ||
     "";
-  return toAbsoluteUrl(raw);
+  // Si le produit n'a pas d'image, on retourne l'URL publique du logo
+  // du site, et non un chemin local qui ne serait pas chargé par Gmail.
+  return toAbsoluteUrl(raw || "/logo2.png");
 };
 
 // Email de l'administrateur (réception des alertes).
@@ -155,6 +166,17 @@ export const getAdminEmail = () => {
     return s.adminEmail || s.siteEmail || "";
   } catch {
     return "";
+  }
+};
+
+// Journal d'envoi optionnel (voir emailLogService).
+// Import dynamique uniquement au moment de l'envoi, pour que le module
+// de base ne plante pas si ce service est temporairement indisponible.
+const _emailLogApi = () => {
+  try {
+    return import("../services/emailLogService.js");
+  } catch {
+    return null;
   }
 };
 
@@ -186,39 +208,36 @@ export const sendEmail = async ({
       },
       body: JSON.stringify({ to, toName, fromName, subject, html }),
     });
-    // Lire d'abord comme texte pour conserver le message d'erreur exact,
-    // même si le serveur renvoie du HTML (page d'erreur Vercel) au lieu de JSON.
+
     const rawBody = await response.text().catch(() => "");
     let data = {};
     try { data = JSON.parse(rawBody); } catch { /* non-JSON */ }
-    if (!response.ok) {
-      // Extraire un message lisible depuis la réponse brute si ce n'est pas du JSON.
-      const detail = data.message
-        || (rawBody && !rawBody.startsWith("{")
-          ? rawBody.replace(/<[^>]*>/g, "").slice(0, 300)  // strip HTML tags
-          : "")
-        || `La fonction d'envoi a répondu (${response.status}).`;
-      // Ajouter un conseil pour les erreurs 500 (config Resend/Vercel).
-      const hint = response.status >= 500
-        ? " Vérifiez la configuration RESEND_API_KEY et EMAIL_FROM sur Vercel."
-        : "";
-      console.error(`[Email] Erreur HTTP ${response.status}:`, detail);
-      return {
-        ok: false,
-        message: `${detail}${hint}`.trim(),
-      };
-    }
-    console.log(`[Email] Succès:`, data.message, data.id);
 
+    if (!response.ok) {
+      const detail =
+        data.message ||
+        (rawBody && !rawBody.startsWith("{")
+          ? rawBody.replace(/<[^>]*>/g, "").slice(0, 300)
+          : "") ||
+        `La fonction d'envoi a répondu (${response.status}).`;
+      const hint =
+        response.status >= 500
+          ? " Vérifiez la configuration RESEND_API_KEY et EMAIL_FROM sur Vercel."
+          : "";
+
+      console.error(`[Email] Erreur HTTP ${response.status}:`, detail);
+      return { ok: false, message: `${detail}${hint}`.trim() };
+    }
+
+    console.log(`[Email] Succès:`, data.message, data.id);
     const result = { ok: true, message: data.message || "Email envoyé", id: data.id };
 
-    // Journal de l'envoi (voir emailLogService) : trace de chaque email envoyé.
     try {
-      const { logSend } = await import('../services/emailLogService.js');
-      logSend({ to, toName, fromName, subject, html }, result);
-    } catch {
-      // journal indisponible : on continue sans trace locale
-    }
+      const emailLogModule = _emailLogApi();
+      if (emailLogModule && emailLogModule.logSend) {
+        emailLogModule.logSend({ to, toName, fromName, subject, html }, result);
+      }
+    } catch {}
 
     return result;
   } catch (err) {
@@ -227,15 +246,18 @@ export const sendEmail = async ({
       ok: false,
       message: `Impossible de joindre la fonction d'envoi (${err.message || err}). Vérifiez que le site est déployé sur Vercel ou que VITE_EMAIL_API_URL est correcte.`,
     };
+
     try {
-      const { logSend } = await import('../services/emailLogService.js');
-      logSend({ to, toName, fromName, subject, html }, result);
-    } catch {
-      // journal indisponible
-    }
+      const emailLogModule = _emailLogApi();
+      if (emailLogModule && emailLogModule.logSend) {
+        emailLogModule.logSend({ to, toName, fromName, subject, html }, result);
+      }
+    } catch {}
+
     return result;
   }
 };
+
 
 // ---------------------------------------------------------------------------
 // Petits utilitaires de template
@@ -288,9 +310,9 @@ const emailLayout = ({ siteName, preheader, contentHtml, siteLogoFallback }) => 
   const contacts = getSiteContacts();
   // Lignes de contact affichées sous le nom du site (seulement si renseignées).
   const contactLines = [
-    contacts.phone && `📞 ${escapeHtml(contacts.phone)}`,
-    contacts.email && `✉️ ${escapeHtml(contacts.email)}`,
-    contacts.address && `📍 ${escapeHtml(contacts.address)}`,
+    contacts.phone && `Téléphone : ${escapeHtml(contacts.phone)}`,
+    contacts.email && `Email : ${escapeHtml(contacts.email)}`,
+    contacts.address && `Adresse : ${escapeHtml(contacts.address)}`,
   ].filter(Boolean);
   const contactsHtml = contactLines.length
     ? `<p style="margin:6px 0 0;color:#cbd5e1;font-size:11px;line-height:1.7;letter-spacing:0.2px;">${contactLines.join("<br/>")}</p>`
@@ -356,8 +378,8 @@ const infoBox = ({ bg = "#f0f9ff", border = "#bae6fd", color = "#0369a1", html }
 export const buildNewsletterConfirmationEmail = ({ siteName, email }) => {
   const contentHtml = `
     <p style="margin:0 0 14px;color:#334155;font-size:15px;">Bonjour,</p>
-    <p style="margin:0 0 14px;color:#475569;font-size:14px;line-height:1.6;">
-      Votre inscription à la newsletter de <strong>${escapeHtml(siteName)}</strong> est confirmée ✅
+    <p style="margin:0 0 14px;color:#475569;font-size:14px;line-height:1.6;">       Votre inscription à la newsletter de <strong>${escapeHtml(siteName)}</strong> est confirmée.
+
     </p>
     ${infoBox({
       bg: "#f0fdf4",
@@ -417,10 +439,14 @@ export const buildNewArrivalEmail = ({
     </p>
   `;
   return emailLayout({
-    siteName,
-    preheader: `Nouveau produit : ${title}`,
+    siteName,      preheader: `Nouveau produit : ${title}`,
     contentHtml,
   });
+};
+
+// Icônes légères utilisées dans les blocs d'information des emails
+const EmailInfoIcon = (label) => {
+  return `<span style="color:#64748b;font-size:13px;">${escapeHtml(label)}</span>`;
 };
 
 // ---------------------------------------------------------------------------
@@ -438,11 +464,12 @@ export const buildOrderConfirmationEmail = ({
   // URL absolue vers la page de suivi de commande.
   // Les emails ne peuvent pas résoudre des chemins relatifs : on construit
   // l'URL complète à partir de l'origine du site (déployé sur Vercel).
+  // Le lien est généré dynamiquement avec l'origine publique + /track-order?ref=<référence>.
   const trackUrl = `${toAbsoluteUrl('/track-order')}?ref=${encodeURIComponent(orderRef || '')}`;
 
   const contentHtml = `
     <p style="margin:0 0 14px;color:#334155;font-size:15px;">
-      Bonjour ${escapeHtml(customerName || "cher client")}, merci pour votre commande ! 🎉
+      Bonjour ${escapeHtml(customerName || "cher client")}, merci pour votre commande !
     </p>
     ${infoBox({
       html: `Commande : <strong>${escapeHtml(orderRef || "")}</strong><br/>Passée le : ${escapeHtml(orderDate || "")}`,
@@ -455,7 +482,7 @@ export const buildOrderConfirmationEmail = ({
         <td style="padding:12px 16px;background-color:#f8fafc;border-top:2px solid #e2e8f0;font-size:15px;font-weight:bold;color:#16a34a;text-align:right;">${escapeHtml(totalLabel)}</td>
       </tr>
     </table>
-    ${address ? infoBox({ bg: "#fefce8", border: "#fde68a", color: "#854d0e", html: `📍 Livraison : <strong>${escapeHtml(address)}</strong>` }) : ""}
+    ${address ? infoBox({ bg: "#fefce8", border: "#fde68a", color: "#854d0e", html: `Livraison : <strong>${escapeHtml(address)}</strong>` }) : ""}
     <p style="margin:0 0 14px;color:#475569;font-size:14px;line-height:1.6;">
       Notre équipe prépare votre commande et vous contactera très vite pour la livraison.
     </p>
@@ -524,7 +551,7 @@ export const buildShippingAssignmentEmail = ({
     <p style="margin:0 0 14px;color:#475569;font-size:14px;line-height:1.6;">
       Une commande vient de vous être assignée pour la <strong>préparation / l'expédition</strong>. Voici tous les détails :
     </p>
-    ${infoBox({ html: `📦 Commande : <strong>${escapeHtml(ref)}</strong>` })}
+    ${infoBox({ html: `Commande : <strong>${escapeHtml(ref)}</strong>` })}
     <p style="margin:0 0 8px;color:#0f172a;font-size:14px;font-weight:bold;">Articles :</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:8px 0 14px;">
       ${itemsHtml}
@@ -534,9 +561,9 @@ export const buildShippingAssignmentEmail = ({
       </tr>
     </table>
     ${infoBox({
-      html: `👤 Client : <strong>${escapeHtml(customer.name || "")}</strong><br/>
-            📞 Téléphone : <strong>${escapeHtml(customer.phone || "")}</strong><br/>
-            📍 Adresse de livraison : <strong>${escapeHtml(customer.address || "")}</strong>`,
+      html: `Client : <strong>${escapeHtml(customer.name || "")}</strong><br/>
+            Téléphone : <strong>${escapeHtml(customer.phone || "")}</strong><br/>
+            Adresse de livraison : <strong>${escapeHtml(customer.address || "")}</strong>`,
     })}
     <p style="margin:0;color:#64748b;font-size:13px;">
       Merci de traiter cette commande dans les meilleurs délais.
@@ -552,7 +579,9 @@ export const buildShippingAssignmentEmail = ({
 // ---------------------------------------------------------------------------
 // Template : alerte admin (nouvelle commande, tests)
 // ---------------------------------------------------------------------------
-// Ce template affiche les images produits comme l'email de confirmation client.
+// Ce template est conçu pour être utilisé aussi bien par les notifications
+// navigateur qu'par les emails envoyés depuis la fonction Vercel → Resend.
+// Il affiche les images produits comme l'email de confirmation client.
 export const buildAdminAlertEmail = ({
   siteName,
   subject,
